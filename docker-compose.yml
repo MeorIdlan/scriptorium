@@ -1,24 +1,25 @@
 services:
-  backend:
-    build:
-      context: ./backend
+  server:
+    build: ./server
     ports:
       - "3001:3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=development
     volumes:
-      - ./backend:/app
-      - /app/node_modules
-      - ./data:/data
-    restart: unless-stopped
+      - ./server/src:/app/src
+      - ./server/data:/app/data
+    command: npm run dev
 
-  frontend:
-    build:
-      context: ./frontend
+  client:
+    build: ./client
     ports:
       - "5173:5173"
+    environment:
+      - VITE_API_URL=/api
     volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/index.html:/app/index.html
-      - /app/node_modules
+      - ./client/src:/app/src
+      - ./client/index.html:/app/index.html
+    command: npm run dev
     depends_on:
-      - backend
-    restart: unless-stopped
+      - server

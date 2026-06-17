@@ -1,0 +1,22 @@
+{
+  "name": "scriptorium-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "uuid": "^9.0.0",
+    "dotenv": "^16.4.5",
+    "@anthropic-ai/sdk": "^0.27.0",
+    "openai": "^4.52.0",
+    "pdfkit": "^0.15.0",
+    "nodepub": "^3.2.1",
+    "docx": "^8.5.0"
+  }
+}

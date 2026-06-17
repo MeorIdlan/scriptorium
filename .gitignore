@@ -1,5 +1,8 @@
 node_modules/
 dist/
-data/
+build/
+server/data/
+*.log
 .env
-.claude/
+.env.local
+.DS_Store
