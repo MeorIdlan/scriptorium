@@ -1,9 +1,11 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../utils/api.js';
+import { useAI } from '../hooks/useAI.js';
 import CharacterSheet from '../components/codex/CharacterSheet.jsx';
 import PlaceEntry from '../components/codex/PlaceEntry.jsx';
 import RuleDetail from '../components/codex/RuleDetail.jsx';
+import CodexAuditModal from '../components/overlays/CodexAuditModal.jsx';
 
 const TABS = [
   { id: 'characters', label: 'Characters' },
@@ -130,6 +132,8 @@ export default function CodexView() {
   const [activeTab, setActiveTab] = useState('characters');
   const [selectedId, setSelectedId] = useState(null);
   const [addModal, setAddModal] = useState(null);
+  const [auditResult, setAuditResult] = useState(null);
+  const { loading: aiLoading, error: aiError, call: aiCall, reset: aiReset } = useAI();
   const tabsRef = useRef(null);
   const indicatorRef = useRef(null);
   const tabMounted = useRef(false);
@@ -160,6 +164,13 @@ export default function CodexView() {
   }, [workId]);
 
   useEffect(() => { fetchCodex(); }, [fetchCodex]);
+
+  async function handleAudit() {
+    aiReset();
+    setAuditResult(null);
+    const data = await aiCall('codex-audit', { workId });
+    if (data) setAuditResult(data);
+  }
 
   async function handleAddConfirm(name) {
     const type = addModal;
@@ -327,7 +338,7 @@ export default function CodexView() {
         </div>
       </div>
 
-      {/* Right: flags panel */}
+      {/* Right: flags + AI panel */}
       <div className="codex-flags-col">
         <p className="codex-flags-title">Open Flags</p>
         {openFlags.length === 0 && (
@@ -341,6 +352,19 @@ export default function CodexView() {
             )}
           </div>
         ))}
+
+        <div className="codex-ai-section">
+          <p className="codex-ai-title">AI Assist</p>
+          <button
+            className="btn btn-ghost codex-ai-btn"
+            onClick={handleAudit}
+            disabled={aiLoading}
+            title="Analyse all characters, places, and world rules for completeness and consistency"
+          >
+            {aiLoading ? 'Auditing…' : '◈ Codex Audit'}
+          </button>
+          {aiError && <p className="codex-suggest-error">{aiError}</p>}
+        </div>
       </div>
 
       {addModal && addModal !== 'rule' && (
@@ -354,6 +378,13 @@ export default function CodexView() {
         <AddRuleModal
           onConfirm={handleAddRuleConfirm}
           onClose={() => setAddModal(null)}
+        />
+      )}
+
+      {auditResult && (
+        <CodexAuditModal
+          audit={auditResult}
+          onDismiss={() => setAuditResult(null)}
         />
       )}
     </div>

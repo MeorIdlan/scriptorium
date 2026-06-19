@@ -309,4 +309,167 @@ ${content.slice(0, 6000)}`,
   }
 });
 
+// POST /api/ai/codex-audit
+router.post('/codex-audit', async (req, res, next) => {
+  try {
+    const { workId } = req.body;
+    if (!workId) return next(httpError(400, 'MISSING_FIELD', 'workId is required'));
+
+    const codex = readJSON(`works/${workId}/codex.json`) || { characters: [], places: [], worldRules: [] };
+
+    const codexSummary = {
+      characters: (codex.characters || []).map((c) => ({
+        id: c.id,
+        name: c.name,
+        role: c.role,
+        aliases: c.aliases,
+        affiliations: c.affiliations,
+        notes: c.notes,
+        physical: c.physical,
+      })),
+      places: (codex.places || []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        notes: p.notes,
+      })),
+      worldRules: (codex.worldRules || []).map((r) => ({
+        id: r.id,
+        category: r.category,
+        rule: r.rule,
+        description: r.description,
+      })),
+    };
+
+    const totalEntries =
+      codexSummary.characters.length +
+      codexSummary.places.length +
+      codexSummary.worldRules.length;
+
+    if (totalEntries === 0) {
+      return res.json({
+        summary: 'Your codex is empty. Add some characters, places, or world rules to get started.',
+        findings: [],
+      });
+    }
+
+    const prompt = `You are auditing a fiction writer's Codex — the reference document that tracks characters, places, and world rules for their story.
+
+Codex contents:
+${JSON.stringify(codexSummary, null, 2)}
+
+Analyse the codex and return a structured audit with these goals:
+1. Flag incomplete or sparse entries that could use more detail
+2. Identify potential internal consistency issues or contradictions between entries
+3. Note characters or places that seem underdeveloped
+4. Suggest improvements or missing information that would strengthen the worldbuilding
+
+Return ONLY a JSON object:
+{
+  "summary": "2-3 sentence overall assessment of the codex",
+  "findings": [
+    {
+      "entityType": "character | place | worldRule | general",
+      "entityName": "name of the entry, or null for general findings",
+      "issue": "what needs attention",
+      "suggestion": "concrete suggestion for improvement"
+    }
+  ]
+}
+
+Limit findings to the 5-8 most impactful observations. Be specific and constructive.`;
+
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt, maxTokensOverride: 2000 });
+
+    let result;
+    try {
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      result = JSON.parse(jsonMatch ? jsonMatch[0] : raw.trim());
+    } catch {
+      return next(httpError(500, 'PARSE_ERROR', 'AI returned invalid JSON for codex audit'));
+    }
+
+    res.json(result);
+  } catch (err) {
+    handleLlmError(err, next);
+  }
+});
+
+// POST /api/ai/codex-suggest
+router.post('/codex-suggest', async (req, res, next) => {
+  try {
+    const { entityType, entity } = req.body;
+    if (!entityType || !entity) {
+      return next(httpError(400, 'MISSING_FIELD', 'entityType and entity are required'));
+    }
+
+    const prompts = {
+      character: `Suggest improvements and expansions for this character in a fiction writer's codex.
+
+Character data:
+${JSON.stringify(entity, null, 2)}
+
+Focus on: missing backstory elements, character arc potential, relationship dynamics, distinguishing traits, internal conflicts, and how this character's role shapes the story. Be specific about what's missing or underdeveloped.
+
+Return ONLY a JSON object:
+{
+  "suggestions": [
+    { "field": "optional field name this applies to (e.g. notes, backstory, arc)", "text": "specific suggestion" }
+  ]
+}
+
+Limit to 4-6 specific, actionable suggestions.`,
+
+      place: `Suggest improvements and expansions for this location in a fiction writer's codex.
+
+Place data:
+${JSON.stringify(entity, null, 2)}
+
+Focus on: atmosphere and sensory details, narrative function, unique characteristics, history or lore, and how characters might interact with or be shaped by this place. Be specific about what's missing.
+
+Return ONLY a JSON object:
+{
+  "suggestions": [
+    { "field": "optional field name this applies to (e.g. description, atmosphere, history)", "text": "specific suggestion" }
+  ]
+}
+
+Limit to 4-6 specific, actionable suggestions.`,
+
+      worldRule: `Suggest improvements and expansions for this world rule in a fiction writer's codex.
+
+Rule data:
+${JSON.stringify(entity, null, 2)}
+
+Focus on: implications and edge cases, how characters might exploit or be constrained by this rule, potential contradictions or loopholes, narrative opportunities this rule creates, and what would happen if this rule were violated.
+
+Return ONLY a JSON object:
+{
+  "suggestions": [
+    { "field": null, "text": "specific suggestion, implication, or edge case to explore" }
+  ]
+}
+
+Limit to 4-6 specific, actionable suggestions.`,
+    };
+
+    const prompt = prompts[entityType];
+    if (!prompt) return next(httpError(400, 'INVALID_TYPE', `Unknown entity type: ${entityType}`));
+
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt, maxTokensOverride: 1500 });
+
+    let result;
+    try {
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      result = JSON.parse(jsonMatch ? jsonMatch[0] : raw.trim());
+    } catch {
+      return next(httpError(500, 'PARSE_ERROR', 'AI returned invalid JSON for codex suggestions'));
+    }
+
+    res.json(result);
+  } catch (err) {
+    handleLlmError(err, next);
+  }
+});
+
 export default router;

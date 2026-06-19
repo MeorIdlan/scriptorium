@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { api } from '../../utils/api.js';
+import CodexSuggestPanel from './CodexSuggestPanel.jsx';
 
 const CATEGORIES = ['magic', 'politics', 'geography', 'society', 'other'];
 
@@ -160,6 +161,8 @@ export default function RuleDetail({ workId, rule, onUpdate }) {
           onSave={(v) => handleSave('establishedIn', v)}
         />
       </div>
+
+      <CodexSuggestPanel entityType="worldRule" entity={r} />
     </div>
   );
 }

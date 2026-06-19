@@ -134,6 +134,7 @@ export default function Settings() {
         activeProvider: settings.activeProvider,
         generation: settings.generation,
         providers: { ...settings.providers },
+        autoFeatures: settings.autoFeatures,
       };
       if (pendingApiKey && providerId) {
         payload.providers = {
@@ -259,6 +260,40 @@ export default function Settings() {
             temperature={settings?.generation?.temperature}
             onChange={setGenerationParam}
           />
+        </section>
+
+        <section className="settings-section">
+          <h2 className="settings-section-title">AI Behaviour</h2>
+          <div className="settings-field">
+            <label className="settings-label">Rekindler</label>
+            <p className="settings-description">
+              When you open a work with no saved session, the Rekindler uses AI to summarise where you left off.
+            </p>
+            <div className="settings-radio-group">
+              {[
+                { value: 'auto', label: 'Automatic', desc: 'Runs silently every time' },
+                { value: 'prompt', label: 'Ask me first', desc: 'Shows a prompt before running' },
+                { value: 'never', label: 'Never', desc: 'Disabled entirely' },
+              ].map(({ value, label, desc }) => (
+                <label key={value} className="settings-radio-option">
+                  <input
+                    type="radio"
+                    name="rekindler"
+                    value={value}
+                    checked={(settings?.autoFeatures?.rekindler ?? 'prompt') === value}
+                    onChange={() =>
+                      setSettings((s) => ({
+                        ...s,
+                        autoFeatures: { ...s.autoFeatures, rekindler: value },
+                      }))
+                    }
+                  />
+                  <span className="settings-radio-label">{label}</span>
+                  <span className="settings-radio-desc">{desc}</span>
+                </label>
+              ))}
+            </div>
+          </div>
         </section>
 
         <div className="settings-actions">

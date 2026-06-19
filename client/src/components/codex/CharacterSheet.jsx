@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '../../utils/api.js';
 import FlagList from './FlagList.jsx';
+import CodexSuggestPanel from './CodexSuggestPanel.jsx';
 
 function InlineField({ label, value, onSave }) {
   const [editing, setEditing] = useState(false);
@@ -152,6 +153,8 @@ export default function CharacterSheet({ workId, character, onUpdate, onFlagsCha
         entityId={char.id}
         onFlagsChange={onFlagsChange}
       />
+
+      <CodexSuggestPanel entityType="character" entity={char} />
     </div>
   );
 }

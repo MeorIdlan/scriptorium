@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useAI } from '../../hooks/useAI.js';
@@ -8,7 +9,7 @@ import DraftPolishModal from '../overlays/DraftPolishModal.jsx';
 import EditorReviewModal from '../overlays/EditorReviewModal.jsx';
 
 function RekindlerCard({ snapshot, onDismiss }) {
-  const previewText = snapshot?.summary || snapshot?.excerpt || 'No summary available.';
+  const previewText = snapshot?.summary || snapshot?.excerpt || snapshot?.lastScene || 'No summary available.';
   return (
     <div className="rekindler-card">
       <div className="rekindler-header">
@@ -16,12 +17,40 @@ function RekindlerCard({ snapshot, onDismiss }) {
         <button className="rekindler-dismiss" onClick={onDismiss}>✕</button>
       </div>
       <p className="rekindler-text">{previewText}</p>
+      {snapshot?.toneNote && <p className="rekindler-text rekindler-tone">{snapshot.toneNote}</p>}
       {snapshot?.lastSaved && (
         <p className="rekindler-time">
           {new Date(snapshot.lastSaved).toLocaleString()}
         </p>
       )}
     </div>
+  );
+}
+
+function RekindlerPromptModal({ onConfirm, onDismiss, loading }) {
+  return createPortal(
+    <div className="modal-backdrop">
+      <div className="modal rekindler-prompt-modal">
+        <div className="modal-header">
+          <span className="modal-title">Rekindle your session?</span>
+          <button className="modal-close" onClick={onDismiss}>✕</button>
+        </div>
+        <div className="modal-body">
+          <p className="rekindler-prompt-body">
+            You have no saved session for this work. Would you like the AI to summarise where you left off — the last scene, emotional tone, and character mood?
+          </p>
+        </div>
+        <div className="modal-footer rekindler-prompt-footer">
+          <button className="btn btn-ghost" onClick={onDismiss} disabled={loading}>
+            Not now
+          </button>
+          <button className="btn btn-primary" onClick={onConfirm} disabled={loading}>
+            {loading ? 'Rekindling…' : 'Yes, rekindle'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }
 
@@ -32,38 +61,77 @@ export default function QuillTab({ workId }) {
 
   const [snapshot, setSnapshot] = useState(null);
   const [showRekindler, setShowRekindler] = useState(false);
+  const [showRekindlerPrompt, setShowRekindlerPrompt] = useState(false);
+  const [rekindlerLoading, setRekindlerLoading] = useState(false);
   const [aiAction, setAiAction] = useState(null);
   const [polishedDraft, setPolishedDraft] = useState(null);
   const [editorReview, setEditorReview] = useState(null);
 
   useEffect(() => {
     if (!workId) return;
-    api.get(`/works/${workId}/sessions/latest`)
-      .then((data) => {
-        if (!data) return;
-        const savedAt = data.lastSaved ? new Date(data.lastSaved) : null;
+    const seenKey = `rekindler_seen_${workId}`;
+    if (sessionStorage.getItem(seenKey)) return;
+
+    let cancelled = false;
+
+    async function init() {
+      const [sessionResult, settingsResult] = await Promise.allSettled([
+        api.get(`/works/${workId}/sessions/latest`),
+        api.get('/settings'),
+      ]);
+
+      if (cancelled) return;
+
+      const rekindlerPref = settingsResult.value?.autoFeatures?.rekindler ?? 'prompt';
+
+      if (sessionResult.status === 'fulfilled' && sessionResult.value) {
+        const savedAt = sessionResult.value.lastSaved
+          ? new Date(sessionResult.value.lastSaved)
+          : null;
         const staleMinutes = savedAt
           ? (Date.now() - savedAt.getTime()) / 60000
           : Infinity;
         if (staleMinutes > 30) {
-          setSnapshot(data);
+          sessionStorage.setItem(seenKey, '1');
+          setSnapshot(sessionResult.value);
           setShowRekindler(true);
         }
-      })
-      .catch(() => {
-        // No session yet — attempt rekindler generation
-        if (workId) {
-          api.post(`/ai/rekindler`, { workId })
-            .then((data) => {
-              if (data) {
-                setSnapshot(data);
-                setShowRekindler(true);
-              }
-            })
-            .catch(() => {});
+      } else {
+        if (rekindlerPref === 'never') return;
+        sessionStorage.setItem(seenKey, '1');
+        if (rekindlerPref === 'auto') {
+          try {
+            const data = await api.post('/ai/rekindler', { workId });
+            if (!cancelled && data) {
+              setSnapshot(data);
+              setShowRekindler(true);
+            }
+          } catch {}
+        } else {
+          setShowRekindlerPrompt(true);
         }
-      });
+      }
+    }
+
+    init();
+    return () => { cancelled = true; };
   }, [workId]);
+
+  async function handleRekindlerConfirm() {
+    setRekindlerLoading(true);
+    try {
+      const data = await api.post('/ai/rekindler', { workId });
+      if (data) {
+        setSnapshot(data);
+        setShowRekindlerPrompt(false);
+        setShowRekindler(true);
+      }
+    } catch {
+      setShowRekindlerPrompt(false);
+    } finally {
+      setRekindlerLoading(false);
+    }
+  }
 
   async function handleAI(action, endpoint) {
     setAiAction(action);
@@ -99,6 +167,14 @@ export default function QuillTab({ workId }) {
 
   return (
     <div className="quill-tab">
+      {showRekindlerPrompt && (
+        <RekindlerPromptModal
+          onConfirm={handleRekindlerConfirm}
+          onDismiss={() => setShowRekindlerPrompt(false)}
+          loading={rekindlerLoading}
+        />
+      )}
+
       {showRekindler && snapshot && (
         <RekindlerCard snapshot={snapshot} onDismiss={() => setShowRekindler(false)} />
       )}
