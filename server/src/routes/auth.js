@@ -108,7 +108,7 @@ router.post('/logout', requireAuth({ allowPending: true }), async (req, res, nex
 });
 
 router.get('/me', requireAuth({ allowPending: true }), (req, res) => {
-  res.json({ id: req.user.id, email: req.user.email, scope: req.user.scope });
+  res.json({ id: req.user.id, email: req.user.email, scope: req.user.scope, isAdmin: req.user.isAdmin });
 });
 
 router.get('/passkeys', requireAuth(), async (req, res, next) => {

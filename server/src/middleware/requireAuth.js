@@ -23,7 +23,7 @@ export function requireAuth({ allowPending = false } = {}) {
         setSessionCookie(res, token, 'full');
       }
 
-      req.user = { id: user._id, email: user.email, scope: session.scope, sessionId: session.sessionId };
+      req.user = { id: user._id, email: user.email, scope: session.scope, sessionId: session.sessionId, isAdmin: user.isAdmin };
       next();
     } catch (err) {
       next(err);
