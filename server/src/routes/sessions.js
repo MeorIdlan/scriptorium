@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { readJSON, writeJSON, exists } from '../services/fileService.js';
+import Session from '../models/Session.js';
+import Work from '../models/Work.js';
 import { httpError } from '../middleware/errorHandler.js';
 
 const router = Router({ mergeParams: true });
@@ -9,30 +10,31 @@ function shortId() {
 }
 
 // GET /api/works/:workId/sessions/latest
-router.get('/latest', (req, res, next) => {
+router.get('/latest', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    if (!exists(`works/${workId}`)) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
-    const sessions = readJSON(`works/${workId}/sessions.json`) || [];
-    const latest = sessions.length > 0 ? sessions[sessions.length - 1] : null;
-    res.json(latest);
+    const latest = await Session.findOne({ workId }).sort({ startedAt: -1 });
+    res.json(latest || null);
   } catch (err) {
     next(err);
   }
 });
 
 // POST /api/works/:workId/sessions
-router.post('/', (req, res, next) => {
+router.post('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    if (!exists(`works/${workId}`)) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
     const { chapterId, wordsAtStart, rekindlerSnapshot } = req.body;
     const now = new Date().toISOString();
 
-    const session = {
-      id: `sess_${shortId()}`,
+    const session = await Session.create({
+      _id: `sess_${shortId()}`,
       workId,
       chapterId: chapterId || null,
       wordsAtStart: wordsAtStart || 0,
@@ -41,11 +43,7 @@ router.post('/', (req, res, next) => {
       rekindlerSnapshot: rekindlerSnapshot || null,
       startedAt: now,
       endedAt: null,
-    };
-
-    const sessions = readJSON(`works/${workId}/sessions.json`) || [];
-    sessions.push(session);
-    writeJSON(`works/${workId}/sessions.json`, sessions);
+    });
 
     res.status(201).json(session);
   } catch (err) {
@@ -54,36 +52,25 @@ router.post('/', (req, res, next) => {
 });
 
 // PUT /api/works/:workId/sessions/:sessionId/end
-router.put('/:sessionId/end', (req, res, next) => {
+router.put('/:sessionId/end', async (req, res, next) => {
   try {
     const { workId, sessionId } = req.params;
     const { wordsAtEnd } = req.body;
-
-    const sessions = readJSON(`works/${workId}/sessions.json`) || [];
-    const idx = sessions.findIndex((s) => s.id === sessionId);
-    if (idx === -1) return next(httpError(404, 'NOT_FOUND', 'Session not found'));
-
     const now = new Date().toISOString();
-    const wordsWritten = (wordsAtEnd || 0) - (sessions[idx].wordsAtStart || 0);
 
-    sessions[idx] = {
-      ...sessions[idx],
-      wordsAtEnd: wordsAtEnd || 0,
-      wordsWritten,
-      endedAt: now,
-    };
+    const session = await Session.findOne({ _id: sessionId, workId });
+    if (!session) return next(httpError(404, 'NOT_FOUND', 'Session not found'));
 
-    writeJSON(`works/${workId}/sessions.json`, sessions);
+    const wordsWritten = (wordsAtEnd || 0) - (session.wordsAtStart || 0);
+    const updated = await Session.findOneAndUpdate(
+      { _id: sessionId, workId },
+      { $set: { wordsAtEnd: wordsAtEnd || 0, wordsWritten, endedAt: now } },
+      { new: true }
+    );
 
-    // Update meta lastTouched
-    const meta = readJSON(`works/${workId}/meta.json`);
-    if (meta) {
-      meta.lastTouched = now;
-      meta.updatedAt = now;
-      writeJSON(`works/${workId}/meta.json`, meta);
-    }
+    await Work.findByIdAndUpdate(workId, { lastTouched: now, updatedAt: now });
 
-    res.json(sessions[idx]);
+    res.json(updated);
   } catch (err) {
     next(err);
   }
