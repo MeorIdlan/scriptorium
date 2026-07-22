@@ -4,24 +4,20 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { readJSON } from './fileService.js';
+import Work from '../models/Work.js';
+import Chapter from '../models/Chapter.js';
 
 export async function exportWork(workId, format, options = {}) {
-  const meta = readJSON(`works/${workId}/meta.json`);
+  const meta = await Work.findById(workId);
   if (!meta) {
     throw Object.assign(new Error('Work not found'), { status: 404, code: 'NOT_FOUND' });
   }
 
-  const chapterIndex = readJSON(`works/${workId}/chapters.json`) || [];
-  const chapters = chapterIndex
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    .map((entry) => {
-      const ch = readJSON(`works/${workId}/chapters/${entry.id}.json`);
-      return {
-        title: entry.title || ch?.title || 'Untitled',
-        content: ch?.content || '',
-      };
-    });
+  const chapterDocs = await Chapter.find({ workId }).sort({ order: 1 }).lean();
+  const chapters = chapterDocs.map((ch) => ({
+    title: ch.title || 'Untitled',
+    content: ch.content || '',
+  }));
 
   switch (format) {
     case 'pdf':

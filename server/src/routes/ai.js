@@ -1,5 +1,7 @@
 import { Router } from 'express';
-import { readJSON } from '../services/fileService.js';
+import Chapter from '../models/Chapter.js';
+import MapModel from '../models/Map.js';
+import Codex from '../models/Codex.js';
 import { complete } from '../services/llmService.js';
 import { httpError } from '../middleware/errorHandler.js';
 
@@ -117,8 +119,8 @@ router.post('/pacing', async (req, res, next) => {
     const { workId } = req.body;
     if (!workId) return next(httpError(400, 'MISSING_FIELD', 'workId is required'));
 
-    const chapters = readJSON(`works/${workId}/chapters.json`) || [];
-    const map = readJSON(`works/${workId}/map.json`) || {};
+    const chapters = await Chapter.find({ workId }).select('-content -draftHistory').sort({ order: 1 });
+    const map = (await MapModel.findOne({ workId }).lean()) || {};
 
     const chapterSummary = chapters.map((ch) => ({
       title: ch.title,
@@ -315,7 +317,7 @@ router.post('/codex-audit', async (req, res, next) => {
     const { workId } = req.body;
     if (!workId) return next(httpError(400, 'MISSING_FIELD', 'workId is required'));
 
-    const codex = readJSON(`works/${workId}/codex.json`) || { characters: [], places: [], worldRules: [] };
+    const codex = (await Codex.findOne({ workId }).lean()) || { characters: [], places: [], worldRules: [] };
 
     const codexSummary = {
       characters: (codex.characters || []).map((c) => ({
