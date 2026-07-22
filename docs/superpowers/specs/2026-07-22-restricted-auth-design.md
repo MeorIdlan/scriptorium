@@ -192,6 +192,25 @@ SESSION_TTL_DAYS=30
 - server: `@simplewebauthn/server`, `mailgun.js`, `form-data`, `cookie-parser`
 - client: `@simplewebauthn/browser`
 
+## Error handling & security notes
+
+- OTP codes are stored as SHA-256 hashes only, never plaintext; 10-minute TTL
+  via a Mongo TTL index.
+- Session tokens are random 32-byte values, stored hashed (never the raw
+  token). The `sid` cookie carrying the raw token is set with:
+  - `httpOnly: true` — inaccessible to client-side JS (`document.cookie`),
+    the primary defense against session theft via XSS.
+  - `sameSite: 'lax'` — not sent on cross-site requests.
+  - `secure`, gated by the `COOKIE_SECURE` env var (`true` in production
+    behind HTTPS, `false` for local HTTP dev).
+  - `path: '/'`, `maxAge` matching the session scope's TTL.
+- Auth errors are uniform 401s that don't leak whether an email exists,
+  except `recover`, which returns an explicit 404 for unknown/unverified
+  email (acceptable there since it's post-registration-approval, not a
+  public enumeration surface).
+- All existing `/api/*` routes except `/api/health` and `/api/auth/*`
+  require a `full` session.
+
 ## Client changes
 
 - `client/src/context/AuthContext.jsx` — holds `{ user, status }`
@@ -201,6 +220,9 @@ SESSION_TTL_DAYS=30
 - `client/src/utils/api.js` — add `credentials: 'include'` so the `sid`
   cookie is sent; on a 401 response, callers redirect to `/login` (handled
   in `AuthContext`, not inside `apiFetch` itself, to avoid a hard reload).
+  The `sid` cookie is `httpOnly` (see Security notes) — client code never
+  reads or stores it directly, `credentials: 'include'` just lets the
+  browser attach it automatically; auth state comes from `GET /api/auth/me`.
 - New pages under `client/src/pages/auth/`: `Login.jsx`, `Register.jsx`,
   `VerifyOtp.jsx`, `PasskeySetup.jsx`. Styled with the existing dark/gold
   theme in `index.css`, no new CSS system.
