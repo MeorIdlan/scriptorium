@@ -23,6 +23,7 @@ export async function startRegistration(name, email) {
       email: normalized,
       name,
       emailVerified: false,
+      isAdmin: normalized === process.env.ADMIN_EMAIL?.toLowerCase(),
       createdAt: new Date().toISOString(),
     }));
   if (existing && existing.name !== name) {
