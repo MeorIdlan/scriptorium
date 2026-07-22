@@ -14,8 +14,6 @@ Express/Mongoose stack. Once a second account exists, each user's works
 ## Non-goals
 
 - No password-based login, ever.
-- No passkey/device management UI beyond the one-time onboarding registration
-  (matches finance-tracker's scope — no "your devices" settings page).
 - No org/team sharing of works between users.
 - No change to the AI provider/system-prompt behavior beyond scoping settings
   per user.
@@ -79,7 +77,8 @@ sliding — renewed when less than half the TTL remains.
 ```
 userId: ObjectId
 action: String  ('auth.otp_requested' | 'auth.registered' |
-  'auth.recovery_started' | 'auth.login' | 'auth.logout' | 'passkey.added')
+  'auth.recovery_started' | 'auth.login' | 'auth.logout' | 'passkey.added' |
+  'passkey.removed')
 metadata: Mixed
 createdAt: Date
 ```
@@ -104,7 +103,12 @@ params.
 - `webauthnService.js` — wraps `@simplewebauthn/server`:
   `registrationOptions(userId, email)`, `verifyRegistration(userId, response, deviceLabel)`,
   `authenticationOptions(email)`, `verifyAuthentication(challengeId, response)`.
-  Direct port of finance-tracker's `webauthn.service.ts`.
+  Ported from finance-tracker's `webauthn.service.ts`, plus two additions
+  finance-tracker doesn't have: `listCredentials(userId)` and
+  `deleteCredential(userId, credentialId)` — the latter throws (409) if the
+  user has only one passkey left, since losing the last one with no password
+  fallback would lock them out (recovery-by-email still works, but requiring
+  it just to swap a device is worse UX than just blocking the delete).
 - `emailService.js` — Mailgun (`mailgun.js` + `form-data`), two calls:
   `sendOtpEmail(to, code)` (recovery — to the user) and
   `sendRegistrationRequestEmail(adminEmail, code, {name, email})`
@@ -142,7 +146,16 @@ POST /login/options        { email }
 POST /login/verify         { challengeId, response }
 POST /logout                                              → requireAuth(allowPending)
 GET  /me                                                  → requireAuth(allowPending)
+GET  /passkeys                                            → requireAuth
+DELETE /passkeys/:credentialId                            → requireAuth
 ```
+`passkey/options` and `passkey/verify` are reused for both onboarding (on a
+`pending_passkey` session) and adding an additional device later (on a
+`full` session) — `requireAuth(allowPending)` accepts either scope, it
+doesn't require pending. `GET /passkeys` lists the caller's own credentials
+(id, deviceLabel, createdAt — never the public key). `DELETE /passkeys/:id`
+404s if the credential doesn't belong to the caller, 409s
+(`{ code: 'LAST_PASSKEY' }`) if it's their only one.
 
 ### `server.js`
 - `dotenv.config()` at the top (not currently called anywhere).
@@ -191,6 +204,13 @@ SESSION_TTL_DAYS=30
 - New pages under `client/src/pages/auth/`: `Login.jsx`, `Register.jsx`,
   `VerifyOtp.jsx`, `PasskeySetup.jsx`. Styled with the existing dark/gold
   theme in `index.css`, no new CSS system.
+- `client/src/components/settings/PasskeyManager.jsx` — new section added to
+  the existing `Settings` page (alongside `ProviderSelect`/`ApiKeyField`/etc.):
+  lists the user's passkeys (`GET /auth/passkeys`) with device label and
+  created date, a delete button per row, and an "Add a passkey" button that
+  runs the same `@simplewebauthn/browser` registration ceremony as
+  `PasskeySetup.jsx`. Delete disabled (with a tooltip) when only one passkey
+  remains, as a UX nicety — the server's 409 is the actual guard.
 - `App.jsx`: wrap the existing `<Route path="/" element={<Layout />}>` tree
   in a `<RequireAuth>` element (redirects to `/login` if `status` isn't
   `authenticated`); add unauthenticated routes for `/login`, `/register`,
@@ -213,3 +233,5 @@ docker-compose:
    the 6th is throttled.
 6. Confirm `/api/health` and `/api/auth/*` work with no cookie; confirm every
    other `/api/*` route 401s with no cookie.
+7. In the passkey manager: add a second passkey, delete the first — succeeds.
+   Delete the remaining one — 409, UI shows it can't be removed.
