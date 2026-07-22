@@ -33,7 +33,7 @@ No test runner or linter is configured.
 
 ```
 scriptorium/
-├── docker-compose.yml          # server (3001) + client (5173); shared-mongo or mongo service
+├── docker-compose.yml          # server (3001) + client (5173) + mongo (dev)
 ├── server/
 │   ├── Dockerfile
 │   ├── package.json            # ESM; express, mongoose, @anthropic-ai/sdk, openai, pdfkit, nodepub, docx
@@ -67,9 +67,11 @@ scriptorium/
 - The client talks to the server only through `/api/*`; in Docker, Vite's
   proxy forwards `/api` to the `server` service. Add new endpoints under
   `/api` so the proxy keeps working.
-- Data is stored in MongoDB, connected via `MONGODB_URI` (set per-environment
-  in Docker Compose). Dev runs its own `mongo` container; production joins the
-  external `shared-mongo` network under a dedicated `scriptorium` database.
+- All application data (works, chapters, settings, etc.) is stored in MongoDB,
+  connected via `MONGODB_URI` (see docker-compose.yml for the connection
+  string per environment). Dev runs its own `mongo` container; production
+  joins the external `shared-mongo` network under a dedicated `scriptorium`
+  database.
 - Styling is plain CSS in `client/src/index.css` (dark `#0e0e16` background,
   `#c9a96e` gold accent, Georgia serif).
 - AI calls are opt-in only. Provider, API key, model, and generation params
