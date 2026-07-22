@@ -1,40 +1,45 @@
 import { Router } from 'express';
-import { readJSON, writeJSON, exists } from '../services/fileService.js';
+import MapModel from '../models/Map.js';
+import Work from '../models/Work.js';
 import { httpError } from '../middleware/errorHandler.js';
 
 const router = Router({ mergeParams: true });
 
-function getMap(workId) {
-  return readJSON(`works/${workId}/map.json`) || {
-    framework: '',
-    acts: [],
-    chapters: {},
-    keyBeats: [],
-    missingBeats: [],
-  };
+async function getMap(workId) {
+  const map = await MapModel.findOne({ workId });
+  return map || { framework: '', acts: [], chapters: {}, keyBeats: [], missingBeats: [] };
 }
 
 // GET /api/works/:workId/map
-router.get('/', (req, res, next) => {
-  const { workId } = req.params;
-  if (!exists(`works/${workId}`)) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
-  res.json(getMap(workId));
+router.get('/', async (req, res, next) => {
+  try {
+    const { workId } = req.params;
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
+    res.json(await getMap(workId));
+  } catch (err) {
+    next(err);
+  }
 });
 
 // PUT /api/works/:workId/map
-router.put('/', (req, res, next) => {
+router.put('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    if (!exists(`works/${workId}`)) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
-    const map = getMap(workId);
     const { framework, acts, keyBeats } = req.body;
+    const setFields = {};
+    if (framework !== undefined) setFields.framework = framework;
+    if (acts !== undefined) setFields.acts = acts;
+    if (keyBeats !== undefined) setFields.keyBeats = keyBeats;
 
-    if (framework !== undefined) map.framework = framework;
-    if (acts !== undefined) map.acts = acts;
-    if (keyBeats !== undefined) map.keyBeats = keyBeats;
-
-    writeJSON(`works/${workId}/map.json`, map);
+    const map = await MapModel.findOneAndUpdate(
+      { workId },
+      { $set: setFields, $setOnInsert: { chapters: {}, missingBeats: [] } },
+      { upsert: true, new: true }
+    );
     res.json(map);
   } catch (err) {
     next(err);
@@ -42,23 +47,34 @@ router.put('/', (req, res, next) => {
 });
 
 // PUT /api/works/:workId/map/chapters/:chapterId
-router.put('/chapters/:chapterId', (req, res, next) => {
+router.put('/chapters/:chapterId', async (req, res, next) => {
   try {
     const { workId, chapterId } = req.params;
-    if (!exists(`works/${workId}`)) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
-    const map = getMap(workId);
-    if (!map.chapters) map.chapters = {};
-
-    const existing = map.chapters[chapterId] || {};
-    map.chapters[chapterId] = {
-      ...existing,
-      ...req.body,
-      chapterId,
-      updatedAt: new Date().toISOString(),
-    };
-
-    writeJSON(`works/${workId}/map.json`, map);
+    const now = new Date().toISOString();
+    const map = await MapModel.findOneAndUpdate(
+      { workId },
+      [
+        {
+          $set: {
+            [`chapters.${chapterId}`]: {
+              $mergeObjects: [
+                { $ifNull: [`$chapters.${chapterId}`, {}] },
+                { ...req.body, chapterId, updatedAt: now },
+              ],
+            },
+            framework: { $ifNull: ['$framework', ''] },
+            acts: { $ifNull: ['$acts', []] },
+            keyBeats: { $ifNull: ['$keyBeats', []] },
+            missingBeats: { $ifNull: ['$missingBeats', []] },
+            workId: { $ifNull: ['$workId', workId] },
+          },
+        },
+      ],
+      { upsert: true, new: true }
+    );
     res.json(map.chapters[chapterId]);
   } catch (err) {
     next(err);
@@ -66,24 +82,25 @@ router.put('/chapters/:chapterId', (req, res, next) => {
 });
 
 // PUT /api/works/:workId/map/gaps/:gapId
-router.put('/gaps/:gapId', (req, res, next) => {
+router.put('/gaps/:gapId', async (req, res, next) => {
   try {
     const { workId, gapId } = req.params;
-    if (!exists(`works/${workId}`)) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
-    const map = getMap(workId);
-    const gapIdx = (map.missingBeats || []).findIndex((g) => g.id === gapId);
-    if (gapIdx === -1) return next(httpError(404, 'NOT_FOUND', 'Gap not found'));
+    const updated = { ...req.body, id: gapId, updatedAt: new Date().toISOString() };
+    const setFields = Object.fromEntries(
+      Object.entries(updated).map(([k, v]) => [`missingBeats.$[g].${k}`, v])
+    );
+    const result = await MapModel.updateOne(
+      { workId, 'missingBeats.id': gapId },
+      { $set: setFields },
+      { arrayFilters: [{ 'g.id': gapId }], strict: false }
+    );
+    if (result.matchedCount === 0) return next(httpError(404, 'NOT_FOUND', 'Gap not found'));
 
-    map.missingBeats[gapIdx] = {
-      ...map.missingBeats[gapIdx],
-      ...req.body,
-      id: gapId,
-      updatedAt: new Date().toISOString(),
-    };
-
-    writeJSON(`works/${workId}/map.json`, map);
-    res.json(map.missingBeats[gapIdx]);
+    const map = await MapModel.findOne({ workId });
+    res.json(map.missingBeats.find((g) => g.id === gapId));
   } catch (err) {
     next(err);
   }
