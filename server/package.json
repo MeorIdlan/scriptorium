@@ -9,14 +9,18 @@
     "dev": "node --watch src/server.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "mongoose": "^8.24.1",
-    "dotenv": "^16.4.5",
     "@anthropic-ai/sdk": "^0.27.0",
-    "openai": "^4.52.0",
-    "pdfkit": "^0.15.0",
+    "@simplewebauthn/server": "^13.3.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "docx": "^8.5.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "form-data": "^4.0.6",
+    "mailgun.js": "^13.3.0",
+    "mongoose": "^8.24.1",
     "nodepub": "^3.2.1",
-    "docx": "^8.5.0"
+    "openai": "^4.52.0",
+    "pdfkit": "^0.15.0"
   }
 }

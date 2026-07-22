@@ -15,6 +15,15 @@ services:
       - PORT=3001
       - NODE_ENV=development
       - MONGODB_URI=mongodb://mongo:27017/scriptorium
+      - MAILGUN_API_KEY=${MAILGUN_API_KEY}
+      - MAILGUN_DOMAIN=${MAILGUN_DOMAIN}
+      - MAILGUN_FROM_EMAIL=${MAILGUN_FROM_EMAIL}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID:-localhost}
+      - WEBAUTHN_ORIGIN=${WEBAUTHN_ORIGIN:-http://localhost:5173}
+      - WEBAUTHN_RP_NAME=${WEBAUTHN_RP_NAME:-Scriptorium}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      - SESSION_TTL_DAYS=${SESSION_TTL_DAYS:-30}
     volumes:
       - ./server/src:/app/src
     command: npm run dev
