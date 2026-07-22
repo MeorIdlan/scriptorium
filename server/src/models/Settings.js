@@ -3,7 +3,7 @@ import { idTransform } from './idTransform.js';
 
 const settingsSchema = new mongoose.Schema(
   {
-    _id: { type: String, default: 'singleton' },
+    _id: { type: String },
     activeProvider: { type: String, default: 'anthropic' },
     providers: { type: mongoose.Schema.Types.Mixed, default: {} },
     generation: { type: mongoose.Schema.Types.Mixed, default: {} },

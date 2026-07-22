@@ -29,7 +29,7 @@ Premise: ${premise || 'A story about human connection'}
 Return ONLY a JSON array of exactly 3 strings, each being a complete opening hook sentence or paragraph. No other text.
 Example format: ["Hook one...", "Hook two...", "Hook three..."]`;
 
-    const raw = await complete({ system: SYSTEM_PROMPT, prompt });
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt, userId: req.user.id });
 
     let hooks;
     try {
@@ -63,7 +63,7 @@ Return ONLY a JSON object with these fields:
   "characterMood": "the primary character's emotional state"
 }`;
 
-    const raw = await complete({ system: SYSTEM_PROMPT, prompt });
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt, userId: req.user.id });
 
     let result;
     try {
@@ -97,7 +97,7 @@ Return ONLY a JSON object:
   "writingPrompt": "a brief writing prompt to help the writer draft this scene"
 }`;
 
-    const raw = await complete({ system: SYSTEM_PROMPT, prompt });
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt, userId: req.user.id });
 
     let result;
     try {
@@ -142,7 +142,7 @@ Return ONLY a JSON object:
   ]
 }`;
 
-    const raw = await complete({ system: SYSTEM_PROMPT, prompt });
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt, userId: req.user.id });
 
     let result;
     try {
@@ -175,7 +175,7 @@ Return ONLY a JSON object:
   "rationale": "brief explanation of the tension level"
 }`;
 
-    const raw = await complete({ system: SYSTEM_PROMPT, prompt });
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt, userId: req.user.id });
 
     let result;
     try {
@@ -214,7 +214,7 @@ Original draft:
 ${content}`;
 
     // Use a high token cap — full chapter rewrites need headroom
-    const polished = await complete({ system: SYSTEM_PROMPT, prompt, maxTokensOverride: 8000 });
+    const polished = await complete({ system: SYSTEM_PROMPT, prompt, maxTokensOverride: 8000, userId: req.user.id });
 
     res.json({ polished });
   } catch (err) {
@@ -295,7 +295,7 @@ ${content.slice(0, 6000)}`,
     const prompt = prompts[mode];
     if (!prompt) return next(httpError(400, 'INVALID_MODE', `Unknown editor mode: ${mode}`));
 
-    const raw = await complete({ system: EDITOR_SYSTEM, prompt, maxTokensOverride: 2000 });
+    const raw = await complete({ system: EDITOR_SYSTEM, prompt, maxTokensOverride: 2000, userId: req.user.id });
 
     let result;
     try {
@@ -381,7 +381,7 @@ Return ONLY a JSON object:
 
 Limit findings to the 5-8 most impactful observations. Be specific and constructive.`;
 
-    const raw = await complete({ system: SYSTEM_PROMPT, prompt, maxTokensOverride: 2000 });
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt, maxTokensOverride: 2000, userId: req.user.id });
 
     let result;
     try {
@@ -458,7 +458,7 @@ Limit to 4-6 specific, actionable suggestions.`,
     const prompt = prompts[entityType];
     if (!prompt) return next(httpError(400, 'INVALID_TYPE', `Unknown entity type: ${entityType}`));
 
-    const raw = await complete({ system: SYSTEM_PROMPT, prompt, maxTokensOverride: 1500 });
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt, maxTokensOverride: 1500, userId: req.user.id });
 
     let result;
     try {

@@ -16,8 +16,8 @@ export function listProviders() {
   return PROVIDERS;
 }
 
-export async function complete({ system, prompt, maxTokensOverride } = {}) {
-  const settings = await getSettings();
+export async function complete({ system, prompt, maxTokensOverride, userId } = {}) {
+  const settings = await getSettings(userId);
   const providerId = settings.activeProvider;
   const providerConfig = settings.providers[providerId];
 
