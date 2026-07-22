@@ -36,13 +36,13 @@
 - [ ] **Step 1: Add server dependencies**
 
 ```bash
-cd /home/meor/workspace/scriptorium/server && wsl -d ubuntu -e npm install @simplewebauthn/server mailgun.js form-data cookie-parser
+cd /home/meor/workspace/scriptorium/server && npm install @simplewebauthn/server mailgun.js form-data cookie-parser
 ```
 
 - [ ] **Step 2: Add client dependency**
 
 ```bash
-cd /home/meor/workspace/scriptorium/client && wsl -d ubuntu -e npm install @simplewebauthn/browser
+cd /home/meor/workspace/scriptorium/client && npm install @simplewebauthn/browser
 ```
 
 - [ ] **Step 3: Create `.env.example` at the repo root**
@@ -99,7 +99,7 @@ app.use(cookieParser());
 - [ ] **Step 6: Verify the server still boots**
 
 ```bash
-cd /home/meor/workspace/scriptorium && wsl -d ubuntu -e docker-compose up --build server mongo
+cd /home/meor/workspace/scriptorium && docker-compose up --build server mongo
 ```
 Expected: `Connected to MongoDB` then `Scriptorium backend listening on http://localhost:3001` with no errors. Stop with Ctrl+C.
 
@@ -253,10 +253,10 @@ export default mongoose.model('AuditLog', auditLogSchema);
 
 - [ ] **Step 7: Verify all six models load without error**
 
-With `mongo` running (`wsl -d ubuntu -e docker-compose up -d mongo`), run:
+With `mongo` running (`docker-compose up -d mongo`), run:
 
 ```bash
-cd /home/meor/workspace/scriptorium/server && wsl -d ubuntu -e node -e "
+cd /home/meor/workspace/scriptorium/server && node -e "
 import('dotenv/config').then(() => import('./src/db.js')).then(async ({ connectMongo }) => {
   await connectMongo();
   const models = ['User','OtpCode','Credential','WebauthnChallenge','AuthSession','AuditLog'];
@@ -357,7 +357,7 @@ export async function log({ userId, action, metadata = {} }) {
 - [ ] **Step 3: Verify `otpService` end-to-end against the running dev Mongo**
 
 ```bash
-cd /home/meor/workspace/scriptorium/server && wsl -d ubuntu -e node -e "
+cd /home/meor/workspace/scriptorium/server && node -e "
 import('dotenv/config').then(() => import('./src/db.js')).then(async ({ connectMongo }) => {
   await connectMongo();
   const otp = await import('./src/services/otpService.js');
@@ -444,7 +444,7 @@ export async function sendRegistrationRequestEmail(adminEmail, code, registrant)
 This will throw on the actual Mailgun send (no credentials configured yet) — that's expected; confirm the `[dev]` line prints before the throw:
 
 ```bash
-cd /home/meor/workspace/scriptorium/server && wsl -d ubuntu -e node -e "
+cd /home/meor/workspace/scriptorium/server && node -e "
 import('./src/services/emailService.js').then(async (email) => {
   try {
     await email.sendOtpEmail('test@example.com', '123456');
@@ -573,7 +573,7 @@ export function clearSessionCookie(res) {
 - [ ] **Step 3: Verify session create/validate/upgrade/destroy round-trip**
 
 ```bash
-cd /home/meor/workspace/scriptorium/server && wsl -d ubuntu -e node -e "
+cd /home/meor/workspace/scriptorium/server && node -e "
 import('dotenv/config').then(() => import('./src/db.js')).then(async ({ connectMongo }) => {
   await connectMongo();
   const s = await import('./src/services/authSessionService.js');
@@ -765,7 +765,7 @@ export async function deleteCredential(userId, credentialDocId) {
 The WebAuthn ceremony itself needs a real browser, so full registration/authentication is verified end-to-end in Task 16. Here, verify just the list/delete guard logic against fixture data:
 
 ```bash
-cd /home/meor/workspace/scriptorium/server && wsl -d ubuntu -e node -e "
+cd /home/meor/workspace/scriptorium/server && node -e "
 import('dotenv/config').then(() => import('./src/db.js')).then(async ({ connectMongo }) => {
   await connectMongo();
   const Credential = (await import('./src/models/Credential.js')).default;
@@ -883,7 +883,7 @@ export async function verifyOtp(email, code, purpose) {
 This will fail at the email-send step without real Mailgun credentials, exactly like Task 4 — confirm the OTP is issued and printed before that expected failure, then verify manually with a code pulled straight from the DB (bypassing email) to confirm `verifyOtp` works:
 
 ```bash
-cd /home/meor/workspace/scriptorium/server && wsl -d ubuntu -e node -e "
+cd /home/meor/workspace/scriptorium/server && node -e "
 import('dotenv/config').then(() => import('./src/db.js')).then(async ({ connectMongo }) => {
   await connectMongo();
   const User = (await import('./src/models/User.js')).default;
@@ -990,7 +990,7 @@ export function emailThrottle(req, res, next) {
 - [ ] **Step 3: Verify `emailThrottle` blocks the 6th request**
 
 ```bash
-cd /home/meor/workspace/scriptorium/server && wsl -d ubuntu -e node -e "
+cd /home/meor/workspace/scriptorium/server && node -e "
 import('./src/middleware/emailThrottle.js').then(({ emailThrottle }) => {
   const req = { body: { email: 'x@example.com' }, ip: '1.2.3.4' };
   let blocked = 0, allowed = 0;
@@ -1202,7 +1202,7 @@ import { requireAuth } from './middleware/requireAuth.js';
 
 - [ ] **Step 3: Verify the registration + login options endpoints respond correctly over HTTP**
 
-Start the stack (`wsl -d ubuntu -e docker-compose up --build`), then in another shell:
+Start the stack (`docker-compose up --build`), then in another shell:
 
 ```bash
 curl -s -X POST http://localhost:3001/api/auth/register -H 'Content-Type: application/json' -d '{"name":"Test User","email":"admin@yourdomain.com"}'
@@ -1331,7 +1331,7 @@ router.delete('/:workId', async (req, res, next) => {
 With the stack running, register two users manually (bypassing email — pull the OTP from server logs since Mailgun isn't configured yet) is more than this step needs; instead verify with a direct DB-seeded pair of `AuthSession` cookies:
 
 ```bash
-cd /home/meor/workspace/scriptorium/server && wsl -d ubuntu -e node -e "
+cd /home/meor/workspace/scriptorium/server && node -e "
 import('dotenv/config').then(() => import('./src/db.js')).then(async ({ connectMongo }) => {
   await connectMongo();
   const User = (await import('./src/models/User.js')).default;
@@ -1778,7 +1778,7 @@ export default function App() {
 - [ ] **Step 6: Verify the app fails to compile until Task 14's pages exist (expected), then defer full verification to Task 14**
 
 ```bash
-cd /home/meor/workspace/scriptorium/client && wsl -d ubuntu -e npm run build
+cd /home/meor/workspace/scriptorium/client && npm run build
 ```
 Expected: a build error naming the missing `./pages/auth/*.jsx` modules — this confirms the wiring is correct and syntactically valid; it's expected to fail until Task 14 creates those files. Do not attempt to fix it here.
 
@@ -2080,11 +2080,11 @@ Append to the end of the file (reusing the existing dark/gold theme's CSS variab
 - [ ] **Step 6: Verify the client builds and the full flow works in a browser**
 
 ```bash
-cd /home/meor/workspace/scriptorium/client && wsl -d ubuntu -e npm run build
+cd /home/meor/workspace/scriptorium/client && npm run build
 ```
 Expected: builds cleanly (no missing-module errors this time).
 
-With the full stack running (`wsl -d ubuntu -e docker-compose up --build`), open `http://localhost:5173` in a real browser (not curl — WebAuthn requires an actual authenticator/platform passkey UI):
+With the full stack running (`docker-compose up --build`), open `http://localhost:5173` in a real browser (not curl — WebAuthn requires an actual authenticator/platform passkey UI):
 1. Should redirect to `/login`. Click through to `/register`, submit with your `ADMIN_EMAIL`.
 2. Check server logs for the `[dev] Registration request from ... code: XXXXXX` line.
 3. On `/verify-otp`, enter that code → should land on `/passkey-setup`.
@@ -2279,7 +2279,7 @@ Confirm `/api/health` and every `/api/auth/*` route work with no cookie; confirm
 - [ ] **Step 6: Audit log spot-check**
 
 ```bash
-cd /home/meor/workspace/scriptorium/server && wsl -d ubuntu -e node -e "
+cd /home/meor/workspace/scriptorium/server && node -e "
 import('dotenv/config').then(() => import('./src/db.js')).then(async ({ connectMongo }) => {
   await connectMongo();
   const AuditLog = (await import('./src/models/AuditLog.js')).default;
