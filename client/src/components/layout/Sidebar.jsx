@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 const SLIDE = 'top 0.22s cubic-bezier(0.4,0,0.2,1), height 0.22s cubic-bezier(0.4,0,0.2,1)';
 
@@ -17,6 +18,8 @@ export default function Sidebar() {
   const location = useLocation();
   const { workId } = useParams();
   const { state } = useActiveWork();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const activeWorkId = workId || (state.work ? state.work.id : null);
   const sidebarRef = useRef(null);
   const indicatorRef = useRef(null);
@@ -97,6 +100,17 @@ export default function Sidebar() {
           label="Settings"
           active={isActive('/settings')}
         />
+        <button
+          type="button"
+          className="sidebar-nav-item sidebar-logout"
+          onClick={async () => {
+            await logout();
+            navigate('/login');
+          }}
+        >
+          <span className="sidebar-nav-icon">⏻</span>
+          <span className="sidebar-nav-label">Log out</span>
+        </button>
       </div>
     </nav>
   );

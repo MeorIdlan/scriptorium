@@ -174,6 +174,16 @@ a:hover {
   border-top: 1px solid var(--border);
 }
 
+.sidebar-logout {
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
 /* ============================================================
    TopBar
    ============================================================ */

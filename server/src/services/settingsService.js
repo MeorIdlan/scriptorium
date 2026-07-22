@@ -21,6 +21,8 @@ export async function getSettings(userId) {
 export async function saveSettings(userId, partial) {
   const current = await getSettings(userId);
   const merged = deepMerge(current, partial);
+  delete merged._id;
+  delete merged.id;
   merged.updatedAt = new Date().toISOString();
   await Settings.findByIdAndUpdate(userId, merged, { upsert: true, new: true });
   return merged;
