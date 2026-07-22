@@ -1,0 +1,44 @@
+services:
+  scriptorium-server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+    volumes:
+      - ./server/data:/app/data
+    networks:
+      - default
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 300M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  scriptorium-client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    depends_on:
+      - scriptorium-server
+    networks:
+      - default
+      - shared-edge
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 24M
+
+networks:
+  shared-edge:
+    external: true
