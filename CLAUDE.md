@@ -33,8 +33,7 @@ No test runner or linter is configured.
 
 ```
 scriptorium/
-├── docker-compose.yml          # server (3001) + client (5173); data/ bind-mounted
-├── data/                       # gitignored — JSON flat files + settings/API keys
+├── docker-compose.yml          # server (3001) + client (5173); shared-mongo or mongo service
 ├── server/
 │   ├── Dockerfile
 │   ├── package.json            # ESM; express, mongoose, @anthropic-ai/sdk, openai, pdfkit, nodepub, docx
@@ -74,4 +73,4 @@ scriptorium/
 - Styling is plain CSS in `client/src/index.css` (dark `#0e0e16` background,
   `#c9a96e` gold accent, Georgia serif).
 - AI calls are opt-in only. Provider, API key, model, and generation params
-  are configured in-app via `/settings` and stored in `data/settings/settings.json`.
+  are configured in-app via `/settings` and stored in the MongoDB `Settings` collection.
