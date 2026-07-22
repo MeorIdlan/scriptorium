@@ -4,6 +4,7 @@ import { idTransform } from './idTransform.js';
 const workSchema = new mongoose.Schema(
   {
     _id: { type: String },
+    ownerId: { type: String, required: true, index: true },
     title: { type: String, required: true },
     genre: { type: String, default: '' },
     tone: { type: String, default: '' },

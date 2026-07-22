@@ -15,7 +15,7 @@ const INDEX_FIELDS =
 // GET /api/works
 router.get('/', async (req, res, next) => {
   try {
-    const works = await Work.find().select(INDEX_FIELDS).sort({ createdAt: -1 });
+    const works = await Work.find({ ownerId: req.user.id }).select(INDEX_FIELDS).sort({ createdAt: -1 });
     res.json(works);
   } catch (err) {
     next(err);
@@ -33,6 +33,7 @@ router.post('/', async (req, res, next) => {
 
     const work = await Work.create({
       _id: id,
+      ownerId: req.user.id,
       title,
       genre: genre || '',
       tone: tone || '',
@@ -59,7 +60,7 @@ router.post('/', async (req, res, next) => {
 // GET /api/works/:workId
 router.get('/:workId', async (req, res, next) => {
   try {
-    const work = await Work.findById(req.params.workId);
+    const work = await Work.findOne({ _id: req.params.workId, ownerId: req.user.id });
     if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
     res.json(work);
   } catch (err) {
@@ -73,8 +74,9 @@ router.put('/:workId', async (req, res, next) => {
     const { workId } = req.params;
     const update = { ...req.body, updatedAt: new Date().toISOString() };
     delete update.id;
+    delete update.ownerId;
 
-    const updated = await Work.findByIdAndUpdate(workId, update, { new: true });
+    const updated = await Work.findOneAndUpdate({ _id: workId, ownerId: req.user.id }, update, { new: true });
     if (!updated) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
     res.json(updated);
   } catch (err) {
@@ -86,7 +88,7 @@ router.put('/:workId', async (req, res, next) => {
 router.delete('/:workId', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    const deleted = await Work.findByIdAndDelete(workId);
+    const deleted = await Work.findOneAndDelete({ _id: workId, ownerId: req.user.id });
     if (!deleted) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
     await Promise.all([
