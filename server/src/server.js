@@ -8,6 +8,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 
 import authRouter from './routes/auth.js';
 import { requireAuth } from './middleware/requireAuth.js';
+import { requireAdmin } from './middleware/requireAdmin.js';
 
 import worksRouter from './routes/works.js';
 import chaptersRouter from './routes/chapters.js';
@@ -18,6 +19,7 @@ import sessionsRouter from './routes/sessions.js';
 import exportRouter from './routes/export.js';
 import aiRouter from './routes/ai.js';
 import settingsRouter from './routes/settings.js';
+import adminRouter from './routes/admin.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -44,6 +46,7 @@ app.use('/api/works/:workId/sessions', auth, sessionsRouter);
 app.use('/api/works/:workId/export', auth, exportRouter);
 app.use('/api/ai', auth, aiRouter);
 app.use('/api/settings', auth, settingsRouter);
+app.use('/api/admin', auth, requireAdmin, adminRouter);
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
