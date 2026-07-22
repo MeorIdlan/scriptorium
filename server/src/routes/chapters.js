@@ -3,6 +3,7 @@ import Chapter from '../models/Chapter.js';
 import Work from '../models/Work.js';
 import { httpError } from '../middleware/errorHandler.js';
 import { countWords, recalculate } from '../services/wordCountService.js';
+import { scan } from '../services/consistencyService.js';
 
 const router = Router({ mergeParams: true });
 
@@ -125,6 +126,12 @@ router.put('/:chapterId', async (req, res, next) => {
     }
 
     const updated = await Chapter.findOneAndUpdate({ _id: chapterId, workId }, updateOp, { new: true });
+
+    try {
+      await scan(workId, chapterId, newContent);
+    } catch (scanErr) {
+      console.error('Consistency scan error:', scanErr);
+    }
 
     await recalculate(workId);
 
