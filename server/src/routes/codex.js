@@ -53,7 +53,7 @@ router.put('/characters/:charId', async (req, res, next) => {
     const result = await Codex.updateOne(
       { workId, 'characters.id': charId },
       { $set: setFields },
-      { arrayFilters: [{ 'c.id': charId }] }
+      { arrayFilters: [{ 'c.id': charId }], strict: false }
     );
     if (result.matchedCount === 0) return next(httpError(404, 'NOT_FOUND', 'Character not found'));
     const codex = await Codex.findOne({ workId });
@@ -107,7 +107,7 @@ router.put('/places/:placeId', async (req, res, next) => {
     const result = await Codex.updateOne(
       { workId, 'places.id': placeId },
       { $set: setFields },
-      { arrayFilters: [{ 'p.id': placeId }] }
+      { arrayFilters: [{ 'p.id': placeId }], strict: false }
     );
     if (result.matchedCount === 0) return next(httpError(404, 'NOT_FOUND', 'Place not found'));
     const codex = await Codex.findOne({ workId });
@@ -147,7 +147,7 @@ router.put('/rules/:ruleId', async (req, res, next) => {
     const result = await Codex.updateOne(
       { workId, 'worldRules.id': ruleId },
       { $set: setFields },
-      { arrayFilters: [{ 'r.id': ruleId }] }
+      { arrayFilters: [{ 'r.id': ruleId }], strict: false }
     );
     if (result.matchedCount === 0) return next(httpError(404, 'NOT_FOUND', 'Rule not found'));
     const codex = await Codex.findOne({ workId });
@@ -228,7 +228,7 @@ router.put('/flags/:flagId', async (req, res, next) => {
       const result = await Codex.updateOne(
         { workId, [`${arrayName}.flags.id`]: flagId },
         { $set: setFields },
-        { arrayFilters: [{ 'e.flags.id': flagId }, { 'f.id': flagId }] }
+        { arrayFilters: [{ 'e.flags.id': flagId }, { 'f.id': flagId }], strict: false }
       );
       if (result.matchedCount > 0) {
         return res.json({ ok: true });
