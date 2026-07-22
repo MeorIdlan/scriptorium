@@ -3,6 +3,7 @@ const BASE = '/api'; // Vite proxy handles /api → backend
 export async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     ...options,
     body: options.body ? JSON.stringify(options.body) : undefined,
   });

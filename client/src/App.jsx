@@ -9,6 +9,11 @@ import MainRoom from './pages/MainRoom.jsx';
 import MapView from './pages/MapView.jsx';
 import CodexView from './pages/CodexView.jsx';
 import Settings from './pages/Settings.jsx';
+import Login from './pages/auth/Login.jsx';
+import Register from './pages/auth/Register.jsx';
+import VerifyOtp from './pages/auth/VerifyOtp.jsx';
+import PasskeySetup from './pages/auth/PasskeySetup.jsx';
+import RequireAuth from './components/auth/RequireAuth.jsx';
 import { useUI } from './context/UIContext.jsx';
 
 function Layout() {
@@ -48,7 +53,18 @@ function Layout() {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Layout />}>
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/verify-otp" element={<VerifyOtp />} />
+      <Route path="/passkey-setup" element={<PasskeySetup />} />
+      <Route
+        path="/"
+        element={
+          <RequireAuth>
+            <Layout />
+          </RequireAuth>
+        }
+      >
         <Route index element={<Shelves />} />
         <Route path="work/:workId" element={<MainRoom />} />
         <Route path="work/:workId/chapter/:chapterId" element={<MainRoom />} />
