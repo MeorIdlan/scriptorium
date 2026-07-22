@@ -13,12 +13,16 @@ const ADAPTERS = {
 };
 
 // GET /api/settings
-router.get('/', (req, res) => {
-  res.json(maskSettings(getSettings()));
+router.get('/', async (req, res, next) => {
+  try {
+    res.json(maskSettings(await getSettings()));
+  } catch (err) {
+    next(err);
+  }
 });
 
 // PUT /api/settings
-router.put('/', (req, res, next) => {
+router.put('/', async (req, res, next) => {
   try {
     const body = req.body;
 
@@ -34,7 +38,7 @@ router.put('/', (req, res, next) => {
     }
 
     // For providers, only update apiKey if non-empty value sent
-    const settings = getSettings();
+    const settings = await getSettings();
     const partial = { ...body };
 
     if (body.providers) {
@@ -56,7 +60,7 @@ router.put('/', (req, res, next) => {
       partial.providers = mergedProviders;
     }
 
-    const updated = saveSettings(partial);
+    const updated = await saveSettings(partial);
     res.json(maskSettings(updated));
   } catch (err) {
     next(err);
@@ -74,7 +78,7 @@ router.post('/models', async (req, res, next) => {
     const { provider, apiKey } = req.body;
     if (!provider) return next(httpError(400, 'MISSING_FIELD', 'provider is required'));
 
-    const settings = getSettings();
+    const settings = await getSettings();
     const resolvedKey = (apiKey && apiKey.trim()) || settings.providers[provider]?.apiKey;
 
     if (!resolvedKey) {
@@ -107,7 +111,7 @@ router.post('/test', async (req, res, next) => {
     const { provider } = req.body;
     if (!provider) return next(httpError(400, 'MISSING_FIELD', 'provider is required'));
 
-    const settings = getSettings();
+    const settings = await getSettings();
     const providerConfig = settings.providers[provider];
 
     if (!providerConfig?.apiKey) {

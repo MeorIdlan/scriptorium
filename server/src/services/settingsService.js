@@ -1,6 +1,6 @@
-import { readJSON, writeJSON } from './fileService.js';
+import Settings from '../models/Settings.js';
 
-const SETTINGS_PATH = 'settings/settings.json';
+const SETTINGS_ID = 'singleton';
 
 const DEFAULT_SETTINGS = {
   activeProvider: 'anthropic',
@@ -12,19 +12,19 @@ const DEFAULT_SETTINGS = {
   autoFeatures: { rekindler: 'prompt' },
 };
 
-export function getSettings() {
-  const stored = readJSON(SETTINGS_PATH);
+export async function getSettings() {
+  const stored = await Settings.findById(SETTINGS_ID).lean();
   if (!stored) return structuredClone(DEFAULT_SETTINGS);
 
-  // Deep merge stored over defaults to ensure all keys exist
-  return deepMerge(structuredClone(DEFAULT_SETTINGS), stored);
+  const { _id, __v, ...rest } = stored;
+  return deepMerge(structuredClone(DEFAULT_SETTINGS), rest);
 }
 
-export function saveSettings(partial) {
-  const current = getSettings();
+export async function saveSettings(partial) {
+  const current = await getSettings();
   const merged = deepMerge(current, partial);
   merged.updatedAt = new Date().toISOString();
-  writeJSON(SETTINGS_PATH, merged);
+  await Settings.findByIdAndUpdate(SETTINGS_ID, merged, { upsert: true, new: true });
   return merged;
 }
 
