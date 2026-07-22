@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import Codex from '../models/Codex.js';
+import Work from '../models/Work.js';
 import { httpError } from '../middleware/errorHandler.js';
 
 const router = Router({ mergeParams: true });
@@ -17,6 +18,8 @@ async function getCodex(workId) {
 router.get('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
     res.json(await getCodex(workId));
   } catch (err) {
     next(err);
@@ -29,6 +32,8 @@ router.get('/', async (req, res, next) => {
 router.post('/characters', async (req, res, next) => {
   try {
     const { workId } = req.params;
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
     const id = `char_${shortId()}`;
     const character = { flags: [], aliases: [], createdAt: new Date().toISOString(), ...req.body, id };
     await Codex.findOneAndUpdate(
@@ -46,6 +51,8 @@ router.post('/characters', async (req, res, next) => {
 router.put('/characters/:charId', async (req, res, next) => {
   try {
     const { workId, charId } = req.params;
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
     const updated = { ...req.body, id: charId, updatedAt: new Date().toISOString() };
     const setFields = Object.fromEntries(
       Object.entries(updated).map(([k, v]) => [`characters.$[c].${k}`, v])
@@ -67,6 +74,8 @@ router.put('/characters/:charId', async (req, res, next) => {
 router.delete('/characters/:charId', async (req, res, next) => {
   try {
     const { workId, charId } = req.params;
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
     const result = await Codex.updateOne({ workId }, { $pull: { characters: { id: charId } } });
     if (result.matchedCount === 0 || result.modifiedCount === 0) {
       return next(httpError(404, 'NOT_FOUND', 'Character not found'));
@@ -83,6 +92,8 @@ router.delete('/characters/:charId', async (req, res, next) => {
 router.post('/places', async (req, res, next) => {
   try {
     const { workId } = req.params;
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
     const id = `place_${shortId()}`;
     const place = { flags: [], createdAt: new Date().toISOString(), ...req.body, id };
     await Codex.findOneAndUpdate(
@@ -100,6 +111,8 @@ router.post('/places', async (req, res, next) => {
 router.put('/places/:placeId', async (req, res, next) => {
   try {
     const { workId, placeId } = req.params;
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
     const updated = { ...req.body, id: placeId, updatedAt: new Date().toISOString() };
     const setFields = Object.fromEntries(
       Object.entries(updated).map(([k, v]) => [`places.$[p].${k}`, v])
@@ -123,6 +136,8 @@ router.put('/places/:placeId', async (req, res, next) => {
 router.post('/rules', async (req, res, next) => {
   try {
     const { workId } = req.params;
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
     const id = `rule_${shortId()}`;
     const rule = { flags: [], createdAt: new Date().toISOString(), ...req.body, id };
     await Codex.findOneAndUpdate(
@@ -140,6 +155,8 @@ router.post('/rules', async (req, res, next) => {
 router.put('/rules/:ruleId', async (req, res, next) => {
   try {
     const { workId, ruleId } = req.params;
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
     const updated = { ...req.body, id: ruleId, updatedAt: new Date().toISOString() };
     const setFields = Object.fromEntries(
       Object.entries(updated).map(([k, v]) => [`worldRules.$[r].${k}`, v])
@@ -163,6 +180,8 @@ router.put('/rules/:ruleId', async (req, res, next) => {
 router.get('/flags', async (req, res, next) => {
   try {
     const { workId } = req.params;
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
     const result = await Codex.aggregate([
       { $match: { workId } },
       {
@@ -218,6 +237,8 @@ router.get('/flags', async (req, res, next) => {
 router.put('/flags/:flagId', async (req, res, next) => {
   try {
     const { workId, flagId } = req.params;
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
     const updateBody = { ...req.body, id: flagId };
     const arrayNames = ['characters', 'places', 'worldRules'];
 
