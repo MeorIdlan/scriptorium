@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { readJSON, writeJSON, exists } from '../services/fileService.js';
+import CatchModel from '../models/Catch.js';
+import Work from '../models/Work.js';
 import { httpError } from '../middleware/errorHandler.js';
 
 const router = Router({ mergeParams: true });
@@ -9,17 +10,16 @@ function shortId() {
 }
 
 // GET /api/works/:workId/catches
-router.get('/', (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    if (!exists(`works/${workId}`)) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
-    let catches = readJSON(`works/${workId}/catches.json`) || [];
+    const filter = { workId };
+    if (req.query.status) filter.status = req.query.status;
 
-    if (req.query.status) {
-      catches = catches.filter((c) => c.status === req.query.status);
-    }
-
+    const catches = await CatchModel.find(filter).sort({ createdAt: 1 });
     res.json(catches);
   } catch (err) {
     next(err);
@@ -27,28 +27,26 @@ router.get('/', (req, res, next) => {
 });
 
 // POST /api/works/:workId/catches
-router.post('/', (req, res, next) => {
+router.post('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    if (!exists(`works/${workId}`)) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
+    const work = await Work.findById(workId);
+    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
     const { content, capturedDuringChapterId, taggedChapterId } = req.body;
     if (!content) return next(httpError(400, 'MISSING_FIELD', 'content is required'));
 
     const now = new Date().toISOString();
-    const catchItem = {
-      id: `catch_${shortId()}`,
+    const catchItem = await CatchModel.create({
+      _id: `catch_${shortId()}`,
+      workId,
       content,
       capturedDuringChapterId: capturedDuringChapterId || null,
       taggedChapterId: taggedChapterId || null,
       status: 'open',
       createdAt: now,
       updatedAt: now,
-    };
-
-    const catches = readJSON(`works/${workId}/catches.json`) || [];
-    catches.push(catchItem);
-    writeJSON(`works/${workId}/catches.json`, catches);
+    });
 
     res.status(201).json(catchItem);
   } catch (err) {
@@ -57,32 +55,27 @@ router.post('/', (req, res, next) => {
 });
 
 // PUT /api/works/:workId/catches/:catchId
-router.put('/:catchId', (req, res, next) => {
+router.put('/:catchId', async (req, res, next) => {
   try {
     const { workId, catchId } = req.params;
-    const catches = readJSON(`works/${workId}/catches.json`) || [];
-    const idx = catches.findIndex((c) => c.id === catchId);
-    if (idx === -1) return next(httpError(404, 'NOT_FOUND', 'Catch not found'));
+    const update = { ...req.body, updatedAt: new Date().toISOString() };
+    delete update.id;
+    delete update.workId;
 
-    catches[idx] = { ...catches[idx], ...req.body, id: catchId, updatedAt: new Date().toISOString() };
-    writeJSON(`works/${workId}/catches.json`, catches);
-
-    res.json(catches[idx]);
+    const updated = await CatchModel.findOneAndUpdate({ _id: catchId, workId }, { $set: update }, { new: true });
+    if (!updated) return next(httpError(404, 'NOT_FOUND', 'Catch not found'));
+    res.json(updated);
   } catch (err) {
     next(err);
   }
 });
 
 // DELETE /api/works/:workId/catches/:catchId
-router.delete('/:catchId', (req, res, next) => {
+router.delete('/:catchId', async (req, res, next) => {
   try {
     const { workId, catchId } = req.params;
-    const catches = readJSON(`works/${workId}/catches.json`) || [];
-    const before = catches.length;
-    const filtered = catches.filter((c) => c.id !== catchId);
-    if (filtered.length === before) return next(httpError(404, 'NOT_FOUND', 'Catch not found'));
-
-    writeJSON(`works/${workId}/catches.json`, filtered);
+    const deleted = await CatchModel.findOneAndDelete({ _id: catchId, workId });
+    if (!deleted) return next(httpError(404, 'NOT_FOUND', 'Catch not found'));
     res.status(204).end();
   } catch (err) {
     next(err);
