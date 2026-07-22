@@ -4,6 +4,7 @@ import ProviderSelect from '../components/settings/ProviderSelect.jsx';
 import ApiKeyField from '../components/settings/ApiKeyField.jsx';
 import ModelSelect from '../components/settings/ModelSelect.jsx';
 import ParamSliders from '../components/settings/ParamSliders.jsx';
+import PasskeyManager from '../components/settings/PasskeyManager.jsx';
 
 // Pretty display names for known model ids; anything not listed falls back to the id itself
 const MODEL_NAMES = {
@@ -314,6 +315,8 @@ export default function Settings() {
             {testResult.message}
           </div>
         )}
+
+        <PasskeyManager />
       </div>
 
       {toast && (
