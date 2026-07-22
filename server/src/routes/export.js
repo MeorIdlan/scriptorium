@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { exportWork } from '../services/exportService.js';
 import { httpError } from '../middleware/errorHandler.js';
+import { loadWork } from '../middleware/loadWork.js';
 
 const router = Router({ mergeParams: true });
+router.use(loadWork);
 
 const MIME_TYPES = {
   pdf: 'application/pdf',

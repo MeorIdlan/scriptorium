@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import CatchModel from '../models/Catch.js';
-import Work from '../models/Work.js';
 import { httpError } from '../middleware/errorHandler.js';
+import { loadWork } from '../middleware/loadWork.js';
 
 const router = Router({ mergeParams: true });
+router.use(loadWork);
 
 function shortId() {
   return Math.random().toString(36).substring(2, 7);
@@ -13,8 +14,6 @@ function shortId() {
 router.get('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    const work = await Work.findById(workId);
-    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
     const filter = { workId };
     if (req.query.status) filter.status = req.query.status;
@@ -30,8 +29,6 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    const work = await Work.findById(workId);
-    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
     const { content, capturedDuringChapterId, taggedChapterId } = req.body;
     if (!content) return next(httpError(400, 'MISSING_FIELD', 'content is required'));

@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import MapModel from '../models/Map.js';
-import Work from '../models/Work.js';
 import { httpError } from '../middleware/errorHandler.js';
+import { loadWork } from '../middleware/loadWork.js';
 
 const router = Router({ mergeParams: true });
+router.use(loadWork);
 
 async function getMap(workId) {
   const map = await MapModel.findOne({ workId });
@@ -14,8 +15,6 @@ async function getMap(workId) {
 router.get('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    const work = await Work.findById(workId);
-    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
     res.json(await getMap(workId));
   } catch (err) {
     next(err);
@@ -26,8 +25,6 @@ router.get('/', async (req, res, next) => {
 router.put('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    const work = await Work.findById(workId);
-    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
     const { framework, acts, keyBeats } = req.body;
     const setFields = {};
@@ -50,8 +47,6 @@ router.put('/', async (req, res, next) => {
 router.put('/chapters/:chapterId', async (req, res, next) => {
   try {
     const { workId, chapterId } = req.params;
-    const work = await Work.findById(workId);
-    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
     const now = new Date().toISOString();
     const map = await MapModel.findOneAndUpdate(
@@ -85,8 +80,6 @@ router.put('/chapters/:chapterId', async (req, res, next) => {
 router.put('/gaps/:gapId', async (req, res, next) => {
   try {
     const { workId, gapId } = req.params;
-    const work = await Work.findById(workId);
-    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
     const updated = { ...req.body, id: gapId, updatedAt: new Date().toISOString() };
     const setFields = Object.fromEntries(

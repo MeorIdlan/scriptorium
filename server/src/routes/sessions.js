@@ -2,8 +2,10 @@ import { Router } from 'express';
 import Session from '../models/Session.js';
 import Work from '../models/Work.js';
 import { httpError } from '../middleware/errorHandler.js';
+import { loadWork } from '../middleware/loadWork.js';
 
 const router = Router({ mergeParams: true });
+router.use(loadWork);
 
 function shortId() {
   return Math.random().toString(36).substring(2, 7);
@@ -13,8 +15,6 @@ function shortId() {
 router.get('/latest', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    const work = await Work.findById(workId);
-    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
     const latest = await Session.findOne({ workId }).sort({ startedAt: -1 });
     res.json(latest || null);
@@ -27,8 +27,6 @@ router.get('/latest', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    const work = await Work.findById(workId);
-    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
     const { chapterId, wordsAtStart, rekindlerSnapshot } = req.body;
     const now = new Date().toISOString();

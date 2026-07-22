@@ -4,15 +4,15 @@ import Work from '../models/Work.js';
 import { httpError } from '../middleware/errorHandler.js';
 import { countWords, recalculate } from '../services/wordCountService.js';
 import { scan } from '../services/consistencyService.js';
+import { loadWork } from '../middleware/loadWork.js';
 
 const router = Router({ mergeParams: true });
+router.use(loadWork);
 
 // GET /api/works/:workId/chapters
 router.get('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    const work = await Work.findById(workId);
-    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
     const chapters = await Chapter.find({ workId }).select('-content -draftHistory').sort({ order: 1 });
     res.json(chapters);
@@ -25,8 +25,6 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    const work = await Work.findById(workId);
-    if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
 
     const { title, order } = req.body;
     if (!title) return next(httpError(400, 'MISSING_FIELD', 'title is required'));
