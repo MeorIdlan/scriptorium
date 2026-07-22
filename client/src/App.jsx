@@ -14,6 +14,8 @@ import Register from './pages/auth/Register.jsx';
 import VerifyOtp from './pages/auth/VerifyOtp.jsx';
 import PasskeySetup from './pages/auth/PasskeySetup.jsx';
 import RequireAuth from './components/auth/RequireAuth.jsx';
+import RequireAdmin from './components/auth/RequireAdmin.jsx';
+import UserManagement from './pages/admin/UserManagement.jsx';
 import { useUI } from './context/UIContext.jsx';
 
 function Layout() {
@@ -71,6 +73,14 @@ export default function App() {
         <Route path="work/:workId/map" element={<MapView />} />
         <Route path="work/:workId/codex" element={<CodexView />} />
         <Route path="settings" element={<Settings />} />
+        <Route
+          path="admin/users"
+          element={
+            <RequireAdmin>
+              <UserManagement />
+            </RequireAdmin>
+          }
+        />
       </Route>
     </Routes>
   );

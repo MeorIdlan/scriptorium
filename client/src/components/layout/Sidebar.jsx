@@ -18,7 +18,7 @@ export default function Sidebar() {
   const location = useLocation();
   const { workId } = useParams();
   const { state } = useActiveWork();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const activeWorkId = workId || (state.work ? state.work.id : null);
   const sidebarRef = useRef(null);
@@ -94,6 +94,14 @@ export default function Sidebar() {
       </div>
 
       <div className="sidebar-bottom">
+        {user?.isAdmin && (
+          <NavItem
+            to="/admin/users"
+            icon="👤"
+            label="Manage Users"
+            active={isActive('/admin/users')}
+          />
+        )}
         <NavItem
           to="/settings"
           icon="⚙"
