@@ -6,6 +6,9 @@ import cookieParser from 'cookie-parser';
 import { connectMongo } from './db.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
+import authRouter from './routes/auth.js';
+import { requireAuth } from './middleware/requireAuth.js';
+
 import worksRouter from './routes/works.js';
 import chaptersRouter from './routes/chapters.js';
 import codexRouter from './routes/codex.js';
@@ -29,15 +32,18 @@ app.get('/api/health', (req, res) => {
 });
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
-app.use('/api/works', worksRouter);
-app.use('/api/works/:workId/chapters', chaptersRouter);
-app.use('/api/works/:workId/codex', codexRouter);
-app.use('/api/works/:workId/catches', catchesRouter);
-app.use('/api/works/:workId/map', mapRouter);
-app.use('/api/works/:workId/sessions', sessionsRouter);
-app.use('/api/works/:workId/export', exportRouter);
-app.use('/api/ai', aiRouter);
-app.use('/api/settings', settingsRouter);
+app.use('/api/auth', authRouter);
+
+const auth = requireAuth();
+app.use('/api/works', auth, worksRouter);
+app.use('/api/works/:workId/chapters', auth, chaptersRouter);
+app.use('/api/works/:workId/codex', auth, codexRouter);
+app.use('/api/works/:workId/catches', auth, catchesRouter);
+app.use('/api/works/:workId/map', auth, mapRouter);
+app.use('/api/works/:workId/sessions', auth, sessionsRouter);
+app.use('/api/works/:workId/export', auth, exportRouter);
+app.use('/api/ai', auth, aiRouter);
+app.use('/api/settings', auth, settingsRouter);
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
