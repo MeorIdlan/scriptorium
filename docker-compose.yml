@@ -1,4 +1,12 @@
 services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+
   server:
     build: ./server
     ports:
@@ -6,10 +14,12 @@ services:
     environment:
       - PORT=3001
       - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongo:27017/scriptorium
     volumes:
       - ./server/src:/app/src
-      - ./server/data:/app/data
     command: npm run dev
+    depends_on:
+      - mongo
 
   client:
     build: ./client
@@ -23,3 +33,6 @@ services:
     command: npm run dev
     depends_on:
       - server
+
+volumes:
+  mongo-data:

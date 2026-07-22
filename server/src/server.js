@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { ensureDir, exists, writeJSON } from './services/fileService.js';
+import { connectMongo } from './db.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 import worksRouter from './routes/works.js';
@@ -43,21 +43,11 @@ app.use((req, res) => {
 // ─── Error handler ────────────────────────────────────────────────────────────
 app.use(errorHandler);
 
-// ─── Startup: ensure required data files exist ────────────────────────────────
-function initDataDir() {
-  ensureDir('settings');
-  ensureDir('works');
-  if (!exists('works.json')) {
-    writeJSON('works.json', []);
-  }
+async function start() {
+  await connectMongo();
+  app.listen(PORT, () => {
+    console.log(`Scriptorium backend listening on http://localhost:${PORT}`);
+  });
 }
 
-try {
-  initDataDir();
-} catch (err) {
-  console.error('Failed to initialise data directory:', err.message);
-}
-
-app.listen(PORT, () => {
-  console.log(`Scriptorium backend listening on http://localhost:${PORT}`);
-});
+start();
