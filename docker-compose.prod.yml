@@ -4,6 +4,8 @@ services:
       context: ./server
       dockerfile: Dockerfile.prod
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - PORT=3001
       - NODE_ENV=production
