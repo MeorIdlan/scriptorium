@@ -22,18 +22,22 @@ const EXTENSIONS = {
 router.post('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    const { format = 'pdf', includeNotes, draftVersion } = req.body;
+    const { format = 'pdf', includeNotes, includeOutline } = req.body;
 
     if (!MIME_TYPES[format]) {
       return next(httpError(400, 'UNSUPPORTED_FORMAT', `Unsupported format: ${format}. Use pdf, epub, or docx.`));
     }
 
-    const buffer = await exportWork(workId, format, { includeNotes, draftVersion });
+    const buffer = await exportWork(workId, format, {
+      includeNotes: Boolean(includeNotes),
+      includeOutline: Boolean(includeOutline),
+    });
 
+    const filename = `${exportBasename(req.work.title)}.${EXTENSIONS[format]}`;
     res.setHeader('Content-Type', MIME_TYPES[format]);
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="export.${EXTENSIONS[format]}"`
+      `attachment; filename="${filename.replace(/[^\x20-\x7e]|"/g, '_')}"; filename*=UTF-8''${encodeURIComponent(filename)}`
     );
     res.setHeader('Content-Length', buffer.length);
     res.send(buffer);
@@ -41,5 +45,15 @@ router.post('/', async (req, res, next) => {
     next(err);
   }
 });
+
+// Work title as a filename: keep letters/numbers (any script), collapse the rest
+export function exportBasename(title) {
+  const base = (title || '')
+    .normalize('NFC')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+  return base || 'export';
+}
 
 export default router;

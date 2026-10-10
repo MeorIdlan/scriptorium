@@ -1169,6 +1169,18 @@ a:hover {
   line-height: 1.6;
 }
 
+.pacing-flag {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.pacing-flag-chapters {
+  font-size: 0.75rem;
+  color: var(--gold);
+  margin-bottom: 0.2rem;
+}
+
 .ai-hooks-list {
   display: flex;
   flex-direction: column;
@@ -2612,6 +2624,65 @@ a:hover {
   white-space: pre-wrap;
   word-break: break-word;
   margin: 0;
+}
+
+/* ============================================================
+   Draft History Modal
+   ============================================================ */
+.draft-history-body {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  min-height: 0;
+}
+
+.draft-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  padding-right: 0.75rem;
+}
+
+.draft-history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 0.5rem 0.6rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+.draft-history-item:hover { background: var(--bg-card); }
+.draft-history-item.active {
+  border-color: var(--gold-dim);
+  background: rgba(201, 169, 110, 0.08);
+}
+
+.draft-history-time { font-size: 0.85rem; }
+.draft-history-words { font-size: 0.75rem; color: var(--text-muted); }
+
+.draft-history-preview {
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.draft-history-empty {
+  grid-column: 1 / -1;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+@media (max-width: 640px) {
+  .draft-history-body { grid-template-columns: 1fr; }
+  .draft-history-list { border-right: none; padding-right: 0; max-height: 30vh; }
 }
 
 .quill-ai-btn--polish {

@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import Work from '../models/Work.js';
+import Chapter from '../models/Chapter.js';
 import { deleteWorkCascade } from '../services/workService.js';
+import { countWords } from '../services/wordCountService.js';
 import { httpError } from '../middleware/errorHandler.js';
 
 const router = Router();
@@ -21,7 +23,7 @@ router.get('/', async (req, res, next) => {
 // POST /api/works
 router.post('/', async (req, res, next) => {
   try {
-    const { title, genre, tone, pov, protagonist, premise } = req.body;
+    const { title, genre, tone, pov, protagonist, premise, openingHook } = req.body;
     if (!title) return next(httpError(400, 'MISSING_FIELD', 'title is required'));
 
     const id = `work_${Math.random().toString(36).substring(2, 7)}`;
@@ -46,6 +48,27 @@ router.post('/', async (req, res, next) => {
       createdAt: now,
       updatedAt: now,
     });
+
+    // The hook picked in the New Work wizard opens Chapter 1
+    if (typeof openingHook === 'string' && openingHook.trim()) {
+      const content = openingHook.trim();
+      await Chapter.create({
+        _id: `ch_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+        workId: id,
+        number: 1,
+        title: 'Chapter 1',
+        order: 0,
+        content,
+        wordCount: countWords(content),
+        status: 'draft',
+        createdAt: now,
+        lastEditedAt: now,
+        updatedAt: now,
+      });
+      work.chapterCount = 1;
+      work.wordCount = countWords(content);
+      await work.save();
+    }
 
     res.status(201).json(work);
   } catch (err) {

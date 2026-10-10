@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useActiveWork } from '../context/ActiveWorkContext.jsx';
 import { useUI } from '../context/UIContext.jsx';
@@ -19,11 +19,26 @@ export default function MapView() {
     }
   }, [workId, loadWork, refreshMap]);
 
+  // Tension, beat, act and notes live in the Map document, keyed by chapter id
+  const chapters = useMemo(() => {
+    const mapChapters = state.mapData?.chapters || {};
+    return (state.chapters || []).map((ch) => {
+      const entry = mapChapters[ch.id];
+      if (!entry) return ch;
+      const { tensionScore, beat, act, notes } = entry;
+      return {
+        ...ch,
+        ...(tensionScore !== undefined && { tensionScore }),
+        ...(beat !== undefined && { beat }),
+        ...(act !== undefined && { act }),
+        ...(notes !== undefined && { notes }),
+      };
+    });
+  }, [state.chapters, state.mapData]);
+
   if (state.loading) {
     return <div className="loading-page"><p className="loading-text">Loading map…</p></div>;
   }
-
-  const chapters = state.chapters || [];
 
   return (
     <div className="map-view">
@@ -46,6 +61,7 @@ export default function MapView() {
           workId={workId}
           chapterId={uiState.selectedMapChapterId}
           chapters={chapters}
+          onSaved={() => refreshMap(workId)}
         />
       </div>
     </div>

@@ -4,6 +4,7 @@ import MapModel from '../models/Map.js';
 import Codex from '../models/Codex.js';
 import { complete } from '../services/llmService.js';
 import { httpError } from '../middleware/errorHandler.js';
+import { loadWorkFromBody } from '../middleware/loadWork.js';
 
 const router = Router();
 
@@ -18,13 +19,41 @@ function handleLlmError(err, next) {
 }
 
 // POST /api/ai/hooks
-router.post('/hooks', async (req, res, next) => {
+router.post('/hooks', loadWorkFromBody({ optional: true }), async (req, res, next) => {
   try {
-    const { workId, premise, genre, tone } = req.body;
+    // The New Work wizard sends the fields directly (no work yet); the editor
+    // sends workId plus the current scene
+    const work = req.work || {};
+    const genre = req.body.genre || work.genre;
+    const tone = req.body.tone || work.tone;
+    const premise = req.body.premise || work.premise;
+    const protagonist = req.body.protagonist || work.protagonist;
+    const title = req.body.title || work.title;
+    const scene = typeof req.body.content === 'string' ? req.body.content.trim() : '';
 
-    const prompt = `Generate 3 compelling opening hook options for a ${genre || 'fiction'} story.
-Tone: ${tone || 'literary'}
-Premise: ${premise || 'A story about human connection'}
+    const context = [
+      title && `Title: ${title}`,
+      `Genre: ${genre || 'fiction'}`,
+      `Tone: ${tone || 'literary'}`,
+      premise && `Premise: ${premise}`,
+      protagonist && `Protagonist: ${protagonist}`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const prompt = scene
+      ? `Generate 3 compelling hooks for the scene below: openings or turns that would pull the reader into it. Match the story's voice.
+
+${context}
+
+Current scene:
+${scene.slice(0, 3000)}
+
+Return ONLY a JSON array of exactly 3 strings, each being a complete hook sentence or short paragraph. No other text.
+Example format: ["Hook one...", "Hook two...", "Hook three..."]`
+      : `Generate 3 compelling opening hook options for a ${genre || 'fiction'} story.
+
+${context}
 
 Return ONLY a JSON array of exactly 3 strings, each being a complete opening hook sentence or paragraph. No other text.
 Example format: ["Hook one...", "Hook two...", "Hook three..."]`;
@@ -33,7 +62,8 @@ Example format: ["Hook one...", "Hook two...", "Hook three..."]`;
 
     let hooks;
     try {
-      hooks = JSON.parse(raw.trim());
+      const arrayMatch = raw.match(/\[[\s\S]*\]/);
+      hooks = JSON.parse(arrayMatch ? arrayMatch[0] : raw.trim());
       if (!Array.isArray(hooks)) throw new Error('Not an array');
     } catch {
       return next(httpError(500, 'PARSE_ERROR', 'AI returned invalid JSON for hooks'));
@@ -46,14 +76,20 @@ Example format: ["Hook one...", "Hook two...", "Hook three..."]`;
 });
 
 // POST /api/ai/rekindler
-router.post('/rekindler', async (req, res, next) => {
+router.post('/rekindler', loadWorkFromBody(), async (req, res, next) => {
   try {
-    const { workId, chapterId, lastContent } = req.body;
+    // Where the writer left off: the most recently saved chapter
+    const chapter = await Chapter.findOne({ workId: req.work.id, content: { $nin: ['', null] } })
+      .select('title content')
+      .sort({ updatedAt: -1 });
+    const lastContent = chapter?.content || '';
 
     const prompt = `The writer is returning to their work. Help them re-enter the story with a brief rekindler.
 
+Work: ${req.work.title}${chapter ? `\nChapter: ${chapter.title}` : ''}
+
 Last written content:
-${lastContent ? lastContent.slice(-1000) : '(No content yet)'}
+${lastContent ? lastContent.slice(-1500) : '(No content yet)'}
 
 Return ONLY a JSON object with these fields:
 {
@@ -114,15 +150,15 @@ Return ONLY a JSON object:
 });
 
 // POST /api/ai/pacing
-router.post('/pacing', async (req, res, next) => {
+router.post('/pacing', loadWorkFromBody(), async (req, res, next) => {
   try {
-    const { workId } = req.body;
-    if (!workId) return next(httpError(400, 'MISSING_FIELD', 'workId is required'));
+    const workId = req.work.id;
 
-    const chapters = await Chapter.find({ workId }).select('-content -draftHistory').sort({ order: 1 });
+    const chapters = await Chapter.find({ workId }).select('-content -contentHtml -draftHistory').sort({ order: 1 });
     const map = (await MapModel.findOne({ workId }).lean()) || {};
 
     const chapterSummary = chapters.map((ch) => ({
+      id: ch.id,
       title: ch.title,
       wordCount: ch.wordCount || 0,
       tensionScore: map.chapters?.[ch.id]?.tensionScore,
@@ -312,10 +348,9 @@ ${content.slice(0, 6000)}`,
 });
 
 // POST /api/ai/codex-audit
-router.post('/codex-audit', async (req, res, next) => {
+router.post('/codex-audit', loadWorkFromBody(), async (req, res, next) => {
   try {
-    const { workId } = req.body;
-    if (!workId) return next(httpError(400, 'MISSING_FIELD', 'workId is required'));
+    const workId = req.work.id;
 
     const codex = (await Codex.findOne({ workId }).lean()) || { characters: [], places: [], worldRules: [] };
 

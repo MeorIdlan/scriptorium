@@ -148,7 +148,7 @@ export default function CharacterSheet({ workId, character, onUpdate, onFlagsCha
 
       <FlagList
         workId={workId}
-        flags={(char.flags || []).filter((f) => f.status === 'open')}
+        flags={(char.flags || []).filter((f) => f.status === 'unresolved')}
         entityType="character"
         entityId={char.id}
         onFlagsChange={onFlagsChange}

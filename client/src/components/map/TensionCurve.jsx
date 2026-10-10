@@ -19,7 +19,7 @@ export default function TensionCurve({ chapters }) {
     PADDING.left + (i / Math.max(chapters.length - 1, 1)) * plotWidth;
 
   const getY = (tension) =>
-    PADDING.top + plotHeight - ((tension || 50) / 100) * plotHeight;
+    PADDING.top + plotHeight - ((tension ?? 50) / 100) * plotHeight;
 
   const points = chapters.map((ch, i) => `${getX(i)},${getY(ch.tensionScore)}`).join(' ');
 

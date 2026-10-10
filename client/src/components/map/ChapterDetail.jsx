@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../utils/api.js';
 import { useAI } from '../../hooks/useAI.js';
 import { formatNumber } from '../../utils/wordCount.js';
+import PacingResult from '../panel/PacingResult.jsx';
 
 const FRAMEWORK_BEATS = [
   'Inciting Incident',
@@ -15,6 +16,8 @@ const FRAMEWORK_BEATS = [
   'Resolution',
 ];
 
+const ACTS = ['Act I', 'Act II', 'Act III'];
+
 function MetricCard({ label, value }) {
   return (
     <div className="metric-card">
@@ -24,7 +27,7 @@ function MetricCard({ label, value }) {
   );
 }
 
-export default function ChapterDetail({ workId, chapterId, chapters }) {
+export default function ChapterDetail({ workId, chapterId, chapters, onSaved }) {
   const navigate = useNavigate();
   const { loading: aiLoading, error: aiError, result: aiResult, call: aiCall } = useAI();
 
@@ -32,6 +35,7 @@ export default function ChapterDetail({ workId, chapterId, chapters }) {
 
   const [tension, setTension] = useState(chapter?.tensionScore ?? 50);
   const [beat, setBeat] = useState(chapter?.beat ?? '');
+  const [act, setAct] = useState(chapter?.act ?? '');
   const [notes, setNotes] = useState(chapter?.notes ?? '');
   const [saving, setSaving] = useState(false);
 
@@ -39,6 +43,7 @@ export default function ChapterDetail({ workId, chapterId, chapters }) {
     if (chapter) {
       setTension(chapter.tensionScore ?? 50);
       setBeat(chapter.beat ?? '');
+      setAct(chapter.act ?? '');
       setNotes(chapter.notes ?? '');
     }
   }, [chapterId, chapter]);
@@ -55,6 +60,7 @@ export default function ChapterDetail({ workId, chapterId, chapters }) {
     setSaving(true);
     try {
       await api.put(`/works/${workId}/map/chapters/${chapterId}`, updates);
+      onSaved?.();
     } catch (err) {
       console.error('Save chapter map data failed:', err);
     } finally {
@@ -70,6 +76,11 @@ export default function ChapterDetail({ workId, chapterId, chapters }) {
   async function handleBeatChange(val) {
     setBeat(val);
     await save({ beat: val || null });
+  }
+
+  async function handleActChange(val) {
+    setAct(val);
+    await save({ act: val || null });
   }
 
   async function handleNotesBlur() {
@@ -88,7 +99,7 @@ export default function ChapterDetail({ workId, chapterId, chapters }) {
         <div className="chapter-detail-metrics">
           <MetricCard label="Words" value={formatNumber(chapter.wordCount || 0)} />
           <MetricCard label="Status" value={chapter.status || 'draft'} />
-          <MetricCard label="Act" value={chapter.act || '—'} />
+          <MetricCard label="Act" value={act || '—'} />
         </div>
 
         <div className="chapter-detail-field">
@@ -105,6 +116,20 @@ export default function ChapterDetail({ workId, chapterId, chapters }) {
             onMouseUp={(e) => handleTensionChange(Number(e.target.value))}
             onTouchEnd={(e) => handleTensionChange(Number(e.target.value))}
           />
+        </div>
+
+        <div className="chapter-detail-field">
+          <label className="chapter-detail-label">Act</label>
+          <select
+            className="form-select"
+            value={act}
+            onChange={(e) => handleActChange(e.target.value)}
+          >
+            <option value="">Unassigned</option>
+            {ACTS.map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
         </div>
 
         <div className="chapter-detail-field">
@@ -160,7 +185,7 @@ export default function ChapterDetail({ workId, chapterId, chapters }) {
         {aiError && <p className="panel-error">{aiError}</p>}
         {aiResult && (
           <div className="ai-result">
-            <p className="ai-result-text">{aiResult.analysis || aiResult.text || JSON.stringify(aiResult)}</p>
+            <PacingResult result={aiResult} chapters={chapters} />
           </div>
         )}
 

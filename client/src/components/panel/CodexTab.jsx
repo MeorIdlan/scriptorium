@@ -13,7 +13,7 @@ export default function CodexTab({ workId }) {
     setLoading(true);
     api.get(`/works/${workId}/codex/flags`)
       .then((data) => {
-        setFlags(Array.isArray(data) ? data.filter((f) => f.status === 'open') : []);
+        setFlags(Array.isArray(data) ? data.filter((f) => f.status === 'unresolved') : []);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -41,7 +41,7 @@ export default function CodexTab({ workId }) {
 
       {flags.map((flag) => (
         <div key={flag.id} className="codex-flag-card">
-          <p className="codex-flag-text">{flag.description || flag.message}</p>
+          <p className="codex-flag-text">{flag.note}</p>
           {flag.entityName && (
             <p className="codex-flag-entity">Re: {flag.entityName}</p>
           )}

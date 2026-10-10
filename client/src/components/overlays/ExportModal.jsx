@@ -30,17 +30,17 @@ export default function ExportModal() {
     setExporting(true);
     setError(null);
     try {
-      const blob = await api.post(`/works/${workId}/export`, {
-        format,
-        includeNotes,
-        includeOutline,
-      });
+      const { blob, filename } = await api.download(
+        `/works/${workId}/export`,
+        { format, includeNotes, includeOutline },
+        `export.${format}`
+      );
 
       // Trigger browser download
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `export.${format}`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();

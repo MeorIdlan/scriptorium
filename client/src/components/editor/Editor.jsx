@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useAutosave } from '../../hooks/useAutosave.js';
 
-const Editor = forwardRef(function Editor({ workId, initialContent = '' }, ref) {
+const Editor = forwardRef(function Editor({ workId, initialContent = '', initialHtml = '' }, ref) {
   const editorRef = useRef(null);
   const { state, setContent, clearReplacement } = useEditor();
 
@@ -14,8 +14,14 @@ const Editor = forwardRef(function Editor({ workId, initialContent = '' }, ref) 
 
   // Load initial content only on mount or when key causes remount
   useEffect(() => {
-    if (editorRef.current) {
-      editorRef.current.innerHTML = initialContent || '';
+    if (!editorRef.current) return;
+    if (initialHtml) {
+      // Sanitized server-side on save
+      editorRef.current.innerHTML = initialHtml;
+    } else {
+      // Chapters saved before HTML storage only have plain text; innerText
+      // turns its newlines back into line breaks
+      editorRef.current.innerText = initialContent || '';
     }
     // Only run when component mounts (key-based remount handles chapter switching)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -24,15 +30,16 @@ const Editor = forwardRef(function Editor({ workId, initialContent = '' }, ref) 
   // Apply programmatic content replacements (e.g., from Draft Polish)
   useEffect(() => {
     if (!state.pendingReplacement || !editorRef.current) return;
-    editorRef.current.innerText = state.pendingReplacement.text;
-    setContent(state.pendingReplacement.text);
+    const { text, html } = state.pendingReplacement;
+    if (html) editorRef.current.innerHTML = html;
+    else editorRef.current.innerText = text;
+    setContent(editorRef.current.innerText || '', editorRef.current.innerHTML);
     clearReplacement();
   }, [state.pendingReplacement, setContent, clearReplacement]);
 
   const handleInput = useCallback(() => {
     if (editorRef.current) {
-      const text = editorRef.current.innerText || '';
-      setContent(text);
+      setContent(editorRef.current.innerText || '', editorRef.current.innerHTML);
     }
   }, [setContent]);
 

@@ -19,7 +19,7 @@ export default function FlagList({ workId, flags, entityType, entityId, onFlagsC
       <p className="flag-list-label">Flags</p>
       {flags.map((flag) => (
         <div key={flag.id} className="flag-item">
-          <p className="flag-item-text">{flag.description || flag.message}</p>
+          <p className="flag-item-text">{flag.note}</p>
           <div className="flag-item-actions">
             <button
               className="btn btn-ghost btn-sm"

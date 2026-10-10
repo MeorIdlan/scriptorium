@@ -106,7 +106,7 @@ export default function PlaceEntry({ workId, place, onUpdate, onFlagsChange }) {
 
       <FlagList
         workId={workId}
-        flags={(entry.flags || []).filter((f) => f.status === 'open')}
+        flags={(entry.flags || []).filter((f) => f.status === 'unresolved')}
         entityType="place"
         entityId={entry.id}
         onFlagsChange={onFlagsChange}

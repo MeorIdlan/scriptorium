@@ -8,10 +8,12 @@ export function useAutosave(workId) {
   const { state, setSaveStatus } = useEditor();
   const timerRef = useRef(null);
   const latestContentRef = useRef(state.content);
+  const latestHtmlRef = useRef(state.html);
   const latestChapterIdRef = useRef(state.chapterId);
 
   // Keep refs in sync without triggering effect re-runs
   latestContentRef.current = state.content;
+  latestHtmlRef.current = state.html;
   latestChapterIdRef.current = state.chapterId;
 
   useEffect(() => {
@@ -25,10 +27,11 @@ export function useAutosave(workId) {
     timerRef.current = setTimeout(async () => {
       const chapterId = latestChapterIdRef.current;
       const content = latestContentRef.current;
+      const contentHtml = latestHtmlRef.current;
       if (!chapterId || !workId) return;
 
       try {
-        await api.put(`/works/${workId}/chapters/${chapterId}`, { content });
+        await api.put(`/works/${workId}/chapters/${chapterId}`, { content, contentHtml });
         setSaveStatus('saved');
       } catch (err) {
         console.error('Autosave failed:', err);
