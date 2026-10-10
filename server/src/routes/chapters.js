@@ -135,6 +135,9 @@ router.put('/:chapterId', async (req, res, next) => {
     delete setFields.id;
     delete setFields.workId;
     delete setFields.draftHistory;
+    if (chapter.status === 'outline' && words > 0 && req.body.status === undefined) {
+      setFields.status = 'draft';
+    }
 
     const updateOp = { $set: setFields };
     if (contentChanged && chapter.content && snapshotDue(chapter, now)) {

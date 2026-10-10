@@ -17,9 +17,30 @@ export async function apiFetch(path, options = {}) {
   return res.blob();
 }
 
+// POST that returns a file: resolves to { blob, filename } using the
+// server's Content-Disposition filename when present
+async function download(path, body, fallbackName) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  const plain = disposition.match(/filename="([^"]+)"/i);
+  const filename = encoded ? decodeURIComponent(encoded[1]) : plain ? plain[1] : fallbackName;
+  return { blob: await res.blob(), filename };
+}
+
 export const api = {
   get: (path) => apiFetch(path),
   post: (path, body) => apiFetch(path, { method: 'POST', body }),
   put: (path, body) => apiFetch(path, { method: 'PUT', body }),
   delete: (path) => apiFetch(path, { method: 'DELETE' }),
+  download,
 };

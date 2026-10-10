@@ -6,18 +6,31 @@ import path from 'path';
 import os from 'os';
 import Work from '../models/Work.js';
 import Chapter from '../models/Chapter.js';
+import MapModel from '../models/Map.js';
+import User from '../models/User.js';
 
 export async function exportWork(workId, format, options = {}) {
-  const meta = await Work.findById(workId);
-  if (!meta) {
+  const { includeNotes = false, includeOutline = false } = options;
+  const work = await Work.findById(workId);
+  if (!work) {
     throw Object.assign(new Error('Work not found'), { status: 404, code: 'NOT_FOUND' });
   }
+  const owner = await User.findById(work.ownerId).select('name').lean();
+  const meta = { ...work.toJSON(), author: owner?.name || '' };
 
-  const chapterDocs = await Chapter.find({ workId }).sort({ order: 1 }).lean();
-  const chapters = chapterDocs.map((ch) => ({
-    title: ch.title || 'Untitled',
-    content: ch.content || '',
-  }));
+  const [chapterDocs, map] = await Promise.all([
+    Chapter.find({ workId }).select('-contentHtml -draftHistory').sort({ order: 1 }).lean(),
+    MapModel.findOne({ workId }).lean(),
+  ]);
+  const chapters = chapterDocs
+    // Outline chapters: still marked outline with no prose written
+    .filter((ch) => includeOutline || !(ch.status === 'outline' && !ch.wordCount))
+    .map((ch) => ({
+      title: ch.title || 'Untitled',
+      content: ch.content || '',
+      // The Map's notes field is the one the UI edits
+      notes: includeNotes ? (map?.chapters?.[ch._id]?.notes || ch.notes || '').trim() : '',
+    }));
 
   switch (format) {
     case 'pdf':
@@ -48,6 +61,10 @@ function buildPDF(meta, chapters) {
     // Title page
     doc.fontSize(28).font('Helvetica-Bold').text(meta.title || 'Untitled', { align: 'center' });
     doc.moveDown();
+    if (meta.author) {
+      doc.fontSize(14).font('Helvetica').text(meta.author, { align: 'center' });
+      doc.moveDown();
+    }
     if (meta.genre) {
       doc.fontSize(14).font('Helvetica').text(meta.genre, { align: 'center' });
     }
@@ -61,6 +78,10 @@ function buildPDF(meta, chapters) {
       doc.addPage();
       doc.fontSize(18).font('Helvetica-Bold').text(chapter.title);
       doc.moveDown();
+      if (chapter.notes) {
+        doc.fontSize(10).font('Helvetica-Oblique').text(`Notes: ${chapter.notes}`, { lineGap: 2 });
+        doc.moveDown();
+      }
       doc.fontSize(12).font('Helvetica').text(chapter.content || '', { lineGap: 4 });
     }
 
@@ -70,54 +91,66 @@ function buildPDF(meta, chapters) {
 
 // ─── EPUB ────────────────────────────────────────────────────────────────────
 
-async function buildEPUB(meta, chapters) {
+// nodepub's document() stores its state on a shared module-level object
+// (`const self = this` in an arrow function), so builds must not overlap
+let epubQueue = Promise.resolve();
+
+function buildEPUB(meta, chapters) {
+  const run = epubQueue.then(() => buildEPUBNow(meta, chapters));
+  epubQueue = run.catch(() => {});
+  return run;
+}
+
+async function buildEPUBNow(meta, chapters) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scriptorium-epub-'));
-  const outFile = path.join(tmpDir, 'output');
 
   try {
+    // nodepub requires a cover image file
+    const coverPath = path.join(tmpDir, 'cover.svg');
+    fs.writeFileSync(coverPath, coverSVG(meta));
+
     const epubMeta = {
       id: meta.id || 'scriptorium-work',
-      title: meta.title || 'Untitled',
-      author: 'Author',
-      genre: meta.genre || 'Fiction',
-      description: meta.logline || '',
-      cover: null,
+      // nodepub templates these into XML without escaping
+      title: escapeXml(meta.title || 'Untitled'),
+      author: escapeXml(meta.author || 'Unknown'),
+      fileAs: escapeXml(meta.author || 'Unknown'),
+      copyright: '',
+      tags: '',
+      genre: escapeXml(meta.genre || 'Fiction'),
+      description: escapeXml(meta.logline || ''),
+      cover: coverPath,
       publisher: 'Scriptorium',
       language: 'en',
-      date: new Date().toISOString().split('T')[0],
+      published: new Date().toISOString().split('T')[0],
       contents: 'Table of Contents',
       source: '',
       images: [],
     };
 
-    const allChapters = chapters.length > 0 ? chapters : [{ title: 'Empty', content: '' }];
+    const allChapters = chapters.length > 0 ? chapters : [{ title: 'Empty', content: '', notes: '' }];
 
-    const epub = nodepub.document(epubMeta, textToHTML(allChapters[0].title, allChapters[0].content));
-
-    for (let i = 1; i < allChapters.length; i++) {
-      epub.addSection(
-        allChapters[i].title,
-        textToHTML(allChapters[i].title, allChapters[i].content)
-      );
+    const epub = nodepub.document(epubMeta);
+    for (const chapter of allChapters) {
+      epub.addSection(escapeXml(chapter.title), chapterToHTML(chapter));
     }
 
-    await new Promise((resolve, reject) => {
-      epub.writeEPUB(
-        () => {}, // log fn
-        outFile,
-        (err) => {
-          if (err) reject(err);
-          else resolve();
-        }
-      );
-    });
-
-    const epubPath = outFile + '.epub';
-    const buffer = fs.readFileSync(epubPath);
-    return buffer;
+    await epub.writeEPUB(tmpDir, 'output');
+    return fs.readFileSync(path.join(tmpDir, 'output.epub'));
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
+}
+
+function coverSVG(meta) {
+  const bg = /^#[0-9a-f]{6}$/i.test(meta.coverColor || '') ? meta.coverColor : '#2d3b4a';
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="2560" viewBox="0 0 1600 2560">
+  <rect width="1600" height="2560" fill="${bg}"/>
+  <text x="800" y="1100" font-family="Georgia, serif" font-size="120" fill="#e8e3d8" text-anchor="middle">${escapeXml(meta.title || 'Untitled')}</text>
+  <text x="800" y="1300" font-family="Georgia, serif" font-size="64" fill="#c9a96e" text-anchor="middle">${escapeXml(meta.author || '')}</text>
+</svg>
+`;
 }
 
 // ─── DOCX ────────────────────────────────────────────────────────────────────
@@ -129,6 +162,10 @@ async function buildDOCX(meta, chapters) {
       heading: HeadingLevel.TITLE,
     }),
   ];
+
+  if (meta.author) {
+    children.push(new Paragraph({ children: [new TextRun({ text: meta.author })] }));
+  }
 
   if (meta.genre) {
     children.push(
@@ -146,6 +183,15 @@ async function buildDOCX(meta, chapters) {
         pageBreakBefore: true,
       })
     );
+
+    if (chapter.notes) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: `Notes: ${chapter.notes}`, italics: true })],
+          spacing: { after: 200 },
+        })
+      );
+    }
 
     const paragraphs = (chapter.content || '').split(/\n\n+/);
     for (const para of paragraphs) {
@@ -170,10 +216,22 @@ async function buildDOCX(meta, chapters) {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function textToHTML(title, text) {
-  const body = (text || '')
+function escapeXml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function chapterToHTML({ title, content, notes }) {
+  const body = (content || '')
     .split(/\n\n+/)
-    .map((p) => `<p>${p.trim().replace(/\n/g, '<br/>')}</p>`)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${escapeXml(p).replace(/\n/g, '<br/>')}</p>`)
     .join('');
-  return `<h1>${title}</h1>${body || '<p></p>'}`;
+  const notesHtml = notes ? `<p><em>Notes: ${escapeXml(notes)}</em></p>` : '';
+  return `<h1>${escapeXml(title)}</h1>${notesHtml}${body || '<p></p>'}`;
 }
