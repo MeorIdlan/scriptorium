@@ -64,7 +64,20 @@ export function generateSummary(work, chapter) {
   return promise;
 }
 
-export async function ensureSummaries(work, chapters, { generate = generateSummary } = {}) {
+// Summaries run before the main call, so cap the time they can take: the
+// request has to fit inside the proxy timeouts in front of the server
+const SUMMARY_BUDGET_MS = 45000;
+
+// Errors that will fail every call the same way, including the main one
+function isFatal(err) {
+  return err.code === 'NO_API_KEY' || [401, 403, 404].includes(err.status);
+}
+
+export async function ensureSummaries(
+  work,
+  chapters,
+  { generate = generateSummary, budgetMs = SUMMARY_BUDGET_MS, now = Date.now } = {}
+) {
   const summaries = new Map();
   let unavailable = 0;
   const todo = [];
@@ -75,11 +88,19 @@ export async function ensureSummaries(work, chapters, { generate = generateSumma
     else summaries.set(chapter._id, chapter.summary.text);
   }
 
+  const deadline = now() + budgetMs;
+  let stopped = false; // set after a rate limit: leave the budget for the main call
+
   await runLimited(todo, CONCURRENCY, async (chapter) => {
+    if (stopped || now() >= deadline) {
+      unavailable += 1;
+      return;
+    }
     try {
       summaries.set(chapter._id, await generate(work, chapter));
     } catch (err) {
-      if (err.code === 'NO_API_KEY') throw err;
+      if (isFatal(err)) throw err;
+      if (err.status === 429) stopped = true;
       console.error(`Summary generation failed for ${chapter._id}:`, err.message);
       unavailable += 1;
     }

@@ -59,3 +59,54 @@ test('ensureSummaries rethrows NO_API_KEY instead of counting it', async () => {
     (err) => err.code === 'NO_API_KEY'
   );
 });
+
+const providerError = (status) => Object.assign(new Error(`HTTP ${status}`), { status });
+
+test('ensureSummaries fails fast on provider auth errors', async () => {
+  for (const status of [401, 403, 404]) {
+    let calls = 0;
+    await assert.rejects(
+      ensureSummaries(work, [ch('c1', 'one'), ch('c2', 'two'), ch('c3', 'three'), ch('c4', 'four')], {
+        generate: async () => {
+          calls += 1;
+          throw providerError(status);
+        },
+      }),
+      (err) => err.status === status
+    );
+    assert.ok(calls <= 3, `status ${status}: ${calls} calls`);
+  }
+});
+
+test('ensureSummaries stops starting summaries after a rate limit', async () => {
+  let calls = 0;
+  const chapters = Array.from({ length: 9 }, (_, i) => ch(`c${i}`, `text ${i}`));
+  const { summaries, unavailable } = await ensureSummaries(work, chapters, {
+    generate: async () => {
+      calls += 1;
+      await new Promise((r) => setTimeout(r, 5));
+      throw providerError(429);
+    },
+  });
+  assert.ok(calls <= 3, `${calls} calls`);
+  assert.equal(unavailable, 9);
+  assert.equal(summaries.size, 0);
+});
+
+test('ensureSummaries stops starting summaries once its time budget is spent', async () => {
+  let clock = 0;
+  let calls = 0;
+  const chapters = Array.from({ length: 10 }, (_, i) => ch(`c${i}`, `text ${i}`));
+  const { summaries, unavailable } = await ensureSummaries(work, chapters, {
+    budgetMs: 100,
+    now: () => clock,
+    generate: async (_w, c) => {
+      calls += 1;
+      clock += 40; // each summary "takes" 40ms of budget
+      return `s ${c._id}`;
+    },
+  });
+  assert.ok(calls < 10, `${calls} calls`);
+  assert.equal(summaries.size + unavailable, 10);
+  assert.ok(unavailable > 0);
+});

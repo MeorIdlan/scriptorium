@@ -1,5 +1,16 @@
 const BASE = '/api'; // Vite proxy handles /api → backend
 
+// Gateway timeouts come back from nginx/Cloudflare as HTML, not our JSON
+const TIMEOUT_STATUSES = [502, 504, 524];
+const TIMEOUT_MESSAGE =
+  'This is taking longer than usual (often while chapter summaries are being prepared). Try again in a moment — finished summaries are kept.';
+
+function errorMessage(res, err) {
+  if (err.error) return err.error;
+  if (TIMEOUT_STATUSES.includes(res.status)) return TIMEOUT_MESSAGE;
+  return `HTTP ${res.status}`;
+}
+
 export async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -9,7 +20,7 @@ export async function apiFetch(path, options = {}) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `HTTP ${res.status}`);
+    throw new Error(errorMessage(res, err));
   }
   // Handle binary responses (export)
   const contentType = res.headers.get('Content-Type') || '';
@@ -28,7 +39,7 @@ async function download(path, body, fallbackName) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `HTTP ${res.status}`);
+    throw new Error(errorMessage(res, err));
   }
   const disposition = res.headers.get('Content-Disposition') || '';
   const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i);
