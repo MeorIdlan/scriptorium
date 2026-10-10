@@ -3005,3 +3005,35 @@ a:hover {
   color: var(--text-muted);
   line-height: 1.5;
 }
+
+/* ============================================================
+   Chapter Summary
+   ============================================================ */
+.chapter-summary-modal {
+  max-width: 600px;
+}
+
+.summary-status {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-style: italic;
+  font-weight: normal;
+}
+.summary-status--current { color: var(--success); }
+.summary-status--outdated,
+.summary-status--edited-outdated { color: var(--amber); }
+.summary-status--edited { color: var(--gold); }
+
+.chapter-summary-text {
+  margin-top: 0.5rem;
+  font-family: Georgia, serif;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.chapter-summary-textarea {
+  margin-top: 0.5rem;
+  width: 100%;
+}

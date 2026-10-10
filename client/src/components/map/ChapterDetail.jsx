@@ -5,6 +5,7 @@ import { useAI } from '../../hooks/useAI.js';
 import { formatNumber } from '../../utils/wordCount.js';
 import PacingResult from '../panel/PacingResult.jsx';
 import ContextUsed from '../panel/ContextUsed.jsx';
+import { SUMMARY_STATUS_LABELS } from '../../utils/summaryStatus.js';
 
 const FRAMEWORK_BEATS = [
   'Inciting Incident',
@@ -148,7 +149,17 @@ export default function ChapterDetail({ workId, chapterId, chapters, onSaved }) 
         </div>
 
         <div className="chapter-detail-field">
-          <label className="chapter-detail-label">Notes / Summary</label>
+          <label className="chapter-detail-label">
+            Chapter summary{' '}
+            <span className={`summary-status summary-status--${chapter.summaryStatus || 'none'}`}>
+              {SUMMARY_STATUS_LABELS[chapter.summaryStatus || 'none']}
+            </span>
+          </label>
+          <p className="chapter-summary-text">{chapter.summary?.text || '—'}</p>
+        </div>
+
+        <div className="chapter-detail-field">
+          <label className="chapter-detail-label">Notes</label>
           <textarea
             className="form-textarea"
             rows={4}
