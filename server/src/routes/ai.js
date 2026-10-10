@@ -4,6 +4,7 @@ import MapModel from '../models/Map.js';
 import Codex from '../models/Codex.js';
 import { complete } from '../services/llmService.js';
 import { httpError } from '../middleware/errorHandler.js';
+import { loadWorkFromBody } from '../middleware/loadWork.js';
 
 const router = Router();
 
@@ -114,10 +115,9 @@ Return ONLY a JSON object:
 });
 
 // POST /api/ai/pacing
-router.post('/pacing', async (req, res, next) => {
+router.post('/pacing', loadWorkFromBody(), async (req, res, next) => {
   try {
-    const { workId } = req.body;
-    if (!workId) return next(httpError(400, 'MISSING_FIELD', 'workId is required'));
+    const workId = req.work.id;
 
     const chapters = await Chapter.find({ workId }).select('-content -draftHistory').sort({ order: 1 });
     const map = (await MapModel.findOne({ workId }).lean()) || {};
@@ -312,10 +312,9 @@ ${content.slice(0, 6000)}`,
 });
 
 // POST /api/ai/codex-audit
-router.post('/codex-audit', async (req, res, next) => {
+router.post('/codex-audit', loadWorkFromBody(), async (req, res, next) => {
   try {
-    const { workId } = req.body;
-    if (!workId) return next(httpError(400, 'MISSING_FIELD', 'workId is required'));
+    const workId = req.work.id;
 
     const codex = (await Codex.findOne({ workId }).lean()) || { characters: [], places: [], worldRules: [] };
 
