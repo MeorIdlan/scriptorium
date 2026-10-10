@@ -28,16 +28,3 @@ export async function sendOtpEmail(to, code) {
     text: `Your verification code is: ${code}\n\nIt expires in 10 minutes. If you did not request this, ignore this email.`,
   });
 }
-
-export async function sendRegistrationRequestEmail(adminEmail, code, registrant) {
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`[dev] Registration request from ${registrant.name} <${registrant.email}>, code: ${code}`);
-  }
-  const { mailer, domain, from } = client();
-  await mailer.messages.create(domain, {
-    from: `Scriptorium <${from}>`,
-    to: [adminEmail],
-    subject: 'Scriptorium registration request',
-    text: `${registrant.name} <${registrant.email}> is requesting to register.\n\nVerification code: ${code}\n\nIt expires in 10 minutes. Share it with them only if you want to approve this registration.`,
-  });
-}

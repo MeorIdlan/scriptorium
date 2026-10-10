@@ -14,7 +14,7 @@ const router = Router();
 // GET /api/admin/users
 router.get('/users', async (req, res, next) => {
   try {
-    const users = await User.find().sort({ createdAt: 1 });
+    const users = await User.find({ emailVerified: true }).sort({ createdAt: 1 });
     res.json(users);
   } catch (err) {
     next(err);

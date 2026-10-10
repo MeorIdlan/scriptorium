@@ -77,7 +77,7 @@ export default function Login() {
         <button type="submit" disabled={submitting}>
           {submitting ? 'Waiting for device…' : 'Log in with passkey'}
         </button>
-        <Link to="/register">Need access? Request registration</Link>
+        <Link to="/register">Don't have an account? Register</Link>
         <button type="button" onClick={() => { setMode('recover'); setError(null); }}>
           Lost your passkey? Recover access
         </button>

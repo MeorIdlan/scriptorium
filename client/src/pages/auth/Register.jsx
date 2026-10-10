@@ -27,8 +27,8 @@ export default function Register() {
   return (
     <div className="auth-page">
       <form className="auth-card" onSubmit={handleSubmit}>
-        <h1>Request access</h1>
-        <p>An admin will need to approve your registration and share a verification code with you.</p>
+        <h1>Create an account</h1>
+        <p>We'll email you a verification code to confirm your address.</p>
         {error && <div className="auth-error">{error}</div>}
         <label>
           Name
@@ -39,7 +39,7 @@ export default function Register() {
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </label>
         <button type="submit" disabled={submitting}>
-          {submitting ? 'Sending…' : 'Request registration'}
+          {submitting ? 'Sending…' : 'Register'}
         </button>
         <Link to="/login">Already have an account? Log in</Link>
       </form>

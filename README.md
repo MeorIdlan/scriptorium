@@ -37,7 +37,7 @@ The server reads these from the environment (see `.env.example`):
 | --- | --- |
 | `MONGODB_URI` | Mongo connection string. Compose sets it to `mongodb://mongo:27017/scriptorium`. |
 | `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_FROM_EMAIL` | Sending one-time codes by email. |
-| `ADMIN_EMAIL` | Registration requests go to this address, and the account with this email is the admin. |
+| `ADMIN_EMAIL` | The account registered with this email is the admin. |
 | `WEBAUTHN_RP_ID`, `WEBAUTHN_ORIGIN`, `WEBAUTHN_RP_NAME` | Passkey settings. Must match the hostname and origin the app is served from. |
 | `COOKIE_SECURE` | `true` when served over HTTPS. |
 | `SESSION_TTL_DAYS` | How long a login lasts (default 30). |

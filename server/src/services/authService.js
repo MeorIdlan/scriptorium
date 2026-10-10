@@ -5,12 +5,18 @@ import * as authSessionService from './authSessionService.js';
 import * as auditService from './auditService.js';
 import { httpError } from '../middleware/errorHandler.js';
 
+const UNVERIFIED_TTL_MS = 24 * 60 * 60 * 1000;
+
 function shortId() {
   return Math.random().toString(36).substring(2, 7);
 }
 
 export async function startRegistration(name, email) {
   const normalized = email.toLowerCase();
+  // Abandoned sign-ups never verify; clear them out so they don't pile up.
+  const cutoff = new Date(Date.now() - UNVERIFIED_TTL_MS).toISOString();
+  await User.deleteMany({ emailVerified: false, createdAt: { $lt: cutoff } });
+
   const existing = await User.findOne({ email: normalized });
   if (existing?.emailVerified) {
     throw httpError(409, 'ALREADY_EXISTS', 'Account already exists. Log in instead.');
@@ -32,7 +38,7 @@ export async function startRegistration(name, email) {
   }
 
   const code = await otpService.issue(normalized, 'register');
-  await emailService.sendRegistrationRequestEmail(process.env.ADMIN_EMAIL, code, { name, email: normalized });
+  await emailService.sendOtpEmail(normalized, code);
   await auditService.log({ userId: user._id, action: 'auth.otp_requested', metadata: { purpose: 'register', name } });
 }
 

@@ -30,7 +30,7 @@ export default function VerifyOtp() {
     <div className="auth-page">
       <form className="auth-card" onSubmit={handleSubmit}>
         <h1>Enter verification code</h1>
-        <p>Enter the 6-digit code you were given.</p>
+        <p>Enter the 6-digit code we emailed you.</p>
         {error && <div className="auth-error">{error}</div>}
         <label>
           Email
