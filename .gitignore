@@ -9,3 +9,4 @@ server/data/
 .claude/
 .worktrees/
 .playwright-mcp/
+.superpowers/
