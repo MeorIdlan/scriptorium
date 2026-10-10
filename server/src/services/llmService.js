@@ -1,6 +1,7 @@
 import { getSettings } from './settingsService.js';
 import * as anthropicProvider from './providers/anthropic.js';
 import * as openaiProvider from './providers/openai.js';
+import * as fakeProvider from './providers/fake.js';
 
 const PROVIDERS = [
   { id: 'anthropic', label: 'Anthropic' },
@@ -17,6 +18,10 @@ export function listProviders() {
 }
 
 export async function complete({ system, prompt, maxTokensOverride, userId } = {}) {
+  // Local verification only: never reachable in development or production
+  if (process.env.NODE_ENV === 'test' && process.env.LLM_PROVIDER_OVERRIDE === 'fake') {
+    return fakeProvider.complete({ system, prompt });
+  }
   const settings = await getSettings(userId);
   const providerId = settings.activeProvider;
   const providerConfig = settings.providers[providerId];
