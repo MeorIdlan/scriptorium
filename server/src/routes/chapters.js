@@ -6,6 +6,8 @@ import { countWords, recalculate } from '../services/wordCountService.js';
 import { scan } from '../services/consistencyService.js';
 import { sanitizeChapterHtml } from '../services/htmlService.js';
 import { loadWork } from '../middleware/loadWork.js';
+import { summaryStatus, hashContent } from '../services/summaryText.js';
+import { generateSummary } from '../services/summaryService.js';
 
 const router = Router({ mergeParams: true });
 router.use(loadWork);
@@ -34,8 +36,16 @@ router.get('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
 
-    const chapters = await Chapter.find({ workId }).select('-content -contentHtml -draftHistory').sort({ order: 1 });
-    res.json(chapters);
+    // content is loaded only to compute summaryStatus, then left out
+    const chapters = await Chapter.find({ workId }).select('-contentHtml -draftHistory').sort({ order: 1 });
+    res.json(
+      chapters.map((ch) => {
+        const json = ch.toJSON();
+        json.summaryStatus = summaryStatus(json);
+        delete json.content;
+        return json;
+      })
+    );
   } catch (err) {
     next(err);
   }
@@ -135,6 +145,7 @@ router.put('/:chapterId', async (req, res, next) => {
     delete setFields.id;
     delete setFields.workId;
     delete setFields.draftHistory;
+    delete setFields.summary;
     if (chapter.status === 'outline' && words > 0 && req.body.status === undefined) {
       setFields.status = 'draft';
     }
@@ -194,6 +205,60 @@ router.post('/:chapterId/restore', async (req, res, next) => {
 
     res.json(updated);
   } catch (err) {
+    next(err);
+  }
+});
+
+function summaryResponse(chapter) {
+  const json = chapter.toJSON ? chapter.toJSON() : chapter;
+  return { summary: json.summary, summaryStatus: summaryStatus(json) };
+}
+
+// PUT /api/works/:workId/chapters/:chapterId/summary — the writer's edit
+router.put('/:chapterId/summary', async (req, res, next) => {
+  try {
+    const { workId, chapterId } = req.params;
+    const { text } = req.body || {};
+    if (typeof text !== 'string') return next(httpError(400, 'MISSING_FIELD', 'text is required'));
+
+    const chapter = await Chapter.findOne({ _id: chapterId, workId }).select('content');
+    if (!chapter) return next(httpError(404, 'NOT_FOUND', 'Chapter not found'));
+
+    const trimmed = text.trim();
+    const summary = trimmed
+      ? { text: trimmed, sourceHash: hashContent(chapter.content), generatedAt: null, edited: true }
+      : { text: '', sourceHash: '', generatedAt: null, edited: false };
+
+    const updated = await Chapter.findOneAndUpdate(
+      { _id: chapterId, workId },
+      { $set: { summary } },
+      { new: true }
+    ).select('content summary');
+    res.json(summaryResponse(updated));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/works/:workId/chapters/:chapterId/summary/regenerate
+router.post('/:chapterId/summary/regenerate', async (req, res, next) => {
+  try {
+    const { workId, chapterId } = req.params;
+    const chapter = await Chapter.findOne({ _id: chapterId, workId }).select('number title content summary').lean();
+    if (!chapter) return next(httpError(404, 'NOT_FOUND', 'Chapter not found'));
+    if (!chapter.content || !chapter.content.trim()) {
+      return next(httpError(400, 'EMPTY_CHAPTER', 'This chapter has no text to summarise'));
+    }
+
+    // Regenerating hands the summary back to the AI
+    await Chapter.updateOne({ _id: chapterId, workId }, { $set: { 'summary.edited': false } });
+    await generateSummary(req.work, chapter);
+
+    const updated = await Chapter.findOne({ _id: chapterId, workId }).select('content summary');
+    res.json(summaryResponse(updated));
+  } catch (err) {
+    if (err.code === 'NO_API_KEY') return next(httpError(400, 'NO_API_KEY', err.message));
+    if (err.code === 'EMPTY_SUMMARY') return next(httpError(502, 'EMPTY_SUMMARY', 'The AI returned an empty summary'));
     next(err);
   }
 });
