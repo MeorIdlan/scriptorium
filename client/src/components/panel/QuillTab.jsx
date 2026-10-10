@@ -4,6 +4,8 @@ import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useAI } from '../../hooks/useAI.js';
 import { api } from '../../utils/api.js';
+import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
+import PacingResult from './PacingResult.jsx';
 import HookGenerator from '../overlays/HookGenerator.jsx';
 import DraftPolishModal from '../overlays/DraftPolishModal.jsx';
 import EditorReviewModal from '../overlays/EditorReviewModal.jsx';
@@ -58,6 +60,7 @@ function RekindlerPromptModal({ onConfirm, onDismiss, loading }) {
 export default function QuillTab({ workId }) {
   const { state: uiState } = useUI();
   const { state: editorState } = useEditor();
+  const { state: workState } = useActiveWork();
   const { loading, error, result, call, reset } = useAI();
 
   const [snapshot, setSnapshot] = useState(null);
@@ -196,7 +199,7 @@ export default function QuillTab({ workId }) {
           onClick={() => handleAI('pacing', 'pacing')}
           disabled={loading}
         >
-          ⟳ How is this scene pacing?
+          ⟳ How is the story pacing?
         </button>
         <button
           className="btn btn-ghost quill-ai-btn quill-ai-btn--polish"
@@ -241,7 +244,7 @@ export default function QuillTab({ workId }) {
       {result && !uiState.hookGeneratorOpen && (
         <div className="ai-result">
           {aiAction === 'pacing' && (
-            <p className="ai-result-text">{result.analysis || result.text || JSON.stringify(result)}</p>
+            <PacingResult result={result} chapters={workState.chapters} />
           )}
           {aiAction === 'hooks' && result.hooks && (
             <div className="ai-hooks-list">

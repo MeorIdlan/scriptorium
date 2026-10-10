@@ -41,6 +41,7 @@ export default function NewWorkWizard({ onClose }) {
     const result = await aiCall('hooks', {
       title: form.title,
       genre: form.genre,
+      tone: form.tone,
       premise: form.premise,
       protagonist: form.protagonist,
     });

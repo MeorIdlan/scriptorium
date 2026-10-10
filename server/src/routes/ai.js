@@ -19,13 +19,41 @@ function handleLlmError(err, next) {
 }
 
 // POST /api/ai/hooks
-router.post('/hooks', async (req, res, next) => {
+router.post('/hooks', loadWorkFromBody({ optional: true }), async (req, res, next) => {
   try {
-    const { workId, premise, genre, tone } = req.body;
+    // The New Work wizard sends the fields directly (no work yet); the editor
+    // sends workId plus the current scene
+    const work = req.work || {};
+    const genre = req.body.genre || work.genre;
+    const tone = req.body.tone || work.tone;
+    const premise = req.body.premise || work.premise;
+    const protagonist = req.body.protagonist || work.protagonist;
+    const title = req.body.title || work.title;
+    const scene = typeof req.body.content === 'string' ? req.body.content.trim() : '';
 
-    const prompt = `Generate 3 compelling opening hook options for a ${genre || 'fiction'} story.
-Tone: ${tone || 'literary'}
-Premise: ${premise || 'A story about human connection'}
+    const context = [
+      title && `Title: ${title}`,
+      `Genre: ${genre || 'fiction'}`,
+      `Tone: ${tone || 'literary'}`,
+      premise && `Premise: ${premise}`,
+      protagonist && `Protagonist: ${protagonist}`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const prompt = scene
+      ? `Generate 3 compelling hooks for the scene below: openings or turns that would pull the reader into it. Match the story's voice.
+
+${context}
+
+Current scene:
+${scene.slice(0, 3000)}
+
+Return ONLY a JSON array of exactly 3 strings, each being a complete hook sentence or short paragraph. No other text.
+Example format: ["Hook one...", "Hook two...", "Hook three..."]`
+      : `Generate 3 compelling opening hook options for a ${genre || 'fiction'} story.
+
+${context}
 
 Return ONLY a JSON array of exactly 3 strings, each being a complete opening hook sentence or paragraph. No other text.
 Example format: ["Hook one...", "Hook two...", "Hook three..."]`;
@@ -34,7 +62,8 @@ Example format: ["Hook one...", "Hook two...", "Hook three..."]`;
 
     let hooks;
     try {
-      hooks = JSON.parse(raw.trim());
+      const arrayMatch = raw.match(/\[[\s\S]*\]/);
+      hooks = JSON.parse(arrayMatch ? arrayMatch[0] : raw.trim());
       if (!Array.isArray(hooks)) throw new Error('Not an array');
     } catch {
       return next(httpError(500, 'PARSE_ERROR', 'AI returned invalid JSON for hooks'));
@@ -129,6 +158,7 @@ router.post('/pacing', loadWorkFromBody(), async (req, res, next) => {
     const map = (await MapModel.findOne({ workId }).lean()) || {};
 
     const chapterSummary = chapters.map((ch) => ({
+      id: ch.id,
       title: ch.title,
       wordCount: ch.wordCount || 0,
       tensionScore: map.chapters?.[ch.id]?.tensionScore,

@@ -1169,6 +1169,18 @@ a:hover {
   line-height: 1.6;
 }
 
+.pacing-flag {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.pacing-flag-chapters {
+  font-size: 0.75rem;
+  color: var(--gold);
+  margin-bottom: 0.2rem;
+}
+
 .ai-hooks-list {
   display: flex;
   flex-direction: column;

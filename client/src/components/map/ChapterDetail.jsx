@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../utils/api.js';
 import { useAI } from '../../hooks/useAI.js';
 import { formatNumber } from '../../utils/wordCount.js';
+import PacingResult from '../panel/PacingResult.jsx';
 
 const FRAMEWORK_BEATS = [
   'Inciting Incident',
@@ -184,7 +185,7 @@ export default function ChapterDetail({ workId, chapterId, chapters, onSaved }) 
         {aiError && <p className="panel-error">{aiError}</p>}
         {aiResult && (
           <div className="ai-result">
-            <p className="ai-result-text">{aiResult.analysis || aiResult.text || JSON.stringify(aiResult)}</p>
+            <PacingResult result={aiResult} chapters={chapters} />
           </div>
         )}
 
