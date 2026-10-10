@@ -38,7 +38,9 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
   }
 
   const base = `/works/${workId}/chapters/${chapterId}/summary`;
-  const handleSave = () => run('save', () => api.put(base, { text: draft }));
+  // Saving unchanged text would only mark the AI's summary as edited by you
+  const handleSave = () =>
+    draft.trim() === text.trim() ? setEditing(false) : run('save', () => api.put(base, { text: draft }));
   const handleRegenerate = () => run('regenerate', () => api.post(`${base}/regenerate`, {}));
 
   return (

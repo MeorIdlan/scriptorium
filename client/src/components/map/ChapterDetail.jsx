@@ -5,7 +5,7 @@ import { useAI } from '../../hooks/useAI.js';
 import { formatNumber } from '../../utils/wordCount.js';
 import PacingResult from '../panel/PacingResult.jsx';
 import ContextUsed from '../panel/ContextUsed.jsx';
-import { SUMMARY_STATUS_LABELS } from '../../utils/summaryStatus.js';
+import { SUMMARY_STATUS_LABELS, summaryRefreshPending } from '../../utils/summaryStatus.js';
 
 const FRAMEWORK_BEATS = [
   'Inciting Incident',
@@ -184,7 +184,11 @@ export default function ChapterDetail({ workId, chapterId, chapters, onSaved }) 
             onClick={handleAnalysePacing}
             disabled={aiLoading}
           >
-            {aiLoading ? 'Analysing…' : 'Analyse Pacing'}
+            {aiLoading
+              ? summaryRefreshPending(chapters, chapterId, 'all')
+                ? 'Analysing… (updating chapter summaries)'
+                : 'Analysing…'
+              : 'Analyse Pacing'}
           </button>
           <button
             className="btn btn-primary"

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAI } from '../../hooks/useAI.js';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useUI } from '../../context/UIContext.jsx';
+import ContextUsed from '../panel/ContextUsed.jsx';
 
 export default function HookGenerator({ workId }) {
   const { loading, error, call } = useAI();
@@ -9,6 +10,7 @@ export default function HookGenerator({ workId }) {
   const { dispatch } = useUI();
   const [hooks, setHooks] = useState([]);
   const [generated, setGenerated] = useState(false);
+  const [context, setContext] = useState(null);
 
   async function handleGenerate() {
     const result = await call('hooks', {
@@ -18,6 +20,7 @@ export default function HookGenerator({ workId }) {
     });
     if (result && result.hooks) {
       setHooks(result.hooks);
+      setContext(result.context || null);
       setGenerated(true);
     }
   }
@@ -71,6 +74,7 @@ export default function HookGenerator({ workId }) {
               </button>
             </div>
           ))}
+          <ContextUsed context={context} />
           <button
             className="btn btn-ghost btn-sm hook-regenerate"
             onClick={() => { setHooks([]); setGenerated(false); }}
