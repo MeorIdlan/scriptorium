@@ -207,8 +207,16 @@ export default function CodexView() {
   const characters = codex?.characters || [];
   const places = codex?.places || [];
   const rules = codex?.worldRules || [];
-  const allFlags = codex?.flags || [];
-  const openFlags = allFlags.filter((f) => f.status === 'open');
+  // Flags live on each entry; rules are named by their rule text
+  const openFlags = [
+    ...characters.map((e) => [e, e.name]),
+    ...places.map((e) => [e, e.name]),
+    ...rules.map((e) => [e, e.rule]),
+  ].flatMap(([entry, entityName]) =>
+    (entry.flags || [])
+      .filter((f) => f.status === 'unresolved')
+      .map((f) => ({ ...f, entityName }))
+  );
 
   const listItems = activeTab === 'characters' ? characters
     : activeTab === 'places' ? places
@@ -267,7 +275,7 @@ export default function CodexView() {
               ) : (
                 <>
                   {item.name}
-                  {(item.flags || []).filter((f) => f.status === 'open').length > 0 && (
+                  {(item.flags || []).filter((f) => f.status === 'unresolved').length > 0 && (
                     <span className="codex-entity-flag-dot" />
                   )}
                 </>
@@ -346,7 +354,7 @@ export default function CodexView() {
         )}
         {openFlags.map((flag) => (
           <div key={flag.id} className="codex-flag-panel-item">
-            <p className="codex-flag-panel-text">{flag.description || flag.message}</p>
+            <p className="codex-flag-panel-text">{flag.note}</p>
             {flag.entityName && (
               <p className="codex-flag-panel-entity">{flag.entityName}</p>
             )}
