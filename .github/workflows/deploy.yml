@@ -1,0 +1,29 @@
+# Builds the server and client images, pushes them to GHCR, and deploys to the
+# cell1337 droplet using the shared workflow in MeorIdlan/deploy-workflows.
+# Rollback: Actions → Deploy → Run workflow, with image-tag = an earlier tag.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image-tag:
+        description: Roll back to an existing image tag (leave empty to build and deploy this commit)
+        required: false
+        default: ""
+
+jobs:
+  deploy:
+    uses: MeorIdlan/deploy-workflows/.github/workflows/deploy.yml@main
+    permissions:
+      contents: read
+      packages: write
+    with:
+      app-name: scriptorium
+      services: '["server","client"]'
+      compose-file: docker-compose.prod.yml
+      health-url: https://scriptorium.cell1337.xyz/api/health
+      image-tag: ${{ inputs.image-tag || '' }}
+    secrets: inherit

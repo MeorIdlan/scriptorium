@@ -10,6 +10,15 @@ Docker network only.
 its data in a `scriptorium` database on the shared MongoDB there. Prod does
 not run its own Mongo container.
 
+Deploys are automated. `.github/workflows/deploy.yml` runs on every push to
+`main`. It builds both images in GitHub Actions, pushes them to GHCR
+(`ghcr.io/meoridlan/scriptorium-{server,client}`, tagged with the first 12
+characters of the commit SHA and `latest`), then SSHes into the droplet and runs
+`docker compose pull && up -d` in `/opt/apps/scriptorium`. Nothing is built on
+the server. The shared workflow lives in `MeorIdlan/deploy-workflows`; the
+droplet-side setup (deploy user, firewall, repo secrets) is described in that
+template's README.
+
 ## One-time setup
 
 1. **Networks**: confirm both shared networks already exist (they're created
@@ -24,10 +33,10 @@ not run its own Mongo container.
    That value overrides anything in `.env`. The `scriptorium` database is
    created on first write.
 
-2. **Clone**: `git clone <repo> && cd scriptorium`.
-
-3. **Environment**: `cp .env.example .env` and fill it in. The server reads it
-   via `env_file`. For production, set:
+2. **Environment**: start from `.env.example`. The server reads `.env` via
+   `env_file`. CI writes it to `/opt/apps/scriptorium/.env` from the repo's
+   `ENV_FILE` secret on each deploy; if that secret is empty, the existing file
+   on the server is kept. For production, set:
 
        MAILGUN_API_KEY=...
        MAILGUN_DOMAIN=...
@@ -42,7 +51,7 @@ not run its own Mongo container.
    Passkeys only work if `WEBAUTHN_RP_ID` and `WEBAUTHN_ORIGIN` match the public
    hostname exactly.
 
-4. **Tunnel ingress**: add a Public Hostname entry to the existing Cloudflare
+3. **Tunnel ingress**: add a Public Hostname entry to the existing Cloudflare
    Tunnel (Zero Trust dashboard → Networks → Tunnels → your tunnel → Public
    Hostname), or the equivalent ingress rule if the tunnel config is a local
    `config.yml`:
@@ -53,17 +62,26 @@ not run its own Mongo container.
    The service name must match the compose service name exactly, since
    Docker's embedded DNS resolves it on the shared network.
 
-5. **Start**:
+4. **First deploy**: push to `main`, or run the Deploy workflow manually from
+   the Actions tab.
 
-       docker compose -f docker-compose.prod.yml up -d --build
+5. **Admin account**: register at `/register` with `ADMIN_EMAIL`. That
+   account is flagged as admin and can manage users at `/admin/users`.
 
 ## Updating
 
-    git pull
-    docker compose -f docker-compose.prod.yml up -d --build
+Push to `main`. To update env vars, change the `ENV_FILE` secret
+(`gh secret set ENV_FILE -R MeorIdlan/scriptorium < prod.env`) and re-run the
+Deploy workflow.
 
-6. **Admin account**: register at `/register` with `ADMIN_EMAIL`. That
-   account is flagged as admin and can manage users at `/admin/users`.
+To roll back, open Actions → Deploy → Run workflow and set `image-tag` to an
+earlier tag. Past tags are listed in `/opt/apps/scriptorium/.deploy-history` on
+the droplet.
+
+To run compose by hand on the droplet:
+
+    cd /opt/apps/scriptorium
+    docker compose -f compose.prod.yml ps        # or logs, restart, ...
 
 ## Data
 
@@ -90,10 +108,17 @@ Restore with `mongorestore --archive` in the same way:
 - [ ] Create a work, add a chapter, confirm autosave persists after reload
 - [ ] Open `/settings`, add a provider API key, confirm an AI-assisted action
       works end-to-end
-- [ ] `docker compose -f docker-compose.prod.yml up -d --build` — works are
-      still there afterwards (they live in Mongo, not in the container)
+- [ ] Push a trivial commit and let the Deploy workflow redeploy. Works are
+      still there afterwards (they live in Mongo, not in the container).
 
 ## Troubleshooting
+
+- **Deploy workflow fails at "Wait for SSH"**: the runner couldn't get through
+  the DigitalOcean firewall. Check the `DO_FIREWALL_ID`, `DO_API_TOKEN` and
+  `DEPLOY_PORT` secrets.
+- **Deploy fails at `up --wait`**: `scriptorium-server`'s healthcheck
+  (`/api/health`) didn't pass. Check `docker compose -f compose.prod.yml logs
+  scriptorium-server` in `/opt/apps/scriptorium`.
 
 - **502 from the tunnel**: `scriptorium-client` isn't on `shared-edge`, or
   the ingress rule's service name doesn't match the compose service name —
