@@ -112,3 +112,16 @@ test('formatContextBlock trims fewest-mentioned Codex entries over budget, keepi
   assert.ok(out.text.includes('Rule A') && out.text.includes('Rule B'));
   assert.equal((out.text.match(/^Ch\. /gm) || []).length, 50);
 });
+
+test('countMentions treats straight and curly apostrophes alike', () => {
+  assert.equal(countMentions("O'Brien", 'O’Brien waited.'), 1);
+  assert.equal(countMentions('O’Brien', "O'Brien waited."), 1);
+});
+
+test('countMentions matches regardless of Unicode normalization', () => {
+  const nfc = 'Zoë';
+  const nfd = 'Zoë';
+  assert.equal(countMentions(nfc, `${nfd} ran.`), 1);
+  assert.equal(countMentions(nfd, `${nfc} ran.`), 1);
+  assert.equal(countMentions(nfc, `${nfd}y ran.`), 0);
+});

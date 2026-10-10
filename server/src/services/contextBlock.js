@@ -1,6 +1,6 @@
 const ENTRY_MAX = 400;
 const CODEX_BUDGET = 8000;
-const WORD_CHAR = '[\\p{L}\\p{N}_]';
+const WORD_CHAR = '[\\p{L}\\p{M}\\p{N}_]';
 
 const HEADER =
   "Reference material about the writer's story. Use it to stay consistent with established facts and events. Do not edit, summarise, or comment on it unless asked.";
@@ -23,11 +23,14 @@ export function normalizeAliases(aliases) {
   return list.filter(nonBlank).map((a) => a.trim());
 }
 
-// Whole-word, case-insensitive; Unicode-aware because \b only knows ASCII
+// Whole-word, case-insensitive; Unicode-aware because \b only knows ASCII.
+// Both sides are NFC-normalized and straight/curly apostrophes are treated
+// alike, since pasted prose often differs from what was typed in the Codex.
 export function countMentions(term, text) {
   if (!nonBlank(term) || !text) return 0;
-  const re = new RegExp(`(?<!${WORD_CHAR})${escapeRegex(term.trim())}(?!${WORD_CHAR})`, 'giu');
-  return (text.match(re) || []).length;
+  const pattern = escapeRegex(term.trim().normalize('NFC')).replace(/['’]/g, "['’]");
+  const re = new RegExp(`(?<!${WORD_CHAR})${pattern}(?!${WORD_CHAR})`, 'giu');
+  return (text.normalize('NFC').match(re) || []).length;
 }
 
 export function findMentions(codex, text) {

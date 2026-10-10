@@ -30,13 +30,28 @@ export function truncateMiddle(text, maxChars) {
   return text.slice(0, head) + marker + text.slice(text.length - (keep - head));
 }
 
+const LEAD_IN = /^(sure|certainly|okay|ok|of course)[!,.]?\s*/i;
+const INTRO_LINE = /^\**\s*(here|below|this is|summary)/i;
+const LABEL = /^\*{0,2}\s*summary\s*\*{0,2}\s*:\s*\*{0,2}\s*/i;
+
 export function cleanSummary(raw) {
   if (typeof raw !== 'string') return '';
-  let text = raw.trim();
+  let text = raw.trim().replace(LEAD_IN, '');
+
+  // A first line that only introduces the summary, e.g.
+  // "Here is the summary of Chapter 1: The Bell:"
+  const firstBreak = text.indexOf('\n');
+  if (firstBreak > 0) {
+    const first = text.slice(0, firstBreak).trim();
+    if (first.endsWith(':') && INTRO_LINE.test(first)) text = text.slice(firstBreak).trim();
+  }
+
   text = text.replace(/^(here is|here's)[^:\n]*:\s*/i, '');
-  text = text.replace(/^summary:\s*/i, '');
-  text = text.trim();
-  if (text.length >= 2 && /^["“]/.test(text) && /["”]$/.test(text)) {
+  text = text.replace(LABEL, '').trim();
+
+  // Unwrap quotes around the whole summary, but not quotes that open and
+  // close dialogue inside it
+  if (text.length >= 2 && /^["“]/.test(text) && /["”]$/.test(text) && !/["“”]/.test(text.slice(1, -1))) {
     text = text.slice(1, -1).trim();
   }
   return text;

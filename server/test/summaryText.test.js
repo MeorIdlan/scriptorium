@@ -58,3 +58,21 @@ test('cleanSummary strips preambles, labels and wrapping quotes', () => {
   assert.equal(cleanSummary('   '), '');
   assert.equal(cleanSummary(undefined), '');
 });
+
+test('cleanSummary strips chatty lead-ins and label lines', () => {
+  assert.equal(cleanSummary('Sure! Here is a summary of Chapter 1:\n\nMara arrives.'), 'Mara arrives.');
+  assert.equal(cleanSummary('Here is the summary of Chapter 1: The Bell:\n\nMara arrives.'), 'Mara arrives.');
+  assert.equal(cleanSummary('**Summary:** Mara arrives.'), 'Mara arrives.');
+  assert.equal(cleanSummary('Certainly. Summary: Mara arrives.'), 'Mara arrives.');
+});
+
+test('cleanSummary keeps quotes that belong to dialogue', () => {
+  const dialogue = '"Run," Mara says, and later Tomas whispers "I know."';
+  assert.equal(cleanSummary(dialogue), dialogue);
+  assert.equal(cleanSummary('“Mara arrives.”'), 'Mara arrives.');
+});
+
+test('cleanSummary keeps a first sentence that merely contains a colon', () => {
+  const text = 'Mara learns one rule: bells bind oaths. She leaves.';
+  assert.equal(cleanSummary(text), text);
+});
