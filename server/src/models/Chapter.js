@@ -11,6 +11,16 @@ const draftHistoryEntrySchema = new mongoose.Schema(
   { _id: false }
 );
 
+const summarySchema = new mongoose.Schema(
+  {
+    text: { type: String, default: '' },
+    sourceHash: { type: String, default: '' }, // sha1 of `content` the summary describes
+    generatedAt: { type: String, default: null },
+    edited: { type: Boolean, default: false }, // set when the writer edits it
+  },
+  { _id: false }
+);
+
 const chapterSchema = new mongoose.Schema(
   {
     _id: { type: String },
@@ -24,6 +34,7 @@ const chapterSchema = new mongoose.Schema(
     draftHistory: { type: [draftHistoryEntrySchema], default: [] },
     status: { type: String, default: 'outline' },
     notes: { type: String, default: '' },
+    summary: { type: summarySchema, default: () => ({}) },
     createdAt: { type: String },
     lastEditedAt: { type: String },
     updatedAt: { type: String },
