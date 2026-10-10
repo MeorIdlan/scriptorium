@@ -5,6 +5,7 @@ import Codex from '../models/Codex.js';
 import { complete } from '../services/llmService.js';
 import { httpError } from '../middleware/errorHandler.js';
 import { loadWorkFromBody } from '../middleware/loadWork.js';
+import { buildContext } from '../services/storyContextService.js';
 
 const router = Router();
 
@@ -16,6 +17,21 @@ function handleLlmError(err, next) {
     return next(httpError(400, 'NO_API_KEY', err.message));
   }
   return next(err);
+}
+
+// Builds story context for a route; routes without a work get none
+async function contextFor(req, needs, sourceText = '') {
+  if (!req.work) return { text: '', manifest: null };
+  const chapterId = typeof req.body.chapterId === 'string' ? req.body.chapterId : undefined;
+  return buildContext({ work: req.work, chapterId, sourceText, needs });
+}
+
+function withContext(context, prompt) {
+  return context.text ? `${context.text}\n\n${prompt}` : prompt;
+}
+
+function respond(res, body, context) {
+  res.json(context.manifest ? { ...body, context: context.manifest } : body);
 }
 
 // POST /api/ai/hooks
@@ -30,8 +46,13 @@ router.post('/hooks', loadWorkFromBody({ optional: true }), async (req, res, nex
     const protagonist = req.body.protagonist || work.protagonist;
     const title = req.body.title || work.title;
     const scene = typeof req.body.content === 'string' ? req.body.content.trim() : '';
+    const context = await contextFor(
+      req,
+      { story: true, codex: true, summaries: 'before', mapBeat: true },
+      scene
+    );
 
-    const context = [
+    const details = [
       title && `Title: ${title}`,
       `Genre: ${genre || 'fiction'}`,
       `Tone: ${tone || 'literary'}`,
@@ -44,7 +65,7 @@ router.post('/hooks', loadWorkFromBody({ optional: true }), async (req, res, nex
     const prompt = scene
       ? `Generate 3 compelling hooks for the scene below: openings or turns that would pull the reader into it. Match the story's voice.
 
-${context}
+${details}
 
 Current scene:
 ${scene.slice(0, 3000)}
@@ -53,12 +74,12 @@ Return ONLY a JSON array of exactly 3 strings, each being a complete hook senten
 Example format: ["Hook one...", "Hook two...", "Hook three..."]`
       : `Generate 3 compelling opening hook options for a ${genre || 'fiction'} story.
 
-${context}
+${details}
 
 Return ONLY a JSON array of exactly 3 strings, each being a complete opening hook sentence or paragraph. No other text.
 Example format: ["Hook one...", "Hook two...", "Hook three..."]`;
 
-    const raw = await complete({ system: SYSTEM_PROMPT, prompt, userId: req.user.id });
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt: withContext(context, prompt), userId: req.user.id });
 
     let hooks;
     try {
@@ -69,7 +90,7 @@ Example format: ["Hook one...", "Hook two...", "Hook three..."]`;
       return next(httpError(500, 'PARSE_ERROR', 'AI returned invalid JSON for hooks'));
     }
 
-    res.json({ hooks });
+    respond(res, { hooks }, context);
   } catch (err) {
     handleLlmError(err, next);
   }
@@ -80,9 +101,11 @@ router.post('/rekindler', loadWorkFromBody(), async (req, res, next) => {
   try {
     // Where the writer left off: the most recently saved chapter
     const chapter = await Chapter.findOne({ workId: req.work.id, content: { $nin: ['', null] } })
-      .select('title content')
+      .select('_id title content')
       .sort({ updatedAt: -1 });
     const lastContent = chapter?.content || '';
+    req.body.chapterId = chapter?._id;
+    const context = await contextFor(req, { story: true, summaries: 'before', mapBeat: true });
 
     const prompt = `The writer is returning to their work. Help them re-enter the story with a brief rekindler.
 
@@ -99,7 +122,7 @@ Return ONLY a JSON object with these fields:
   "characterMood": "the primary character's emotional state"
 }`;
 
-    const raw = await complete({ system: SYSTEM_PROMPT, prompt, userId: req.user.id });
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt: withContext(context, prompt), userId: req.user.id });
 
     let result;
     try {
@@ -109,14 +132,14 @@ Return ONLY a JSON object with these fields:
       return next(httpError(500, 'PARSE_ERROR', 'AI returned invalid JSON for rekindler'));
     }
 
-    res.json(result);
+    respond(res, result, context);
   } catch (err) {
     handleLlmError(err, next);
   }
 });
 
 // POST /api/ai/beat-suggest
-router.post('/beat-suggest', async (req, res, next) => {
+router.post('/beat-suggest', loadWorkFromBody({ optional: true }), async (req, res, next) => {
   try {
     const { workId, gapBetweenChapterIds, framework, previousBeat, nextBeat } = req.body;
 
@@ -133,7 +156,8 @@ Return ONLY a JSON object:
   "writingPrompt": "a brief writing prompt to help the writer draft this scene"
 }`;
 
-    const raw = await complete({ system: SYSTEM_PROMPT, prompt, userId: req.user.id });
+    const context = await contextFor(req, { story: true, summaries: 'all' });
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt: withContext(context, prompt), userId: req.user.id });
 
     let result;
     try {
@@ -143,7 +167,7 @@ Return ONLY a JSON object:
       return next(httpError(500, 'PARSE_ERROR', 'AI returned invalid JSON for beat suggestion'));
     }
 
-    res.json(result);
+    respond(res, result, context);
   } catch (err) {
     handleLlmError(err, next);
   }
@@ -178,7 +202,8 @@ Return ONLY a JSON object:
   ]
 }`;
 
-    const raw = await complete({ system: SYSTEM_PROMPT, prompt, userId: req.user.id });
+    const context = await contextFor(req, { story: true, summaries: 'all' });
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt: withContext(context, prompt), userId: req.user.id });
 
     let result;
     try {
@@ -188,7 +213,7 @@ Return ONLY a JSON object:
       return next(httpError(500, 'PARSE_ERROR', 'AI returned invalid JSON for pacing'));
     }
 
-    res.json(result);
+    respond(res, result, context);
   } catch (err) {
     handleLlmError(err, next);
   }
@@ -228,12 +253,18 @@ Return ONLY a JSON object:
 });
 
 // POST /api/ai/polish-draft
-router.post('/polish-draft', async (req, res, next) => {
+router.post('/polish-draft', loadWorkFromBody(), async (req, res, next) => {
   try {
     const { content } = req.body;
     if (!content || !content.trim()) {
       return next(httpError(400, 'MISSING_FIELD', 'content is required'));
     }
+
+    const context = await contextFor(
+      req,
+      { story: true, codex: true, summaries: 'before', mapBeat: true },
+      content
+    );
 
     const prompt = `You are polishing a writer's rough draft. Improve the grammar, fix clumsy sentence structure, and make the prose more expressive and vivid — while keeping the story direction, plot beats, characters, dialogue, and tone exactly as the writer intended.
 
@@ -250,16 +281,16 @@ Original draft:
 ${content}`;
 
     // Use a high token cap — full chapter rewrites need headroom
-    const polished = await complete({ system: SYSTEM_PROMPT, prompt, maxTokensOverride: 8000, userId: req.user.id });
+    const polished = await complete({ system: SYSTEM_PROMPT, prompt: withContext(context, prompt), maxTokensOverride: 8000, userId: req.user.id });
 
-    res.json({ polished });
+    respond(res, { polished }, context);
   } catch (err) {
     handleLlmError(err, next);
   }
 });
 
 // POST /api/ai/editor-review
-router.post('/editor-review', async (req, res, next) => {
+router.post('/editor-review', loadWorkFromBody(), async (req, res, next) => {
   try {
     const { content, mode = 'full' } = req.body;
     if (!content || !content.trim()) {
@@ -331,7 +362,13 @@ ${content.slice(0, 6000)}`,
     const prompt = prompts[mode];
     if (!prompt) return next(httpError(400, 'INVALID_MODE', `Unknown editor mode: ${mode}`));
 
-    const raw = await complete({ system: EDITOR_SYSTEM, prompt, maxTokensOverride: 2000, userId: req.user.id });
+    const context = await contextFor(
+      req,
+      { story: true, codex: true, summaries: 'before', mapBeat: true },
+      content
+    );
+
+    const raw = await complete({ system: EDITOR_SYSTEM, prompt: withContext(context, prompt), maxTokensOverride: 2000, userId: req.user.id });
 
     let result;
     try {
@@ -341,7 +378,7 @@ ${content.slice(0, 6000)}`,
       return next(httpError(500, 'PARSE_ERROR', 'AI returned invalid JSON for editor review'));
     }
 
-    res.json({ mode, ...result });
+    respond(res, { mode, ...result }, context);
   } catch (err) {
     handleLlmError(err, next);
   }
@@ -416,7 +453,8 @@ Return ONLY a JSON object:
 
 Limit findings to the 5-8 most impactful observations. Be specific and constructive.`;
 
-    const raw = await complete({ system: SYSTEM_PROMPT, prompt, maxTokensOverride: 2000, userId: req.user.id });
+    const context = await contextFor(req, { story: true });
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt: withContext(context, prompt), maxTokensOverride: 2000, userId: req.user.id });
 
     let result;
     try {
@@ -426,14 +464,14 @@ Limit findings to the 5-8 most impactful observations. Be specific and construct
       return next(httpError(500, 'PARSE_ERROR', 'AI returned invalid JSON for codex audit'));
     }
 
-    res.json(result);
+    respond(res, result, context);
   } catch (err) {
     handleLlmError(err, next);
   }
 });
 
 // POST /api/ai/codex-suggest
-router.post('/codex-suggest', async (req, res, next) => {
+router.post('/codex-suggest', loadWorkFromBody(), async (req, res, next) => {
   try {
     const { entityType, entity } = req.body;
     if (!entityType || !entity) {
@@ -493,7 +531,9 @@ Limit to 4-6 specific, actionable suggestions.`,
     const prompt = prompts[entityType];
     if (!prompt) return next(httpError(400, 'INVALID_TYPE', `Unknown entity type: ${entityType}`));
 
-    const raw = await complete({ system: SYSTEM_PROMPT, prompt, maxTokensOverride: 1500, userId: req.user.id });
+    const context = await contextFor(req, { story: true });
+
+    const raw = await complete({ system: SYSTEM_PROMPT, prompt: withContext(context, prompt), maxTokensOverride: 1500, userId: req.user.id });
 
     let result;
     try {
@@ -503,7 +543,7 @@ Limit to 4-6 specific, actionable suggestions.`,
       return next(httpError(500, 'PARSE_ERROR', 'AI returned invalid JSON for codex suggestions'));
     }
 
-    res.json(result);
+    respond(res, result, context);
   } catch (err) {
     handleLlmError(err, next);
   }
