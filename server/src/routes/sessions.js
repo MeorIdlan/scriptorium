@@ -16,7 +16,10 @@ router.get('/latest', async (req, res, next) => {
   try {
     const { workId } = req.params;
 
-    const latest = await Session.findOne({ workId }).sort({ startedAt: -1 });
+    // ?ended=true skips the session that's currently open
+    const filter = { workId };
+    if (req.query.ended === 'true') filter.endedAt = { $ne: null };
+    const latest = await Session.findOne(filter).sort({ startedAt: -1 });
     res.json(latest || null);
   } catch (err) {
     next(err);
@@ -35,7 +38,7 @@ router.post('/', async (req, res, next) => {
       _id: `sess_${shortId()}`,
       workId,
       chapterId: chapterId || null,
-      wordsAtStart: wordsAtStart || 0,
+      wordsAtStart: wordsAtStart ?? req.work.wordCount ?? 0,
       wordsAtEnd: null,
       wordsWritten: null,
       rekindlerSnapshot: rekindlerSnapshot || null,
@@ -53,16 +56,19 @@ router.post('/', async (req, res, next) => {
 router.put('/:sessionId/end', async (req, res, next) => {
   try {
     const { workId, sessionId } = req.params;
-    const { wordsAtEnd } = req.body;
+    const { chapterId } = req.body || {};
+    const wordsAtEnd = req.body?.wordsAtEnd ?? req.work.wordCount ?? 0;
     const now = new Date().toISOString();
 
     const session = await Session.findOne({ _id: sessionId, workId });
     if (!session) return next(httpError(404, 'NOT_FOUND', 'Session not found'));
 
-    const wordsWritten = (wordsAtEnd || 0) - (session.wordsAtStart || 0);
+    const wordsWritten = wordsAtEnd - (session.wordsAtStart || 0);
+    const setFields = { wordsAtEnd, wordsWritten, endedAt: now };
+    if (chapterId) setFields.chapterId = chapterId;
     const updated = await Session.findOneAndUpdate(
       { _id: sessionId, workId },
-      { $set: { wordsAtEnd: wordsAtEnd || 0, wordsWritten, endedAt: now } },
+      { $set: setFields },
       { new: true }
     );
 

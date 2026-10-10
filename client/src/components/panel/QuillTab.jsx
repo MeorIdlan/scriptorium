@@ -8,19 +8,20 @@ import HookGenerator from '../overlays/HookGenerator.jsx';
 import DraftPolishModal from '../overlays/DraftPolishModal.jsx';
 import EditorReviewModal from '../overlays/EditorReviewModal.jsx';
 
-function RekindlerCard({ snapshot, onDismiss }) {
-  const previewText = snapshot?.summary || snapshot?.excerpt || snapshot?.lastScene || 'No summary available.';
+function RekindlerCard({ snapshot, lastSessionAt, onDismiss }) {
   return (
     <div className="rekindler-card">
       <div className="rekindler-header">
         <span className="rekindler-label">Where you left off</span>
         <button className="rekindler-dismiss" onClick={onDismiss}>✕</button>
       </div>
-      <p className="rekindler-text">{previewText}</p>
-      {snapshot?.toneNote && <p className="rekindler-text rekindler-tone">{snapshot.toneNote}</p>}
-      {snapshot?.lastSaved && (
+      <p className="rekindler-text">{snapshot.lastScene || 'No summary available.'}</p>
+      {snapshot.toneNote && <p className="rekindler-text rekindler-tone">{snapshot.toneNote}</p>}
+      {snapshot.characterMood && <p className="rekindler-text rekindler-tone">{snapshot.characterMood}</p>}
+      {snapshot.voiceSample && <p className="rekindler-text rekindler-tone">“{snapshot.voiceSample}”</p>}
+      {lastSessionAt && (
         <p className="rekindler-time">
-          {new Date(snapshot.lastSaved).toLocaleString()}
+          Last session {new Date(lastSessionAt).toLocaleString()}
         </p>
       )}
     </div>
@@ -37,7 +38,7 @@ function RekindlerPromptModal({ onConfirm, onDismiss, loading }) {
         </div>
         <div className="modal-body">
           <p className="rekindler-prompt-body">
-            You have no saved session for this work. Would you like the AI to summarise where you left off — the last scene, emotional tone, and character mood?
+            Welcome back. Would you like the AI to summarise where you left off — the last scene, emotional tone, and character mood?
           </p>
         </div>
         <div className="modal-footer rekindler-prompt-footer">
@@ -60,6 +61,7 @@ export default function QuillTab({ workId }) {
   const { loading, error, result, call, reset } = useAI();
 
   const [snapshot, setSnapshot] = useState(null);
+  const [lastSessionAt, setLastSessionAt] = useState(null);
   const [showRekindler, setShowRekindler] = useState(false);
   const [showRekindlerPrompt, setShowRekindlerPrompt] = useState(false);
   const [rekindlerLoading, setRekindlerLoading] = useState(false);
@@ -75,41 +77,38 @@ export default function QuillTab({ workId }) {
     let cancelled = false;
 
     async function init() {
-      const [sessionResult, settingsResult] = await Promise.allSettled([
-        api.get(`/works/${workId}/sessions/latest`),
+      const [sessionResult, settingsResult, workResult] = await Promise.allSettled([
+        api.get(`/works/${workId}/sessions/latest?ended=true`),
         api.get('/settings'),
+        api.get(`/works/${workId}`),
       ]);
 
       if (cancelled) return;
+      // Nothing written yet, so nothing to rekindle
+      if (!workResult.value?.wordCount) return;
 
       const rekindlerPref = settingsResult.value?.autoFeatures?.rekindler ?? 'prompt';
+      const lastSession = sessionResult.status === 'fulfilled' ? sessionResult.value : null;
 
-      if (sessionResult.status === 'fulfilled' && sessionResult.value) {
-        const savedAt = sessionResult.value.lastSaved
-          ? new Date(sessionResult.value.lastSaved)
-          : null;
-        const staleMinutes = savedAt
-          ? (Date.now() - savedAt.getTime()) / 60000
-          : Infinity;
-        if (staleMinutes > 30) {
-          sessionStorage.setItem(seenKey, '1');
-          setSnapshot(sessionResult.value);
-          setShowRekindler(true);
-        }
+      // Only rekindle after a break: no previous session, or one that ended 30+ min ago
+      if (lastSession?.endedAt) {
+        const staleMinutes = (Date.now() - new Date(lastSession.endedAt).getTime()) / 60000;
+        if (staleMinutes < 30) return;
+        setLastSessionAt(lastSession.endedAt);
+      }
+
+      if (rekindlerPref === 'never') return;
+      sessionStorage.setItem(seenKey, '1');
+      if (rekindlerPref === 'auto') {
+        try {
+          const data = await api.post('/ai/rekindler', { workId });
+          if (!cancelled && data) {
+            setSnapshot(data);
+            setShowRekindler(true);
+          }
+        } catch {}
       } else {
-        if (rekindlerPref === 'never') return;
-        sessionStorage.setItem(seenKey, '1');
-        if (rekindlerPref === 'auto') {
-          try {
-            const data = await api.post('/ai/rekindler', { workId });
-            if (!cancelled && data) {
-              setSnapshot(data);
-              setShowRekindler(true);
-            }
-          } catch {}
-        } else {
-          setShowRekindlerPrompt(true);
-        }
+        setShowRekindlerPrompt(true);
       }
     }
 
@@ -176,7 +175,11 @@ export default function QuillTab({ workId }) {
       )}
 
       {showRekindler && snapshot && (
-        <RekindlerCard snapshot={snapshot} onDismiss={() => setShowRekindler(false)} />
+        <RekindlerCard
+          snapshot={snapshot}
+          lastSessionAt={lastSessionAt}
+          onDismiss={() => setShowRekindler(false)}
+        />
       )}
 
       <div className="quill-actions">

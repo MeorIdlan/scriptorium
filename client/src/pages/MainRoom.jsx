@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useActiveWork } from '../context/ActiveWorkContext.jsx';
 import { useEditor } from '../context/EditorContext.jsx';
 import { api } from '../utils/api.js';
+import { useWritingSession } from '../hooks/useWritingSession.js';
 import Toolbar from '../components/editor/Toolbar.jsx';
 import Editor from '../components/editor/Editor.jsx';
 import WordCounter from '../components/editor/WordCounter.jsx';
@@ -17,6 +18,8 @@ export default function MainRoom() {
   const [chapterContent, setChapterContent] = useState({ text: '', html: '' });
   const [addingChapter, setAddingChapter] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState('');
+
+  useWritingSession(workId, editorState.chapterId);
 
   // Load work data on mount / workId change
   useEffect(() => {

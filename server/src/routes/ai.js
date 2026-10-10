@@ -47,14 +47,20 @@ Example format: ["Hook one...", "Hook two...", "Hook three..."]`;
 });
 
 // POST /api/ai/rekindler
-router.post('/rekindler', async (req, res, next) => {
+router.post('/rekindler', loadWorkFromBody(), async (req, res, next) => {
   try {
-    const { workId, chapterId, lastContent } = req.body;
+    // Where the writer left off: the most recently saved chapter
+    const chapter = await Chapter.findOne({ workId: req.work.id, content: { $nin: ['', null] } })
+      .select('title content')
+      .sort({ updatedAt: -1 });
+    const lastContent = chapter?.content || '';
 
     const prompt = `The writer is returning to their work. Help them re-enter the story with a brief rekindler.
 
+Work: ${req.work.title}${chapter ? `\nChapter: ${chapter.title}` : ''}
+
 Last written content:
-${lastContent ? lastContent.slice(-1000) : '(No content yet)'}
+${lastContent ? lastContent.slice(-1500) : '(No content yet)'}
 
 Return ONLY a JSON object with these fields:
 {
