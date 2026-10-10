@@ -98,7 +98,7 @@ router.post('/login/verify', async (req, res, next) => {
 
 router.post('/logout', requireAuth({ allowPending: true }), async (req, res, next) => {
   try {
-    await authSessionService.destroy(req.cookies.sid);
+    if (req.cookies.sid) await authSessionService.destroy(req.cookies.sid);
     clearSessionCookie(res);
     await auditService.log({ userId: req.user.id, action: 'auth.logout' });
     res.json({ ok: true });

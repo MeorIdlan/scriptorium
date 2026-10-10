@@ -24,6 +24,7 @@ services:
       - WEBAUTHN_RP_NAME=${WEBAUTHN_RP_NAME:-Scriptorium}
       - COOKIE_SECURE=${COOKIE_SECURE:-false}
       - SESSION_TTL_DAYS=${SESSION_TTL_DAYS:-30}
+      - DEV_AUTH_BYPASS=${DEV_AUTH_BYPASS:-true}
     volumes:
       - ./server/src:/app/src
     command: npm run dev

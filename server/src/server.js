@@ -4,6 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { connectMongo } from './db.js';
+import * as devAuthService from './services/devAuthService.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 import authRouter from './routes/auth.js';
@@ -58,6 +59,10 @@ app.use(errorHandler);
 
 async function start() {
   await connectMongo();
+  if (devAuthService.isBypassEnabled()) {
+    await devAuthService.ensureDevUser();
+    console.warn(`⚠ DEV AUTH BYPASS ENABLED — every request is logged in as ${devAuthService.DEV_USER.email}`);
+  }
   app.listen(PORT, () => {
     console.log(`Scriptorium backend listening on http://localhost:${PORT}`);
   });

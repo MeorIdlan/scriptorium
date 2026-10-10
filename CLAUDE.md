@@ -53,7 +53,7 @@ scriptorium/
 │       │                       #   auth: User, Credential, AuthSession, OtpCode, WebauthnChallenge, AuditLog
 │       ├── middleware/         # errorHandler, requireAuth, requireAdmin, loadWork, emailThrottle
 │       ├── services/           # workService, settingsService, llmService, consistencyService, exportService, wordCountService,
-│       │                       #   authService, authSessionService, otpService, webauthnService, emailService, auditService
+│       │                       #   authService, authSessionService, otpService, webauthnService, emailService, auditService, devAuthService
 │       ├── services/providers/ # anthropic.js, openai.js
 │       ├── utils/authCookie.js
 │       └── routes/             # auth, admin, works, chapters, codex, catches, map, sessions, ai, settings, export
@@ -88,6 +88,11 @@ scriptorium/
 - Data is per-user: `Work` has an `ownerId`; work-scoped routes use the
   `loadWork` middleware, which 404s unless the work belongs to `req.user`.
   New work-scoped routes should do the same.
+- Dev auth bypass: with `DEV_AUTH_BYPASS=true` (the default in
+  `docker-compose.yml`) and `NODE_ENV` not `production`, `requireAuth()` treats
+  every request as the admin user `user_dev` / `dev@localhost`, created at
+  startup by `services/devAuthService.js`. Set it to `false` to test the real
+  login flow.
 - All application data (works, chapters, settings, etc.) is stored in MongoDB,
   connected via `MONGODB_URI` (see docker-compose.yml for the connection
   string per environment). Dev runs its own `mongo` container; production

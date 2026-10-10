@@ -1,4 +1,5 @@
 import * as authSessionService from '../services/authSessionService.js';
+import * as devAuthService from '../services/devAuthService.js';
 import User from '../models/User.js';
 import { httpError } from './errorHandler.js';
 import { setSessionCookie } from '../utils/authCookie.js';
@@ -6,6 +7,12 @@ import { setSessionCookie } from '../utils/authCookie.js';
 export function requireAuth({ allowPending = false } = {}) {
   return async function (req, res, next) {
     try {
+      if (devAuthService.isBypassEnabled()) {
+        const { _id, email } = devAuthService.DEV_USER;
+        req.user = { id: _id, email, scope: 'full', sessionId: null, isAdmin: true };
+        return next();
+      }
+
       const token = req.cookies?.sid;
       if (!token) return next(httpError(401, 'UNAUTHORIZED', 'Not authenticated'));
 

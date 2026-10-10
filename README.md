@@ -20,6 +20,12 @@ This starts three containers: `mongo`, `server` and `client`.
 - App: http://localhost:5173
 - API health check: http://localhost:3001/api/health
 
+The dev stack skips login: `DEV_AUTH_BYPASS` defaults to `true` in
+`docker-compose.yml`, so every request is signed in as an admin user
+`dev@localhost`. To use the real passkey + email flow, start it with
+`DEV_AUTH_BYPASS=false docker-compose up` (and fill in Mailgun in `.env`).
+The bypass never turns on when `NODE_ENV=production`.
+
 MongoDB data lives in the `mongo-data` Docker volume, so it survives
 `docker-compose down`. `docker-compose down -v` deletes it.
 
@@ -35,6 +41,7 @@ The server reads these from the environment (see `.env.example`):
 | `WEBAUTHN_RP_ID`, `WEBAUTHN_ORIGIN`, `WEBAUTHN_RP_NAME` | Passkey settings. Must match the hostname and origin the app is served from. |
 | `COOKIE_SECURE` | `true` when served over HTTPS. |
 | `SESSION_TTL_DAYS` | How long a login lasts (default 30). |
+| `DEV_AUTH_BYPASS` | `true` signs every request in as `dev@localhost` (admin). On by default in the dev compose; ignored in production. |
 
 AI provider, API key, model and generation settings are set per user in the
 app at `/settings` and stored in MongoDB.
