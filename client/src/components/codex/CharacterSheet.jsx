@@ -154,7 +154,7 @@ export default function CharacterSheet({ workId, character, onUpdate, onFlagsCha
         onFlagsChange={onFlagsChange}
       />
 
-      <CodexSuggestPanel entityType="character" entity={char} />
+      <CodexSuggestPanel workId={workId} entityType="character" entity={char} />
     </div>
   );
 }

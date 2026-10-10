@@ -2973,3 +2973,35 @@ a:hover {
   border: 1px solid var(--border);
   border-radius: 4px;
 }
+
+/* ============================================================
+   Context Used
+   ============================================================ */
+.context-used {
+  margin-top: 0.6rem;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.context-used-line {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.context-used-line:disabled { cursor: default; }
+.context-used-line:not(:disabled):hover { color: var(--text-muted); }
+
+.context-used-warning {
+  margin-top: 0.2rem;
+  color: var(--amber);
+}
+
+.context-used-details {
+  margin-top: 0.3rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}

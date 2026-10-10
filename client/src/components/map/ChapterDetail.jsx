@@ -4,6 +4,7 @@ import { api } from '../../utils/api.js';
 import { useAI } from '../../hooks/useAI.js';
 import { formatNumber } from '../../utils/wordCount.js';
 import PacingResult from '../panel/PacingResult.jsx';
+import ContextUsed from '../panel/ContextUsed.jsx';
 
 const FRAMEWORK_BEATS = [
   'Inciting Incident',
@@ -186,6 +187,7 @@ export default function ChapterDetail({ workId, chapterId, chapters, onSaved }) 
         {aiResult && (
           <div className="ai-result">
             <PacingResult result={aiResult} chapters={chapters} />
+            <ContextUsed context={aiResult.context} />
           </div>
         )}
 

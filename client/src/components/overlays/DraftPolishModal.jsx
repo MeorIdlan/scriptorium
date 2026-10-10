@@ -1,6 +1,7 @@
 import { useEditor } from '../../context/EditorContext.jsx';
+import ContextUsed from '../panel/ContextUsed.jsx';
 
-export default function DraftPolishModal({ polished, onDismiss }) {
+export default function DraftPolishModal({ polished, context, onDismiss }) {
   const { replaceContent } = useEditor();
 
   function handleAccept() {
@@ -24,6 +25,7 @@ export default function DraftPolishModal({ polished, onDismiss }) {
 
         <div className="modal-body draft-polish-body">
           <pre className="draft-polish-preview">{polished}</pre>
+          <ContextUsed context={context} />
         </div>
 
         <div className="modal-footer">

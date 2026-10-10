@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { useAI } from '../../hooks/useAI.js';
+import ContextUsed from '../panel/ContextUsed.jsx';
 
-export default function CodexSuggestPanel({ entityType, entity }) {
+export default function CodexSuggestPanel({ workId, entityType, entity }) {
   const { loading, error, call } = useAI();
   const [suggestions, setSuggestions] = useState(null);
+  const [context, setContext] = useState(null);
 
   async function handleSuggest() {
     setSuggestions(null);
-    const data = await call('codex-suggest', { entityType, entity });
+    setContext(null);
+    const data = await call('codex-suggest', { workId, entityType, entity });
     if (data?.suggestions) {
       setSuggestions(data.suggestions);
+      setContext(data.context || null);
     }
   }
 
@@ -49,6 +53,7 @@ export default function CodexSuggestPanel({ entityType, entity }) {
               </div>
             ))}
           </div>
+          <ContextUsed context={context} />
           <button
             className="btn btn-ghost codex-suggest-trigger"
             style={{ marginTop: '0.75rem' }}

@@ -112,7 +112,7 @@ export default function PlaceEntry({ workId, place, onUpdate, onFlagsChange }) {
         onFlagsChange={onFlagsChange}
       />
 
-      <CodexSuggestPanel entityType="place" entity={entry} />
+      <CodexSuggestPanel workId={workId} entityType="place" entity={entry} />
     </div>
   );
 }

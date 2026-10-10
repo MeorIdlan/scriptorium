@@ -6,6 +6,8 @@ import { useAI } from '../../hooks/useAI.js';
 import { api } from '../../utils/api.js';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import PacingResult from './PacingResult.jsx';
+import ContextUsed from './ContextUsed.jsx';
+import { summaryRefreshPending, loadingLabel } from '../../utils/summaryStatus.js';
 import HookGenerator from '../overlays/HookGenerator.jsx';
 import DraftPolishModal from '../overlays/DraftPolishModal.jsx';
 import EditorReviewModal from '../overlays/EditorReviewModal.jsx';
@@ -26,6 +28,7 @@ function RekindlerCard({ snapshot, lastSessionAt, onDismiss }) {
           Last session {new Date(lastSessionAt).toLocaleString()}
         </p>
       )}
+      <ContextUsed context={snapshot.context} />
     </div>
   );
 }
@@ -150,9 +153,13 @@ export default function QuillTab({ workId }) {
     setAiAction('polish');
     reset();
     setPolishedDraft(null);
-    const data = await call('polish-draft', { content: editorState.content });
+    const data = await call('polish-draft', {
+      workId,
+      chapterId: editorState.chapterId,
+      content: editorState.content,
+    });
     if (data?.polished) {
-      setPolishedDraft(data.polished);
+      setPolishedDraft({ text: data.polished, context: data.context });
     }
   }
 
@@ -161,7 +168,12 @@ export default function QuillTab({ workId }) {
     setAiAction(`editor-${mode}`);
     reset();
     setEditorReview(null);
-    const data = await call('editor-review', { content: editorState.content, mode });
+    const data = await call('editor-review', {
+      workId,
+      chapterId: editorState.chapterId,
+      content: editorState.content,
+      mode,
+    });
     if (data) {
       setEditorReview(data);
     }
@@ -239,7 +251,13 @@ export default function QuillTab({ workId }) {
         </button>
       </div>
 
-      {loading && <p className="panel-loading">Thinking…</p>}
+      {loading && (
+        <p className="panel-loading">
+          {loadingLabel(
+            summaryRefreshPending(workState.chapters, editorState.chapterId, aiAction === 'pacing' ? 'all' : 'before')
+          )}
+        </p>
+      )}
       {error && <p className="panel-error">{error}</p>}
       {result && !uiState.hookGeneratorOpen && (
         <div className="ai-result">
@@ -255,6 +273,7 @@ export default function QuillTab({ workId }) {
               ))}
             </div>
           )}
+          {(aiAction === 'pacing' || aiAction === 'hooks') && <ContextUsed context={result.context} />}
         </div>
       )}
 
@@ -264,7 +283,8 @@ export default function QuillTab({ workId }) {
 
       {polishedDraft && (
         <DraftPolishModal
-          polished={polishedDraft}
+          polished={polishedDraft.text}
+          context={polishedDraft.context}
           onDismiss={() => setPolishedDraft(null)}
         />
       )}

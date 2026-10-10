@@ -162,7 +162,7 @@ export default function RuleDetail({ workId, rule, onUpdate }) {
         />
       </div>
 
-      <CodexSuggestPanel entityType="worldRule" entity={r} />
+      <CodexSuggestPanel workId={workId} entityType="worldRule" entity={r} />
     </div>
   );
 }

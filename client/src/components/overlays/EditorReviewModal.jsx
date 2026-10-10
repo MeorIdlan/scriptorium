@@ -1,3 +1,5 @@
+import ContextUsed from '../panel/ContextUsed.jsx';
+
 const MODE_LABELS = {
   full: 'Editorial Read-through',
   'show-tell': 'Show, Don\'t Tell',
@@ -11,7 +13,7 @@ const FLAG_ICONS = {
 };
 
 export default function EditorReviewModal({ review, onDismiss }) {
-  const { mode, summary, flags = [] } = review;
+  const { mode, summary, flags = [], context } = review;
   const icon = FLAG_ICONS[mode] ?? '◆';
 
   return (
@@ -60,6 +62,7 @@ export default function EditorReviewModal({ review, onDismiss }) {
               ))}
             </div>
           )}
+          <ContextUsed context={context} />
         </div>
 
         <div className="modal-footer">

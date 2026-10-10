@@ -1,3 +1,5 @@
+import ContextUsed from '../panel/ContextUsed.jsx';
+
 const TYPE_LABELS = {
   character: 'Character',
   place: 'Place',
@@ -6,7 +8,7 @@ const TYPE_LABELS = {
 };
 
 export default function CodexAuditModal({ audit, onDismiss }) {
-  const { summary, findings = [] } = audit;
+  const { summary, findings = [], context } = audit;
 
   return (
     <div
@@ -56,6 +58,7 @@ export default function CodexAuditModal({ audit, onDismiss }) {
               ))}
             </div>
           )}
+          <ContextUsed context={context} />
         </div>
 
         <div className="modal-footer">
