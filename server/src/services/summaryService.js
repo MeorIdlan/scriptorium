@@ -25,9 +25,18 @@ Chapter text:
 ${truncateMiddle(chapter.content || '', MAX_INPUT_CHARS)}`;
 }
 
-export function generateSummary(work, chapter) {
+// Save only if the chapter still has the text we summarised and (unless the
+// writer asked to regenerate) hasn't edited the summary meanwhile
+export function summarySaveFilter(chapter, { force = false } = {}) {
+  const filter = { _id: chapter._id, content: chapter.content };
+  if (!force) filter['summary.edited'] = { $ne: true };
+  return filter;
+}
+
+// force: the writer asked to regenerate, so an edited summary may be replaced
+export function generateSummary(work, chapter, { force = false } = {}) {
   const sourceHash = hashContent(chapter.content);
-  const key = `${chapter._id}:${sourceHash}`;
+  const key = `${chapter._id}:${sourceHash}${force ? ':force' : ''}`;
   if (inflight.has(key)) return inflight.get(key);
 
   const promise = (async () => {
@@ -44,10 +53,8 @@ export function generateSummary(work, chapter) {
       throw err;
     }
 
-    // Only save if the chapter still has the text we summarised and the
-    // writer hasn't edited the summary meanwhile
     await Chapter.updateOne(
-      { _id: chapter._id, content: chapter.content, 'summary.edited': { $ne: true } },
+      summarySaveFilter(chapter, { force }),
       {
         $set: {
           'summary.text': text,

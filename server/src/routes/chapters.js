@@ -250,9 +250,9 @@ router.post('/:chapterId/summary/regenerate', async (req, res, next) => {
       return next(httpError(400, 'EMPTY_CHAPTER', 'This chapter has no text to summarise'));
     }
 
-    // Regenerating hands the summary back to the AI
-    await Chapter.updateOne({ _id: chapterId, workId }, { $set: { 'summary.edited': false } });
-    await generateSummary(req.work, chapter);
+    // Regenerating hands the summary back to the AI; `edited` is cleared only
+    // when the new summary is saved, so a failure keeps the writer's text protected
+    await generateSummary(req.work, chapter, { force: true });
 
     const updated = await Chapter.findOne({ _id: chapterId, workId }).select('content summary');
     res.json(summaryResponse(updated));

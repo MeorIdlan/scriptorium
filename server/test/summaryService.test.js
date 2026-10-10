@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ensureSummaries } from '../src/services/summaryService.js';
+import { ensureSummaries, summarySaveFilter } from '../src/services/summaryService.js';
 import { hashContent } from '../src/services/summaryText.js';
 
 const work = { _id: 'work_1', ownerId: 'user_1', title: 'Bells' };
@@ -109,4 +109,10 @@ test('ensureSummaries stops starting summaries once its time budget is spent', a
   assert.ok(calls < 10, `${calls} calls`);
   assert.equal(summaries.size + unavailable, 10);
   assert.ok(unavailable > 0);
+});
+
+test('summarySaveFilter protects edited summaries unless regenerating on purpose', () => {
+  const chapter = { _id: 'c1', content: 'one' };
+  assert.deepEqual(summarySaveFilter(chapter), { _id: 'c1', content: 'one', 'summary.edited': { $ne: true } });
+  assert.deepEqual(summarySaveFilter(chapter, { force: true }), { _id: 'c1', content: 'one' });
 });
