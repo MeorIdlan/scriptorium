@@ -30,8 +30,10 @@ const Editor = forwardRef(function Editor({ workId, initialContent = '', initial
   // Apply programmatic content replacements (e.g., from Draft Polish)
   useEffect(() => {
     if (!state.pendingReplacement || !editorRef.current) return;
-    editorRef.current.innerText = state.pendingReplacement.text;
-    setContent(state.pendingReplacement.text, editorRef.current.innerHTML);
+    const { text, html } = state.pendingReplacement;
+    if (html) editorRef.current.innerHTML = html;
+    else editorRef.current.innerText = text;
+    setContent(editorRef.current.innerText || '', editorRef.current.innerHTML);
     clearReplacement();
   }, [state.pendingReplacement, setContent, clearReplacement]);
 

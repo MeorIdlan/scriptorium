@@ -6,7 +6,7 @@ const initialState = {
   html: '', // editor HTML, the saved source of truth
   hasUnsavedChanges: false,
   saveStatus: 'saved', // 'saved' | 'saving' | 'error'
-  pendingReplacement: null, // { text, id } — signals Editor to swap DOM content
+  pendingReplacement: null, // { text, html, id } — signals Editor to swap DOM content
 };
 
 function editorReducer(state, action) {
@@ -31,7 +31,7 @@ function editorReducer(state, action) {
         saveStatus: 'saved',
       };
     case 'REPLACE_CONTENT':
-      return { ...state, pendingReplacement: { text: action.text, id: Date.now() } };
+      return { ...state, pendingReplacement: { text: action.text, html: action.html, id: Date.now() } };
     case 'CLEAR_REPLACEMENT':
       return { ...state, pendingReplacement: null };
     default:
@@ -60,8 +60,8 @@ export function EditorProvider({ children }) {
     dispatch({ type: 'LOAD_CONTENT', chapterId, content, html });
   }, []);
 
-  const replaceContent = useCallback((text) => {
-    dispatch({ type: 'REPLACE_CONTENT', text });
+  const replaceContent = useCallback((text, html) => {
+    dispatch({ type: 'REPLACE_CONTENT', text, html });
   }, []);
 
   const clearReplacement = useCallback(() => {

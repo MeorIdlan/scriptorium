@@ -10,6 +10,25 @@ import { loadWork } from '../middleware/loadWork.js';
 const router = Router({ mergeParams: true });
 router.use(loadWork);
 
+// Autosave runs every few seconds, so keep at most one snapshot per interval
+const SNAPSHOT_INTERVAL_MS = 10 * 60 * 1000;
+const MAX_SNAPSHOTS = 50;
+
+function snapshotOf(chapter, savedAt) {
+  return {
+    savedAt,
+    wordCount: chapter.wordCount || 0,
+    contentSnapshot: chapter.content,
+    htmlSnapshot: chapter.contentHtml,
+  };
+}
+
+function snapshotDue(chapter, now) {
+  const last = chapter.draftHistory?.[chapter.draftHistory.length - 1];
+  if (!last?.savedAt) return true;
+  return new Date(now) - new Date(last.savedAt) >= SNAPSHOT_INTERVAL_MS;
+}
+
 // GET /api/works/:workId/chapters
 router.get('/', async (req, res, next) => {
   try {
@@ -118,19 +137,9 @@ router.put('/:chapterId', async (req, res, next) => {
     delete setFields.draftHistory;
 
     const updateOp = { $set: setFields };
-    if (contentChanged) {
+    if (contentChanged && chapter.content && snapshotDue(chapter, now)) {
       updateOp.$push = {
-        draftHistory: {
-          $each: [
-            {
-              savedAt: now,
-              wordCount: chapter.wordCount || 0,
-              contentSnapshot: chapter.content,
-              htmlSnapshot: chapter.contentHtml,
-            },
-          ],
-          $slice: -10,
-        },
+        draftHistory: { $each: [snapshotOf(chapter, now)], $slice: -MAX_SNAPSHOTS },
       };
     }
 
@@ -141,6 +150,42 @@ router.put('/:chapterId', async (req, res, next) => {
     } catch (scanErr) {
       console.error('Consistency scan error:', scanErr);
     }
+
+    await recalculate(workId);
+
+    res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/works/:workId/chapters/:chapterId/restore
+// Restores the snapshot saved at `savedAt`, snapshotting the current text first
+router.post('/:chapterId/restore', async (req, res, next) => {
+  try {
+    const { workId, chapterId } = req.params;
+    const { savedAt } = req.body;
+    const chapter = await Chapter.findOne({ _id: chapterId, workId });
+    if (!chapter) return next(httpError(404, 'NOT_FOUND', 'Chapter not found'));
+
+    const entry = chapter.draftHistory.find((h) => h.savedAt === savedAt);
+    if (!entry) return next(httpError(404, 'NOT_FOUND', 'Snapshot not found'));
+
+    const now = new Date().toISOString();
+    const content = entry.contentSnapshot || '';
+    const updated = await Chapter.findOneAndUpdate(
+      { _id: chapterId, workId },
+      {
+        $set: {
+          content,
+          contentHtml: entry.htmlSnapshot || '',
+          wordCount: countWords(content),
+          updatedAt: now,
+        },
+        $push: { draftHistory: { $each: [snapshotOf(chapter, now)], $slice: -MAX_SNAPSHOTS } },
+      },
+      { new: true }
+    );
 
     await recalculate(workId);
 

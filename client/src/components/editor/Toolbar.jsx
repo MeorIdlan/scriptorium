@@ -1,10 +1,17 @@
+import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useUI } from '../../context/UIContext.jsx';
+import { useEditor } from '../../context/EditorContext.jsx';
+import DraftHistoryModal from '../overlays/DraftHistoryModal.jsx';
 
 const FONTS = ['Georgia', 'Arial', 'Verdana', 'Courier'];
 const SIZES = [12, 14, 16, 18, 20];
 
 export default function Toolbar({ editorRef }) {
   const { dispatch } = useUI();
+  const { workId } = useParams();
+  const { state: editorState } = useEditor();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   function exec(command, value = null) {
     editorRef.current?.focus();
@@ -102,6 +109,22 @@ export default function Toolbar({ editorRef }) {
       >
         ✨ Spark
       </button>
+      <button
+        className="toolbar-btn toolbar-spark"
+        onClick={() => setHistoryOpen(true)}
+        disabled={!editorState.chapterId}
+        title="View and restore earlier versions of this chapter"
+      >
+        ⟲ History
+      </button>
+
+      {historyOpen && (
+        <DraftHistoryModal
+          workId={workId}
+          chapterId={editorState.chapterId}
+          onDismiss={() => setHistoryOpen(false)}
+        />
+      )}
     </div>
   );
 }
