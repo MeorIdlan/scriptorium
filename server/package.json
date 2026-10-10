@@ -21,6 +21,7 @@
     "mongoose": "^8.24.1",
     "nodepub": "^3.2.1",
     "openai": "^4.52.0",
-    "pdfkit": "^0.15.0"
+    "pdfkit": "^0.15.0",
+    "sanitize-html": "^2.18.0"
   }
 }

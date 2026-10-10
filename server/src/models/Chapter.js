@@ -6,6 +6,7 @@ const draftHistoryEntrySchema = new mongoose.Schema(
     savedAt: { type: String },
     wordCount: { type: Number, default: 0 },
     contentSnapshot: { type: String },
+    htmlSnapshot: { type: String },
   },
   { _id: false }
 );
@@ -17,7 +18,8 @@ const chapterSchema = new mongoose.Schema(
     number: { type: Number },
     title: { type: String, required: true },
     order: { type: Number, default: 0 },
-    content: { type: String, default: '' },
+    content: { type: String, default: '' }, // plain text, derived from contentHtml by the editor
+    contentHtml: { type: String, default: '' },
     wordCount: { type: Number, default: 0 },
     draftHistory: { type: [draftHistoryEntrySchema], default: [] },
     status: { type: String, default: 'outline' },

@@ -14,7 +14,7 @@ export default function MainRoom() {
   const { state, loadWork } = useActiveWork();
   const { state: editorState, loadContent } = useEditor();
   const editorRef = useRef(null);
-  const [chapterContent, setChapterContent] = useState('');
+  const [chapterContent, setChapterContent] = useState({ text: '', html: '' });
   const [addingChapter, setAddingChapter] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState('');
 
@@ -45,9 +45,10 @@ export default function MainRoom() {
   async function loadChapter(chId) {
     try {
       const chapter = await api.get(`/works/${workId}/chapters/${chId}`);
-      const content = chapter.content || '';
-      setChapterContent(content);
-      loadContent(chId, chapter.innerText || content);
+      const text = chapter.content || '';
+      const html = chapter.contentHtml || '';
+      setChapterContent({ text, html });
+      loadContent(chId, text, html);
     } catch (err) {
       console.error('Failed to load chapter:', err);
     }
@@ -144,7 +145,8 @@ export default function MainRoom() {
             <Editor
               ref={editorRef}
               workId={workId}
-              initialContent={chapterContent}
+              initialContent={chapterContent.text}
+              initialHtml={chapterContent.html}
               key={editorState.chapterId} // re-mount on chapter change
             />
           </div>

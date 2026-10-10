@@ -4,6 +4,7 @@ import Work from '../models/Work.js';
 import { httpError } from '../middleware/errorHandler.js';
 import { countWords, recalculate } from '../services/wordCountService.js';
 import { scan } from '../services/consistencyService.js';
+import { sanitizeChapterHtml } from '../services/htmlService.js';
 import { loadWork } from '../middleware/loadWork.js';
 
 const router = Router({ mergeParams: true });
@@ -14,7 +15,7 @@ router.get('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
 
-    const chapters = await Chapter.find({ workId }).select('-content -draftHistory').sort({ order: 1 });
+    const chapters = await Chapter.find({ workId }).select('-content -contentHtml -draftHistory').sort({ order: 1 });
     res.json(chapters);
   } catch (err) {
     next(err);
@@ -77,7 +78,7 @@ router.put('/reorder', async (req, res, next) => {
     }));
     if (ops.length > 0) await Chapter.bulkWrite(ops);
 
-    const chapters = await Chapter.find({ workId }).select('-content -draftHistory').sort({ order: 1 });
+    const chapters = await Chapter.find({ workId }).select('-content -contentHtml -draftHistory').sort({ order: 1 });
     res.json(chapters);
   } catch (err) {
     next(err);
@@ -106,9 +107,12 @@ router.put('/:chapterId', async (req, res, next) => {
     const now = new Date().toISOString();
     const newContent = req.body.content !== undefined ? req.body.content : chapter.content;
     const words = countWords(newContent);
-    const contentChanged = chapter.content !== undefined && chapter.content !== newContent;
+    const newHtml =
+      req.body.contentHtml !== undefined ? sanitizeChapterHtml(req.body.contentHtml) : chapter.contentHtml;
+    const contentChanged =
+      (chapter.content || '') !== newContent || (chapter.contentHtml || '') !== (newHtml || '');
 
-    const setFields = { ...req.body, content: newContent, wordCount: words, updatedAt: now };
+    const setFields = { ...req.body, content: newContent, contentHtml: newHtml, wordCount: words, updatedAt: now };
     delete setFields.id;
     delete setFields.workId;
     delete setFields.draftHistory;
@@ -117,7 +121,14 @@ router.put('/:chapterId', async (req, res, next) => {
     if (contentChanged) {
       updateOp.$push = {
         draftHistory: {
-          $each: [{ savedAt: now, wordCount: chapter.wordCount || 0, contentSnapshot: chapter.content }],
+          $each: [
+            {
+              savedAt: now,
+              wordCount: chapter.wordCount || 0,
+              contentSnapshot: chapter.content,
+              htmlSnapshot: chapter.contentHtml,
+            },
+          ],
           $slice: -10,
         },
       };
