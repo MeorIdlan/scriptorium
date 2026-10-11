@@ -150,3 +150,19 @@ test('blockEndPoint for an empty editor is the start of the root', () => {
   const root = editor('');
   assert.deepEqual(blockEndPoint(root, null), { node: root, offset: 0 });
 });
+
+test('blockEndPoint in a legacy <br> run is the end of the caret line, before the next <br>', () => {
+  // Legacy plain-text chapters load via innerText: root-level text and <br> nodes
+  const root = editor('One<br>Two <b>bold</b><br>Three');
+  const nodes = [...root.childNodes]; // One, br, Two , b, br, Three
+  assert.deepEqual(blockEndPoint(root, nodes[2]), { node: root, offset: 4 });
+  assert.deepEqual(blockEndPoint(root, nodes[3]), { node: root, offset: 4 });
+  assert.deepEqual(blockEndPoint(root, nodes[0]), { node: root, offset: 1 });
+});
+
+test('blockEndPoint with the caret on a <br> uses the line that follows it', () => {
+  const root = editor('One<br>Two<br>Three');
+  const nodes = [...root.childNodes]; // One, br, Two, br, Three
+  assert.deepEqual(blockEndPoint(root, nodes[1]), { node: root, offset: 3 });
+  assert.deepEqual(blockEndPoint(root, nodes[4]), { node: root, offset: 5 });
+});

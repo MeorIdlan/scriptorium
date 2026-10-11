@@ -3,7 +3,7 @@ import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { api } from '../../utils/api.js';
-import { chapterLabel } from '../../utils/catchGroups.js';
+import { chapterLabel, catchLengthError } from '../../utils/catchGroups.js';
 
 export default function CatchOverlay() {
   const { state, dispatch } = useUI();
@@ -13,6 +13,7 @@ export default function CatchOverlay() {
   const [text, setText] = useState('');
   const [chapterTag, setChapterTag] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const inputRef = useRef(null);
 
   const workId = workState.work?.id;
@@ -21,6 +22,7 @@ export default function CatchOverlay() {
   useEffect(() => {
     if (state.catchOverlayOpen) {
       setText('');
+      setError('');
       setChapterTag(editorState.chapterId || '');
       setTimeout(() => inputRef.current?.focus(), 50);
     }
@@ -38,8 +40,9 @@ export default function CatchOverlay() {
   }, [state.catchOverlayOpen, dispatch]);
 
   async function handleSubmit() {
-    if (!text.trim() || !workId) return;
+    if (!text.trim() || !workId || catchLengthError(text)) return;
     setSubmitting(true);
+    setError('');
     try {
       await api.post(`/works/${workId}/catches`, {
         content: text.trim(),
@@ -51,6 +54,7 @@ export default function CatchOverlay() {
       setText('');
     } catch (err) {
       console.error('Catch submission failed:', err);
+      setError(err.message || 'Could not save the catch.');
     } finally {
       setSubmitting(false);
     }
@@ -90,6 +94,10 @@ export default function CatchOverlay() {
         rows={3}
       />
 
+      {(catchLengthError(text) || error) && (
+        <p className="catch-row-error">{catchLengthError(text) || error}</p>
+      )}
+
       <div className="catch-overlay-footer">
         <select
           className="form-select catch-chapter-select"
@@ -107,7 +115,7 @@ export default function CatchOverlay() {
         <button
           className="btn btn-primary btn-sm"
           onClick={handleSubmit}
-          disabled={submitting || !text.trim()}
+          disabled={submitting || !text.trim() || Boolean(catchLengthError(text))}
         >
           {submitting ? 'Catching…' : 'Catch it'}
         </button>

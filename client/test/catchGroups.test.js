@@ -7,6 +7,9 @@ import {
   openCountsByChapter,
   timeAgo,
   usedAsLabel,
+  liveChapterId,
+  MAX_CATCH_LENGTH,
+  catchLengthError,
 } from '../src/utils/catchGroups.js';
 
 const chapters = [
@@ -100,4 +103,20 @@ test('usedAsLabel describes what the catch became', () => {
   assert.equal(usedAsLabel({ kind: 'map-note', refId: 'c1', label: 'Ch. 1 — Arrival' }), 'Map note: Ch. 1 — Arrival');
   assert.equal(usedAsLabel(null), '');
   assert.equal(usedAsLabel(undefined), '');
+});
+
+test('liveChapterId keeps a tag only when the chapter still exists', () => {
+  assert.equal(liveChapterId(chapters, 'c2'), 'c2');
+  assert.equal(liveChapterId(chapters, 'ch_gone'), '');
+  assert.equal(liveChapterId(chapters, null), '');
+  assert.equal(liveChapterId(chapters, undefined), '');
+});
+
+test('catchLengthError explains an over-long catch, counting trimmed text', () => {
+  assert.equal(MAX_CATCH_LENGTH, 2000);
+  assert.equal(catchLengthError('x'.repeat(2000)), '');
+  assert.equal(catchLengthError(`  ${'x'.repeat(2000)}  `), '');
+  assert.equal(catchLengthError('x'.repeat(2143)), '2,143 / 2,000 characters. Shorten it to save.');
+  assert.equal(catchLengthError(''), '');
+  assert.equal(catchLengthError(undefined), '');
 });

@@ -8,6 +8,21 @@ export function chapterLabel(chapter) {
   return `Ch. ${chapter?.number ?? '?'} — ${title}`;
 }
 
+// Matches the server's limit (server/src/services/catchFields.js)
+export const MAX_CATCH_LENGTH = 2000;
+
+export function catchLengthError(text) {
+  const length = (text || '').trim().length;
+  if (length <= MAX_CATCH_LENGTH) return '';
+  const fmt = (n) => n.toLocaleString('en-US');
+  return `${fmt(length)} / ${fmt(MAX_CATCH_LENGTH)} characters. Shorten it to save.`;
+}
+
+// A tag to a deleted chapter counts as no tag, so forms never submit it
+export function liveChapterId(chapters, chapterId) {
+  return chapterId && chapters.some((ch) => ch.id === chapterId) ? chapterId : '';
+}
+
 const newestFirst = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '');
 const bookOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.number ?? 0) - (b.number ?? 0);
 

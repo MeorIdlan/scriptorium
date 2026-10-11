@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { chapterLabel, timeAgo, usedAsLabel } from '../../utils/catchGroups.js';
+import { catchLengthError, chapterLabel, liveChapterId, timeAgo, usedAsLabel } from '../../utils/catchGroups.js';
 import { defaultName } from '../../utils/catchActions.js';
 
 const USE_TARGETS = [
@@ -40,7 +40,7 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
 
   function startEdit() {
     setDraft(item.content);
-    setDraftTag(item.taggedChapterId || '');
+    setDraftTag(liveChapterId(chapters, item.taggedChapterId));
     setError('');
     setMode('edit');
   }
@@ -48,13 +48,15 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
   function startUse() {
     setTarget('character');
     setName(defaultName(item.content));
-    setMapChapterId(item.taggedChapterId || defaultMapChapterId || chapters[0]?.id || '');
+    setMapChapterId(
+      liveChapterId(chapters, item.taggedChapterId) || liveChapterId(chapters, defaultMapChapterId) || chapters[0]?.id || ''
+    );
     setError('');
     setMode('use');
   }
 
   function saveEdit() {
-    if (!draft.trim()) return;
+    if (!draft.trim() || catchLengthError(draft)) return;
     act('edit', { content: draft, taggedChapterId: draftTag || null });
   }
 
@@ -93,9 +95,9 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
             <option key={ch.id} value={ch.id}>{chapterLabel(ch)}</option>
           ))}
         </select>
-        {error && <p className="catch-row-error">{error}</p>}
+        {(catchLengthError(draft) || error) && <p className="catch-row-error">{catchLengthError(draft) || error}</p>}
         <div className="catch-row-actions visible">
-          <button className="btn btn-primary btn-sm" onClick={saveEdit} disabled={busy || !draft.trim()}>Save</button>
+          <button className="btn btn-primary btn-sm" onClick={saveEdit} disabled={busy || !draft.trim() || Boolean(catchLengthError(draft))}>Save</button>
           <button className="btn btn-ghost btn-sm" onClick={() => setMode('view')} disabled={busy}>Cancel</button>
         </div>
       </div>

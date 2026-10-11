@@ -193,9 +193,18 @@ export function rememberedCaret(root) {
 export function blockEndPoint(root, caretNode) {
   const blocks = getBlocks(root);
   if (blocks.length === 0) return { node: root, offset: 0 };
-  const block = (caretNode && blocks.find((b) => b.nodes.includes(caretNode))) || blocks[blocks.length - 1];
+  const caretBlock = caretNode && blocks.find((b) => b.nodes.includes(caretNode));
+  const block = caretBlock || blocks[blocks.length - 1];
   const last = block.nodes[block.nodes.length - 1];
   if (block.nodes.length === 1 && isBlockElement(last)) return { node: last, offset: last.childNodes.length };
+  // An inline run holds several lines when they are split by <br> (legacy
+  // plain-text chapters): end at the caret's line, just before its <br>
+  const isBreak = (n) => n.nodeType === ELEMENT && n.tagName === 'BR';
+  if (caretBlock) {
+    const from = block.nodes.indexOf(caretNode) + (isBreak(caretNode) ? 1 : 0);
+    const lineBreak = block.nodes.slice(from).find(isBreak);
+    if (lineBreak) return { node: root, offset: [...root.childNodes].indexOf(lineBreak) };
+  }
   return { node: root, offset: [...root.childNodes].indexOf(last) + 1 };
 }
 
