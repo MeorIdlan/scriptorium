@@ -1,12 +1,15 @@
 import sanitizeHtml from 'sanitize-html';
+import { SCENE_ATTRS, SCENE_LIMITS, SCENE_STATUSES, newSceneId } from './sceneMarkers.js';
 
 // Chapter HTML comes from a contentEditable driven by document.execCommand,
 // which emits <b>/<i>/<u>, <font face size>, and text-align on block elements.
+// <hr data-scene …> marks the start of a scene; its attributes are the card.
 const OPTIONS = {
-  allowedTags: ['p', 'div', 'br', 'b', 'strong', 'i', 'em', 'u', 'span', 'font', 'h1', 'h2', 'h3', 'blockquote'],
+  allowedTags: ['p', 'div', 'br', 'b', 'strong', 'i', 'em', 'u', 'span', 'font', 'h1', 'h2', 'h3', 'blockquote', 'hr'],
   allowedAttributes: {
     '*': ['style', 'align'],
     font: ['face', 'size'],
+    hr: ['data-scene', ...Object.values(SCENE_ATTRS), 'data-status'],
   },
   allowedStyles: {
     '*': {
@@ -21,7 +24,26 @@ const OPTIONS = {
   allowedSchemes: [],
 };
 
+const SAFE_ID = /^[\w-]{1,64}$/;
+
+// Ids only need to be unique within one chapter, so each call tracks its own
+function sceneMarker() {
+  const seen = new Set();
+  return (tagName, attribs) => {
+    let id = typeof attribs['data-scene'] === 'string' ? attribs['data-scene'].trim() : '';
+    if (!SAFE_ID.test(id) || seen.has(id)) id = newSceneId();
+    seen.add(id);
+    const out = { 'data-scene': id };
+    for (const [field, attr] of Object.entries(SCENE_ATTRS)) {
+      const value = typeof attribs[attr] === 'string' ? attribs[attr].trim().slice(0, SCENE_LIMITS[field]).trim() : '';
+      if (value) out[attr] = value;
+    }
+    out['data-status'] = SCENE_STATUSES.includes(attribs['data-status']) ? attribs['data-status'] : 'draft';
+    return { tagName: 'hr', attribs: out };
+  };
+}
+
 export function sanitizeChapterHtml(html) {
   if (typeof html !== 'string') return '';
-  return sanitizeHtml(html, OPTIONS);
+  return sanitizeHtml(html, { ...OPTIONS, transformTags: { hr: sceneMarker() } });
 }
