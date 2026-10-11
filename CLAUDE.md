@@ -49,14 +49,15 @@ scriptorium/
 │   └── src/
 │       ├── server.js           # Express entry — connects Mongo, mounts all /api/* routers
 │       ├── db.js               # Mongo connection
-│       ├── models/             # Mongoose schemas — content: Work, Chapter, Codex, Map, Catch, Session, Settings;
+│       ├── models/             # Mongoose schemas — content: Work, Chapter, Snapshot, Milestone, Codex, Map, Catch, Session, Settings;
 │       │                       #   auth: User, Credential, AuthSession, OtpCode, WebauthnChallenge, AuditLog
 │       ├── middleware/         # errorHandler, requireAuth, requireAdmin, loadWork, emailThrottle
 │       ├── services/           # workService, settingsService, llmService, consistencyService, exportService, wordCountService,
-│       │                       #   authService, authSessionService, otpService, webauthnService, emailService, auditService, devAuthService
+│       │                       #   authService, authSessionService, otpService, webauthnService, emailService, auditService, devAuthService,
+│       │                       #   snapshotService, snapshotMigration, textDiff (version history)
 │       ├── services/providers/ # anthropic.js, openai.js
 │       ├── utils/authCookie.js
-│       └── routes/             # auth, admin, works, chapters, codex, catches, map, sessions, ai, settings, export
+│       └── routes/             # auth, admin, works, chapters, snapshots, milestones, codex, catches, map, sessions, ai, settings, export
 └── client/
     ├── Dockerfile, Dockerfile.prod, nginx.conf   # prod serves the built bundle via nginx
     ├── index.html
