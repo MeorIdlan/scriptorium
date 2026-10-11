@@ -14,6 +14,7 @@ import { requireAdmin } from './middleware/requireAdmin.js';
 
 import worksRouter from './routes/works.js';
 import chaptersRouter from './routes/chapters.js';
+import snapshotsRouter from './routes/snapshots.js';
 import codexRouter from './routes/codex.js';
 import catchesRouter from './routes/catches.js';
 import mapRouter from './routes/map.js';
@@ -40,6 +41,7 @@ app.use('/api/auth', authRouter);
 
 const auth = requireAuth();
 app.use('/api/works', auth, worksRouter);
+app.use('/api/works/:workId/chapters/:chapterId/snapshots', auth, snapshotsRouter);
 app.use('/api/works/:workId/chapters', auth, chaptersRouter);
 app.use('/api/works/:workId/codex', auth, codexRouter);
 app.use('/api/works/:workId/catches', auth, catchesRouter);
