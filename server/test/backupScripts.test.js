@@ -13,10 +13,12 @@ const DAY = 24 * 60 * 60 * 1000;
 const ARCHIVE_RE = /^scriptorium-\d{8}T\d{6}Z\.archive\.gz$/;
 
 // The stub logs every call and answers by the Mongo tool being exec'd.
-// mongodump: STUB_MODE switches between an archive, a failure and no output.
+// mongodump: STUB_MODE switches between an archive, a failure, no output and
+// a hang.
 // mongorestore: saves stdin to STUB_RESTORED; STUB_RESTORE_MODE=fail fails it.
 // mongosh: dropDatabase calls are only logged; any other eval prints
-// STUB_COUNTS ("live|restored <collection> <count>" lines).
+// STUB_COUNTS ("live|restored <collection> <count>" lines), or fails when
+// STUB_COUNTS_MODE=fail.
 const STUB = `#!/usr/bin/env bash
 echo "$*" >> "$STUB_LOG"
 case "$*" in
@@ -24,6 +26,7 @@ case "$*" in
     case "$STUB_MODE" in
       fail) echo "mongodump: connection refused" >&2; exit 1 ;;
       empty) exit 0 ;;
+      hang) exec sleep 5 ;;
       *) printf 'FAKEARCHIVE' ;;
     esac ;;
   *mongorestore*)
@@ -31,7 +34,9 @@ case "$*" in
     [ "$STUB_RESTORE_MODE" = fail ] && { echo "mongorestore: bad archive" >&2; exit 1; }
     exit 0 ;;
   *dropDatabase*) exit 0 ;;
-  *mongosh*) printf '%s\\n' "$STUB_COUNTS" ;;
+  *mongosh*)
+    [ "$STUB_COUNTS_MODE" = fail ] && { echo "MongoServerError: not primary" >&2; exit 1; }
+    printf '%s\\n' "$STUB_COUNTS" ;;
 esac
 `;
 
@@ -121,6 +126,29 @@ test('RETENTION_DAYS changes how long archives are kept', () => {
   const r = run('mongo-dump.sh', { RETENTION_DAYS: '1' });
   assert.equal(r.status, 0, r.stderr);
   assert.equal(fs.existsSync(twoDays), false);
+});
+
+test('pruning leaves archives of a database whose name only starts with DB', () => {
+  const sibling = seed('scriptorium-staging-20260901T033000Z.archive.gz', 30);
+  const r = run('mongo-dump.sh');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(fs.existsSync(sibling), true);
+});
+
+test('dump refuses a database name that is not a plain identifier', () => {
+  const r = run('mongo-dump.sh', { DB: 'x/../etc' });
+  assert.notEqual(r.status, 0);
+  assert.equal(fs.existsSync(stubLog), false, 'docker never called');
+});
+
+test('dump gives up, writes nothing and prunes nothing when mongodump hangs past DUMP_TIMEOUT', () => {
+  const old = seed('scriptorium-20260901T033000Z.archive.gz', 40);
+  const started = Date.now();
+  const r = run('mongo-dump.sh', { STUB_MODE: 'hang', DUMP_TIMEOUT: '1' });
+  assert.notEqual(r.status, 0);
+  assert.ok(Date.now() - started < 4000, 'did not wait for the hung dump');
+  assert.match(r.stdout, /FAILED/);
+  assert.deepEqual(fs.readdirSync(backupDir), [path.basename(old)]);
 });
 
 test('cron entry runs the installed dump as root at 03:30 UTC and logs it', () => {
@@ -214,6 +242,58 @@ test('restore check fails and still drops the throwaway db when mongorestore fai
   seed('scriptorium-20261010T033000Z.archive.gz', 1);
   const r = restore({ STUB_RESTORE_MODE: 'fail' });
   assert.notEqual(r.status, 0);
+  assert.ok(dropped());
+});
+
+test('restore check ignores archives of a database whose name only starts with DB', () => {
+  fs.mkdirSync(backupDir);
+  fs.writeFileSync(path.join(backupDir, 'scriptorium-20261010T033000Z.archive.gz'), 'NEWEST');
+  fs.writeFileSync(path.join(backupDir, 'scriptorium-staging-20261011T033000Z.archive.gz'), 'STAGING');
+  const r = restore();
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(restoredBytes(), 'NEWEST');
+});
+
+for (const [env, why] of [
+  [{ RESTORE_DB: 'tms' }, 'a RESTORE_DB without the _restorecheck suffix'],
+  [{ DB: "x');db.dropDatabase('" }, 'a DB name that is not a plain identifier'],
+  [{ RESTORE_DB: "y_restorecheck');db.dropDatabase('" }, 'a RESTORE_DB that is not a plain identifier'],
+]) {
+  test(`restore check refuses ${why} before calling docker`, () => {
+    seed('scriptorium-20261010T033000Z.archive.gz', 1);
+    const r = restore(env);
+    assert.notEqual(r.status, 0);
+    assert.equal(calls(), '');
+  });
+}
+
+test('restore check refuses more than one archive argument', () => {
+  const a = seed('scriptorium-20261009T033000Z.archive.gz', 2);
+  const b = seed('scriptorium-20261010T033000Z.archive.gz', 1);
+  const r = restore({}, [a, b]);
+  assert.notEqual(r.status, 0);
+  assert.equal(calls(), '');
+});
+
+test('restore check only flags short-lived collections that are empty or missing in the dump', () => {
+  seed('scriptorium-20261010T033000Z.archive.gz', 1);
+  const r = restore({
+    STUB_COUNTS: [
+      'live users 1', 'live otpcodes 1', 'live webauthnchallenges 2', 'live authsessions 1',
+      'restored users 1', 'restored otpcodes 0', 'restored authsessions 0',
+    ].join('\n'),
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /otpcodes.*short-lived/);
+  assert.match(r.stdout, /webauthnchallenges.*short-lived/);
+  assert.match(r.stdout, /PASS/);
+});
+
+test('restore check fails and drops the throwaway db when counting fails', () => {
+  seed('scriptorium-20261010T033000Z.archive.gz', 1);
+  const r = restore({ STUB_COUNTS_MODE: 'fail' });
+  assert.notEqual(r.status, 0);
+  assert.doesNotMatch(r.stdout, /PASS/);
   assert.ok(dropped());
 });
 

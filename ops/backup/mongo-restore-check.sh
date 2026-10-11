@@ -11,6 +11,9 @@ MONGO_CONTAINER="${MONGO_CONTAINER:-mongo-mongo-1}"
 DB="${DB:-scriptorium}"
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/scriptorium}"
 RESTORE_DB="${RESTORE_DB:-${DB}_restorecheck}"
+# TTL-expired auth records: the live count moves minute to minute, so these
+# are flagged but never fail the check.
+VOLATILE_COLLECTIONS="${VOLATILE_COLLECTIONS:-authsessions otpcodes webauthnchallenges}"
 
 die() { echo "mongo-restore-check: $*" >&2; exit 2; }
 
@@ -20,19 +23,21 @@ for arg in "$@"; do
   case "$arg" in
     --keep) keep=true ;;
     -*) die "unknown option $arg" ;;
-    *) archive="$arg" ;;
+    *) [ -z "$archive" ] || die "give at most one archive"; archive="$arg" ;;
   esac
 done
 
 # Names go into a mongosh --eval string, so allow only plain identifiers.
 for name in "$DB" "$RESTORE_DB"; do
-  [[ "$name" =~ ^[A-Za-z0-9_]+$ ]] || die "invalid database name '$name'"
+  [[ "$name" =~ ^[A-Za-z0-9_-]+$ ]] || die "invalid database name '$name'"
 done
 [ "$RESTORE_DB" != "$DB" ] || die "RESTORE_DB must differ from DB ($DB)"
+# The drill drops RESTORE_DB, so it may only ever name a throwaway database.
+[[ "$RESTORE_DB" == *_restorecheck ]] || die "RESTORE_DB must end in _restorecheck"
 
 if [ -z "$archive" ]; then
   shopt -s nullglob
-  archives=("$BACKUP_DIR/$DB"-*.archive.gz)  # names carry UTC timestamps, so the last sorts newest
+  archives=("$BACKUP_DIR/$DB"-[0-9]*T[0-9]*Z.archive.gz)  # names carry UTC timestamps, so the last sorts newest
   shopt -u nullglob
   [ ${#archives[@]} -gt 0 ] || die "no $DB-*.archive.gz in $BACKUP_DIR"
   archive="${archives[-1]}"
@@ -61,8 +66,10 @@ counts=$(docker exec "$MONGO_CONTAINER" mongosh --quiet --eval "
 
 # Live counts can move on after the dump (new audit logs, sessions), so a
 # difference is only flagged. A missing collection, or one that came back
-# empty while live has documents, fails the check.
-if echo "$counts" | awk '
+# empty while live has documents, fails the check, except for the volatile
+# collections, which are only flagged.
+if echo "$counts" | awk -v volatile="$VOLATILE_COLLECTIONS" '
+  BEGIN            { nv = split(volatile, v, " "); for (i = 1; i <= nv; i++) vol[v[i]] = 1 }
   $1 == "live"     { live[$2] = $3 + 0; order[++n] = $2 }
   $1 == "restored" { rest[$2] = $3 + 0 }
   END {
@@ -71,11 +78,12 @@ if echo "$counts" | awk '
     printf "%-22s %9s %9s  %s\n", "collection", "live", "restored", "status"
     for (i = 1; i <= n; i++) {
       c = order[i]
-      if (!(c in rest))                     { r = "-"; st = "MISSING"; fail = 1 }
-      else if (live[c] > 0 && rest[c] == 0) { r = rest[c]; st = "EMPTY"; fail = 1 }
-      else if (live[c] != rest[c])          { r = rest[c]; st = "changed since dump" }
-      else                                  { r = rest[c]; st = "ok" }
-      printf "%-22s %9s %9s  %s\n", c, live[c], r, st
+      if (!(c in rest))                     st = (c in vol) ? "short-lived, not in dump" : "MISSING"
+      else if (live[c] > 0 && rest[c] == 0) st = (c in vol) ? "short-lived, changed since dump" : "EMPTY"
+      else if (live[c] != rest[c])          st = "changed since dump"
+      else                                  st = "ok"
+      if (st == "MISSING" || st == "EMPTY") fail = 1
+      printf "%-22s %9s %9s  %s\n", c, live[c], (c in rest) ? rest[c] : "-", st
     }
     for (c in rest) if (!(c in live)) printf "%-22s %9s %9s  %s\n", c, "-", rest[c], "only in dump"
     exit fail

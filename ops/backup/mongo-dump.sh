@@ -11,8 +11,12 @@ MONGO_CONTAINER="${MONGO_CONTAINER:-mongo-mongo-1}"
 DB="${DB:-scriptorium}"
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/scriptorium}"
 RETENTION_DAYS="${RETENTION_DAYS:-7}"
+DUMP_TIMEOUT="${DUMP_TIMEOUT:-3600}"  # seconds; a hung dump fails instead of blocking the next night's run
 
 log() { echo "$(date -u +%FT%TZ) mongo-dump[$DB]: $*"; }
+
+# DB ends up in file names and the prune pattern.
+[[ "$DB" =~ ^[A-Za-z0-9_-]+$ ]] || { log "FAILED: invalid database name"; exit 2; }
 
 # Dumps hold passkeys, session tokens and writers' API keys: owner-only.
 umask 077
@@ -23,8 +27,8 @@ final="$BACKUP_DIR/$DB-$(date -u +%Y%m%dT%H%M%SZ).archive.gz"
 tmp="$final.tmp"
 trap 'rm -f "$tmp"' EXIT
 
-if ! docker exec "$MONGO_CONTAINER" mongodump --db "$DB" --archive --gzip > "$tmp"; then
-  log "FAILED: mongodump exited non-zero; nothing written, nothing pruned"
+if ! timeout "$DUMP_TIMEOUT" docker exec "$MONGO_CONTAINER" mongodump --db "$DB" --archive --gzip > "$tmp"; then
+  log "FAILED: mongodump exited non-zero or timed out; nothing written, nothing pruned"
   exit 1
 fi
 if [ ! -s "$tmp" ]; then
@@ -34,6 +38,6 @@ fi
 mv "$tmp" "$final"
 log "wrote $final ($(stat -c %s "$final") bytes)"
 
-find "$BACKUP_DIR" -maxdepth 1 -type f -name "$DB-*.archive.gz" \
+find "$BACKUP_DIR" -maxdepth 1 -type f -name "$DB-[0-9]*T[0-9]*Z.archive.gz" \
   -mmin +$((RETENTION_DAYS * 24 * 60)) -print -delete |
   while read -r old; do log "pruned $old"; done
