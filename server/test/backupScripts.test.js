@@ -123,6 +123,16 @@ test('RETENTION_DAYS changes how long archives are kept', () => {
   assert.equal(fs.existsSync(twoDays), false);
 });
 
+test('cron entry runs the installed dump as root at 03:30 UTC and logs it', () => {
+  const cron = fs.readFileSync(path.join(OPS, 'scriptorium-backup.cron'), 'utf8');
+  assert.ok(cron.endsWith('\n'), 'cron.d ignores a last line without a newline');
+  const jobs = cron.split('\n').filter((l) => l.trim() && !l.startsWith('#') && !/^[A-Z]+=/.test(l));
+  assert.deepEqual(jobs, [
+    '30 3 * * * root /usr/local/sbin/scriptorium-mongo-dump >> /var/log/scriptorium-backup.log 2>&1',
+  ]);
+  assert.match(cron, /^PATH=.*\/usr\/bin/m);
+});
+
 // --- restore check ---
 
 const MATCHING = [

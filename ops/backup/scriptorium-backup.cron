@@ -1,0 +1,6 @@
+# Nightly scriptorium database dump (see docs/deployment.md → Data).
+# Install as /etc/cron.d/scriptorium-backup (no dot in the name, or cron
+# skips it). The droplet runs on UTC.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+30 3 * * * root /usr/local/sbin/scriptorium-mongo-dump >> /var/log/scriptorium-backup.log 2>&1
