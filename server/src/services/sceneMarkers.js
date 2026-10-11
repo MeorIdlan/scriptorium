@@ -145,3 +145,60 @@ export function exportScenes({ content, contentHtml }) {
     .filter(Boolean);
   return paragraphs.length ? [paragraphs] : [];
 }
+
+function escapeHtml(text) {
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Chapters saved before HTML storage only have plain text; the editor loads
+// that text with innerText, which turns newlines into <br>
+export function chapterHtml({ content, contentHtml } = {}) {
+  if (typeof contentHtml === 'string' && contentHtml.trim()) return contentHtml;
+  if (!content) return '';
+  return content.split('\n').map(escapeHtml).join('<br />');
+}
+
+function sliceOf(html, nodes) {
+  if (nodes.length === 0) return '';
+  return html.slice(nodes[0].startIndex, nodes[nodes.length - 1].endIndex + 1);
+}
+
+// { prefix, scenes: [{ id, marker, body }] } — an opening without text is
+// kept as a prefix, not a scene (so an empty chapter has no scenes)
+function sceneSegments(html) {
+  const segments = splitTop(html).map((seg) => ({
+    id: seg.marker ? seg.marker.attribs['data-scene'] : null,
+    marker: seg.marker ? sliceOf(html, [seg.marker]) : '',
+    body: sliceOf(html, seg.nodes),
+    hasText: paragraphsOf(seg.nodes).length > 0,
+  }));
+  if (!segments[0].hasText) return { prefix: segments[0].body, scenes: segments.slice(1) };
+  return { prefix: '', scenes: segments };
+}
+
+// A card-less scene anywhere but first would merge into the scene before it
+function keepSeparate(scenes) {
+  scenes.forEach((scene, i) => {
+    if (i > 0 && !scene.marker) {
+      scene.id = newSceneId();
+      scene.marker = `<hr data-scene="${scene.id}" data-status="draft" />`;
+    }
+  });
+}
+
+const joinSegments = ({ prefix, scenes }) => prefix + scenes.map((s) => s.marker + s.body).join('');
+
+export function moveScene({ srcHtml, dstHtml, sceneId, toIndex, sameChapter }) {
+  const src = sceneSegments(srcHtml || '');
+  const from = src.scenes.findIndex((s) => (sceneId === 'opening' ? s.id === null : s.id === sceneId));
+  if (from < 0) return { error: 'NOT_FOUND' };
+  const dst = sameChapter ? src : sceneSegments(dstHtml || '');
+  const [moved] = src.scenes.splice(from, 1);
+  if (!Number.isInteger(toIndex) || toIndex < 0 || toIndex > dst.scenes.length) return { error: 'INVALID_INDEX' };
+  if (sameChapter && toIndex === from) return { error: 'NO_CHANGE' };
+  dst.scenes.splice(toIndex, 0, moved);
+  keepSeparate(src.scenes);
+  if (!sameChapter) keepSeparate(dst.scenes);
+  const newSrc = joinSegments(src);
+  return { srcHtml: newSrc, dstHtml: sameChapter ? newSrc : joinSegments(dst) };
+}
