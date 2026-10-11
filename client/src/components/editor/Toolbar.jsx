@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
-import DraftHistoryModal from '../overlays/DraftHistoryModal.jsx';
+import ChapterHistoryModal from '../overlays/ChapterHistoryModal.jsx';
 import ChapterSummaryModal from '../overlays/ChapterSummaryModal.jsx';
 
 const FONTS = ['Georgia', 'Arial', 'Verdana', 'Courier'];
@@ -115,7 +115,7 @@ export default function Toolbar({ editorRef }) {
         className="toolbar-btn toolbar-spark"
         onClick={() => setHistoryOpen(true)}
         disabled={!editorState.chapterId}
-        title="View and restore earlier versions of this chapter"
+        title="Compare, name and restore earlier versions of this chapter"
       >
         ⟲ History
       </button>
@@ -129,7 +129,7 @@ export default function Toolbar({ editorRef }) {
       </button>
 
       {historyOpen && (
-        <DraftHistoryModal
+        <ChapterHistoryModal
           workId={workId}
           chapterId={editorState.chapterId}
           onDismiss={() => setHistoryOpen(false)}
