@@ -68,6 +68,31 @@ running the client outside Docker, change the proxy target in
 Production uses `docker-compose.prod.yml` behind a Cloudflare Tunnel, with
 the server joining a shared MongoDB. See [docs/deployment.md](docs/deployment.md).
 
+## CI
+
+Two GitHub Actions workflows:
+
+- **Test** (`.github/workflows/test.yml`) runs the server and client test
+  suites as two separate checks, `test (server)` and `test (client)`, on every
+  pull request and every push to a branch other than `main`.
+- **Deploy** (`.github/workflows/deploy.yml`) runs on every push to `main`. It
+  runs the same Test workflow first, then builds the images and deploys only
+  if both suites pass. If a suite fails, nothing is built or deployed.
+  - Pushes that only touch `docs/`, `.claude/` or Markdown files skip Deploy
+    entirely, so they don't build new images.
+  - Deploys run one at a time. Pushes that land during a deploy collapse into
+    a single queued run for the newest commit.
+  - A rollback (Actions → Deploy → Run workflow, with `image-tag` set) skips
+    the tests, because those images were built from commits that had already
+    passed.
+
+To reproduce the CI test run locally (Node 24):
+
+```bash
+cd server && npm ci && npm test
+cd client && npm ci && npm test
+```
+
 ## Structure
 
 ```
