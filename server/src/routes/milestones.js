@@ -9,6 +9,7 @@ import { countWords, recalculate } from '../services/wordCountService.js';
 import { validateName } from '../services/snapshotNames.js';
 import { newMilestoneId, newSnapshotId, snapshotFields } from '../services/snapshotData.js';
 import { restoreFromSnapshot } from '../services/snapshotService.js';
+import { sceneSummaries } from '../services/sceneMarkers.js';
 import { milestoneRows } from '../services/milestoneCompare.js';
 
 const router = Router({ mergeParams: true });
@@ -133,6 +134,7 @@ router.post('/:id/chapters/:chapterId/restore', async (req, res, next) => {
       order: last ? last.order + 1 : 0,
       content,
       contentHtml: snapshot.contentHtml || '',
+      scenes: sceneSummaries(snapshot.contentHtml || ''),
       wordCount: countWords(content),
       status: 'draft',
       notes: '',

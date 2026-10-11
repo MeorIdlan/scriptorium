@@ -3,6 +3,7 @@ import Snapshot from '../models/Snapshot.js';
 import { countWords, recalculate } from './wordCountService.js';
 import { thinSnapshots } from './snapshotRetention.js';
 import { newSnapshotId, snapshotFields } from './snapshotData.js';
+import { sceneSummaries } from './sceneMarkers.js';
 
 // Autosave runs every few seconds, so keep at most one automatic snapshot per interval
 export const SNAPSHOT_INTERVAL_MS = 10 * 60 * 1000;
@@ -37,7 +38,15 @@ export async function restoreFromSnapshot(chapter, snapshot) {
   const content = snapshot.content || '';
   const updated = await Chapter.findOneAndUpdate(
     { _id: chapter._id, workId: chapter.workId },
-    { $set: { content, contentHtml: snapshot.contentHtml || '', wordCount: countWords(content), updatedAt: now } },
+    {
+      $set: {
+        content,
+        contentHtml: snapshot.contentHtml || '',
+        scenes: sceneSummaries(snapshot.contentHtml || ''),
+        wordCount: countWords(content),
+        updatedAt: now,
+      },
+    },
     { new: true }
   );
   await recalculate(chapter.workId);
