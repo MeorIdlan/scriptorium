@@ -104,3 +104,6 @@ scriptorium/
 - AI calls are opt-in only. Provider, API key, model, and generation params
   are configured in-app via `/settings` and stored per user in the MongoDB
   `Settings` collection (document `_id` = user id).
+
+@docs/playbook.md
+@.claude/playbook.local.md
