@@ -924,6 +924,35 @@ a:hover {
   margin-bottom: 1em;
 }
 
+/* Scene breaks: <hr data-scene> markers inside the chapter */
+.editor hr[data-scene] {
+  border: none;
+  height: auto;
+  margin: 1.6em 0;
+  text-align: center;
+  color: var(--text-muted);
+  user-select: none;
+  cursor: default;
+  overflow: visible;
+}
+.editor hr[data-scene]::before {
+  content: '⁂';
+  display: block;
+  color: var(--gold);
+  font-size: 1.1em;
+  line-height: 1.4;
+}
+.editor hr[data-scene]::after {
+  content: attr(data-title);
+  display: block;
+  font-family: system-ui, sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+.editor hr[data-scene][data-status='todo']::before { color: var(--text-dim); }
+.editor hr[data-scene][data-status='revise']::before { color: var(--amber); }
+.editor hr[data-scene][data-status='done']::before { color: var(--teal); }
+
 /* ============================================================
    Toolbar
    ============================================================ */

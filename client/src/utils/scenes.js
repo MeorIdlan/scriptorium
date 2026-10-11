@@ -153,3 +153,75 @@ export function positionOptions(destScenes, moving = null) {
   if (rest.length > 0) options.push({ label: 'At the end', toIndex: rest.length });
   return moving ? options.filter((o) => o.toIndex !== moving.index) : options;
 }
+
+// Top-level point after the caret's block (or its line, in a legacy
+// plain-text run), so the marker never lands inside a paragraph
+export function afterBlockPoint(root, caretNode) {
+  const blocks = getBlocks(root);
+  if (blocks.length === 0) return { node: root, offset: 0 };
+  const block = (caretNode && blocks.find((b) => b.nodes.includes(caretNode))) || blocks[blocks.length - 1];
+  if (block.nodes.length === 1 && block.nodes[0].nodeType === 1) {
+    return { node: root, offset: [...root.childNodes].indexOf(block.nodes[0]) + 1 };
+  }
+  return blockEndPoint(root, caretNode);
+}
+
+function select(doc, setup) {
+  const range = doc.createRange();
+  setup(range);
+  const selection = doc.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+// execCommand keeps the break in the browser's undo history and fires input
+export function insertSceneBreak(root, caretNode) {
+  const doc = root.ownerDocument;
+  const point = afterBlockPoint(root, caretNode);
+  root.focus();
+  select(doc, (r) => {
+    r.setStart(point.node, point.offset);
+    r.collapse(true);
+  });
+  const id = newSceneId();
+  const ok = doc.execCommand('insertHTML', false, `${markerHtml({ id })}<div><br></div>`);
+  const marker = [...root.querySelectorAll('hr')].find((h) => h.getAttribute('data-scene') === id);
+  if (!marker) return false;
+  if (marker.parentNode !== root) liftMarker(root, marker);
+  lockMarkers(root);
+  const next = marker.nextSibling;
+  if (next) {
+    select(doc, (r) => {
+      r.setStart(next, 0);
+      r.collapse(true);
+    });
+  }
+  return ok;
+}
+
+export function removeSceneBreak(root, marker) {
+  if (!marker || marker.parentNode !== root) return false;
+  const doc = root.ownerDocument;
+  root.focus();
+  select(doc, (r) => r.selectNode(marker));
+  doc.execCommand('delete');
+  // Fallback when the browser refuses to delete a non-editable node
+  if (marker.parentNode) {
+    marker.remove();
+    fireInput(root);
+  }
+  return true;
+}
+
+export function scrollToScene(root, scene) {
+  if (!scene) return;
+  const doc = root.ownerDocument;
+  (scene.marker || root).scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+  root.focus();
+  const first = scene.blocks[0]?.nodes[0];
+  select(doc, (r) => {
+    if (first) r.setStart(first, 0);
+    else r.setStart(root, scene.marker ? [...root.childNodes].indexOf(scene.marker) + 1 : 0);
+    r.collapse(true);
+  });
+}

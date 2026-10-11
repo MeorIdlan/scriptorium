@@ -4,6 +4,8 @@ import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import ChapterHistoryModal from '../overlays/ChapterHistoryModal.jsx';
 import ChapterSummaryModal from '../overlays/ChapterSummaryModal.jsx';
+import { insertSceneBreak } from '../../utils/scenes.js';
+import { rememberedCaret } from '../../utils/editorBlocks.js';
 
 const FONTS = ['Georgia', 'Arial', 'Verdana', 'Courier'];
 const SIZES = [12, 14, 16, 18, 20];
@@ -100,6 +102,18 @@ export default function Toolbar({ editorRef }) {
         title="Align right"
       >
         ≡
+      </button>
+
+      <button
+        className="toolbar-btn toolbar-scene"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          const root = editorRef.current;
+          if (root) insertSceneBreak(root, rememberedCaret(root));
+        }}
+        title="Add a scene break (Ctrl+Shift+Enter)"
+      >
+        ⁂
       </button>
 
       <div className="toolbar-divider" />

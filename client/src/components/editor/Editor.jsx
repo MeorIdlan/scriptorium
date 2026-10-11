@@ -1,7 +1,14 @@
 import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useAutosave } from '../../hooks/useAutosave.js';
-import { getBlocks, pointToBlockOffset, topLevelNode, rememberCaret } from '../../utils/editorBlocks.js';
+import { getBlocks, pointToBlockOffset, topLevelNode, rememberCaret, rememberedCaret } from '../../utils/editorBlocks.js';
+import { lockMarkers, insertSceneBreak } from '../../utils/scenes.js';
+
+// The top-level node holding a range's end, as remembered for inserts
+function caretTopNode(root, range) {
+  const end = range.endContainer;
+  return end === root ? root.childNodes[Math.max(0, range.endOffset - 1)] || null : topLevelNode(root, end);
+}
 
 const Editor = forwardRef(function Editor({ workId, initialContent = '', initialHtml = '' }, ref) {
   const editorRef = useRef(null);
@@ -23,11 +30,7 @@ const Editor = forwardRef(function Editor({ workId, initialContent = '', initial
       const range = sel.getRangeAt(0);
       if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return;
       // Remembered for inserting catches; cheap, so it runs on every caret move
-      const end = range.endContainer;
-      rememberCaret(
-        root,
-        end === root ? root.childNodes[Math.max(0, range.endOffset - 1)] || null : topLevelNode(root, end)
-      );
+      rememberCaret(root, caretTopNode(root, range));
       if (range.collapsed) {
         setSelection(null);
         return;
@@ -52,6 +55,7 @@ const Editor = forwardRef(function Editor({ workId, initialContent = '', initial
       // turns its newlines back into line breaks
       editorRef.current.innerText = initialContent || '';
     }
+    lockMarkers(editorRef.current);
     // Only run when component mounts (key-based remount handles chapter switching)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -62,15 +66,31 @@ const Editor = forwardRef(function Editor({ workId, initialContent = '', initial
     const { text, html } = state.pendingReplacement;
     if (html) editorRef.current.innerHTML = html;
     else editorRef.current.innerText = text;
+    lockMarkers(editorRef.current);
     setContent(editorRef.current.innerText || '', editorRef.current.innerHTML);
     clearReplacement();
   }, [state.pendingReplacement, setContent, clearReplacement]);
 
   const handleInput = useCallback(() => {
     if (editorRef.current) {
+      // Pasted markers come in editable
+      lockMarkers(editorRef.current);
       setContent(editorRef.current.innerText || '', editorRef.current.innerHTML);
     }
   }, [setContent]);
+
+  const handleKeyDown = useCallback((e) => {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Enter') {
+      e.preventDefault();
+      const root = editorRef.current;
+      if (!root) return;
+      // selectionchange fires asynchronously, so a click followed at once by
+      // the shortcut may not be remembered yet: read the live selection
+      const sel = document.getSelection();
+      const live = sel && sel.rangeCount > 0 && root.contains(sel.getRangeAt(0).endContainer) ? caretTopNode(root, sel.getRangeAt(0)) : null;
+      insertSceneBreak(root, live || rememberedCaret(root));
+    }
+  }, []);
 
   return (
     <div
@@ -79,6 +99,7 @@ const Editor = forwardRef(function Editor({ workId, initialContent = '', initial
       contentEditable
       suppressContentEditableWarning
       onInput={handleInput}
+      onKeyDown={handleKeyDown}
       spellCheck
       data-placeholder="Begin your story…"
     />

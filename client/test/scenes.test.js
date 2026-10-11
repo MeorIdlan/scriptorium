@@ -12,6 +12,7 @@ import {
   lockMarkers,
   liftMarker,
   positionOptions,
+  afterBlockPoint,
 } from '../src/utils/scenes.js';
 
 function editor(html) {
@@ -140,4 +141,13 @@ test('positionOptions within the same chapter skips the current place', () => {
     { label: 'At the start', toIndex: 0 },
     { label: 'At the end', toIndex: 2 },
   ]);
+});
+
+test('afterBlockPoint is a top-level point after the caret block', () => {
+  const root = editor('<div>One.</div><div>Two.</div>');
+  assert.deepEqual(afterBlockPoint(root, root.childNodes[0]), { node: root, offset: 1 });
+  assert.deepEqual(afterBlockPoint(root, null), { node: root, offset: 2 });
+  assert.deepEqual(afterBlockPoint(editor(''), null).offset, 0);
+  const legacy = editor('Line one<br>Line two');
+  assert.deepEqual(afterBlockPoint(legacy, legacy.childNodes[0]), { node: legacy, offset: 1 });
 });
