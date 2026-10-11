@@ -87,16 +87,68 @@ To run compose by hand on the droplet:
 
 All persistent state (users, passkeys, sessions, works, chapters, codex,
 settings, API keys) lives in the `scriptorium` database on the shared MongoDB.
-The containers themselves are stateless. Back up with `mongodump` from the
-Mongo container:
+The containers themselves are stateless.
 
-    docker exec <mongo-container> mongodump --db scriptorium --archive \
-      > scriptorium-backup-$(date +%F).archive
+### Nightly dump
 
-Restore with `mongorestore --archive` in the same way:
+| | |
+|---|---|
+| Schedule | daily at 03:30 UTC, from `/etc/cron.d/scriptorium-backup` (runs as root) |
+| What | `mongodump --db scriptorium --archive --gzip` inside the shared Mongo container `mongo-mongo-1`. Other databases on that Mongo are not included |
+| Where | `/var/backups/scriptorium/scriptorium-<YYYYMMDDTHHMMSSZ>.archive.gz` on the droplet (folder `700`, files `600`) |
+| Retention | 7 days. Older archives are deleted only after a successful dump, so failures never age out the last good copy |
+| Log | `/var/log/scriptorium-backup.log`, a `wrote …` / `pruned …` / `FAILED: …` line per run |
 
-    docker exec -i <mongo-container> mongorestore --archive \
-      < scriptorium-backup-YYYY-MM-DD.archive
+The dumps hold passkey credentials, session tokens and writers' AI API keys:
+treat them as secrets. They live only on the droplet for now, so losing the
+droplet loses them too; copying them off-box is a planned follow-up.
+
+The scripts live in `ops/backup/` and take env overrides (`MONGO_CONTAINER`,
+`DB`, `BACKUP_DIR`, `RETENTION_DAYS`; the restore check also `RESTORE_DB`).
+
+**Install or update** (from a repo checkout, then on the droplet as root):
+
+    scp ops/backup/mongo-dump.sh          root@<droplet>:/usr/local/sbin/scriptorium-mongo-dump
+    scp ops/backup/mongo-restore-check.sh root@<droplet>:/usr/local/sbin/scriptorium-mongo-restore-check
+    scp ops/backup/scriptorium-backup.cron root@<droplet>:/etc/cron.d/scriptorium-backup
+
+    chmod 755 /usr/local/sbin/scriptorium-mongo-dump /usr/local/sbin/scriptorium-mongo-restore-check
+    chmod 644 /etc/cron.d/scriptorium-backup     # cron.d files must not be writable by others
+    scriptorium-mongo-dump                       # first dump by hand; check it says "wrote"
+
+**Check it's running**: `tail /var/log/scriptorium-backup.log` and
+`ls -l /var/backups/scriptorium` should show one new archive per day and no
+more than about 7–8 of them.
+
+### Restore drill
+
+Run this after installing, after changing the scripts, and now and then to
+prove the dumps are usable:
+
+    scriptorium-mongo-restore-check              # newest archive
+    scriptorium-mongo-restore-check /var/backups/scriptorium/<file> --keep
+
+It restores the archive into a throwaway `scriptorium_restorecheck` database
+on the same Mongo (never into `scriptorium`), prints live vs restored document
+counts per collection, and drops the throwaway database (unless `--keep`). It
+fails on a missing collection, or one that came back empty while live has
+documents. Counts that differ only because of writes since the dump (audit
+logs, sessions) are flagged as `changed since dump` but pass.
+
+### Real restore
+
+This replaces the live data with the archive's contents. Stop the app, take a
+fresh dump of what's there now, then restore:
+
+    cd /opt/apps/scriptorium
+    docker compose -f compose.prod.yml stop scriptorium-server
+    scriptorium-mongo-dump                       # safety copy of the current state
+    docker exec -i mongo-mongo-1 mongorestore --archive --gzip \
+      --nsInclude 'scriptorium.*' --drop < /var/backups/scriptorium/<file>
+    docker compose -f compose.prod.yml start scriptorium-server
+
+`--drop` replaces each restored collection; `--nsInclude` keeps the restore
+to the `scriptorium` database.
 
 ## Production smoke checklist
 
