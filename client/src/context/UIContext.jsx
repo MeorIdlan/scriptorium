@@ -8,6 +8,7 @@ const initialState = {
   hookGeneratorOpen: false,
   exportModalOpen: false,
   exportWorkId: null,
+  pendingScene: null, // { chapterId, sceneIndex } — set by the Map's "Open in editor"
 };
 
 function uiReducer(state, action) {
@@ -28,6 +29,10 @@ function uiReducer(state, action) {
       return { ...state, exportModalOpen: true, exportWorkId: action.workId };
     case 'CLOSE_EXPORT':
       return { ...state, exportModalOpen: false, exportWorkId: null };
+    case 'OPEN_SCENE':
+      return { ...state, pendingScene: { chapterId: action.chapterId, sceneIndex: action.sceneIndex }, activePanelTab: 'scenes' };
+    case 'CLEAR_PENDING_SCENE':
+      return { ...state, pendingScene: null };
     default:
       return state;
   }

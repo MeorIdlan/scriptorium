@@ -10,6 +10,8 @@ import WordCounter from '../components/editor/WordCounter.jsx';
 import RightPanel from '../components/panel/RightPanel.jsx';
 import MilestonesModal from '../components/overlays/MilestonesModal.jsx';
 import { openCountsByChapter } from '../utils/catchGroups.js';
+import { useUI } from '../context/UIContext.jsx';
+import { sceneList, scrollToScene } from '../utils/scenes.js';
 
 export default function MainRoom() {
   const { workId, chapterId: urlChapterId } = useParams();
@@ -22,7 +24,21 @@ export default function MainRoom() {
   const [newChapterTitle, setNewChapterTitle] = useState('');
   const [milestonesOpen, setMilestonesOpen] = useState(false);
 
+  const { state: uiState, dispatch: uiDispatch } = useUI();
+
   useWritingSession(workId, editorState.chapterId);
+
+  // "Open in editor" from the Map: scroll once the chapter is in the editor
+  useEffect(() => {
+    const pending = uiState.pendingScene;
+    if (!pending || pending.chapterId !== editorState.chapterId) return;
+    const frame = requestAnimationFrame(() => {
+      const root = document.querySelector('.editor');
+      if (root) scrollToScene(root, sceneList(root)[pending.sceneIndex]);
+      uiDispatch({ type: 'CLEAR_PENDING_SCENE' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [uiState.pendingScene, editorState.chapterId, chapterContent, uiDispatch]);
 
   // Load work data on mount / workId change
   useEffect(() => {

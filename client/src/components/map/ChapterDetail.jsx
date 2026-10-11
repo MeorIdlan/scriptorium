@@ -5,6 +5,9 @@ import { useAI } from '../../hooks/useAI.js';
 import { formatNumber } from '../../utils/wordCount.js';
 import PacingResult from '../panel/PacingResult.jsx';
 import ContextUsed from '../panel/ContextUsed.jsx';
+import { useUI } from '../../context/UIContext.jsx';
+import { scenesForPov } from '../../utils/sceneMap.js';
+import { STATUS_LABELS, sceneLabel } from '../../utils/scenes.js';
 import { SUMMARY_STATUS_LABELS, summaryRefreshPending } from '../../utils/summaryStatus.js';
 
 const FRAMEWORK_BEATS = [
@@ -29,8 +32,9 @@ function MetricCard({ label, value }) {
   );
 }
 
-export default function ChapterDetail({ workId, chapterId, chapters, onSaved }) {
+export default function ChapterDetail({ workId, chapterId, chapters, pov = '', onSaved }) {
   const navigate = useNavigate();
+  const { dispatch: uiDispatch } = useUI();
   const { loading: aiLoading, error: aiError, result: aiResult, call: aiCall } = useAI();
 
   const chapter = chapters.find((ch) => ch.id === chapterId);
@@ -168,6 +172,39 @@ export default function ChapterDetail({ workId, chapterId, chapters, onSaved }) 
             onBlur={handleNotesBlur}
             placeholder="Scene notes, summary…"
           />
+        </div>
+
+        <div className="chapter-detail-field">
+          <label className="chapter-detail-label">Scenes</label>
+          {(chapter.scenes || []).length === 0 ? (
+            <p className="chapter-detail-muted">No scene breaks in this chapter.</p>
+          ) : (
+            <ul className="map-scene-list">
+              {scenesForPov(chapter, pov).map((s) => {
+                const meta = [s.pov, s.location].filter((v) => typeof v === 'string' && v.trim()).join(' · ');
+                return (
+                  <li key={s.id || 'opening'} className="map-scene">
+                    <div className="map-scene-head">
+                      <span className="scene-row-title">{sceneLabel(s)}</span>
+                      <span className={`scene-status scene-status--${s.status || 'draft'}`}>{STATUS_LABELS[s.status] || 'Draft'}</span>
+                    </div>
+                    {meta && <span className="scene-row-meta">{meta}</span>}
+                    <span className="scene-row-words">{(s.wordCount || 0).toLocaleString('en-US')} words</span>
+                    {s.summary && <p className="map-scene-summary">{s.summary}</p>}
+                    <button
+                      className="btn btn-ghost btn-sm map-scene-open"
+                      onClick={() => {
+                        uiDispatch({ type: 'OPEN_SCENE', chapterId: chapter.id, sceneIndex: s.index });
+                        navigate(`/work/${workId}/chapter/${chapter.id}`);
+                      }}
+                    >
+                      Open in editor
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       </div>
 

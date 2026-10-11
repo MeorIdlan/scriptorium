@@ -1533,6 +1533,28 @@ a:hover {
   padding: 1rem;
 }
 
+.map-pov-filter { display: inline-flex; gap: 8px; align-items: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px; }
+.map-pov-filter .form-select { width: auto; padding: 3px 6px; font-size: 0.8rem; }
+.chapter-block { position: relative; }
+.chapter-block.dimmed { opacity: 0.3; }
+.chapter-block-ticks { position: absolute; left: 3px; right: 3px; bottom: 3px; display: flex; gap: 2px; }
+.chapter-block-tick { flex: 1; height: 2px; background: currentColor; opacity: 0.45; border-radius: 1px; }
+.chapter-block-pov-count { position: absolute; top: 2px; left: 4px; line-height: 1; font-size: 0.6rem; color: var(--gold); }
+.chapter-detail-muted { color: var(--text-muted); font-size: 0.8rem; margin: 0; }
+.map-scene-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.map-scene { border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 3px; }
+.map-scene-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.map-scene-open { align-self: flex-start; margin-top: 4px; }
+.map-scene-summary {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .chapter-blocks-wrap {
   overflow-x: auto;
 }

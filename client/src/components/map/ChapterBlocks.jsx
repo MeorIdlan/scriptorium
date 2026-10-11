@@ -1,4 +1,5 @@
 import { useUI } from '../../context/UIContext.jsx';
+import { scenesForPov } from '../../utils/sceneMap.js';
 
 const ACT_COLORS = {
   'Act I': '#5DCAA5',
@@ -17,7 +18,7 @@ function heightForWordCount(wc) {
   return min + normalized * (max - min);
 }
 
-export default function ChapterBlocks({ chapters }) {
+export default function ChapterBlocks({ chapters, pov = '' }) {
   const { state, dispatch } = useUI();
   const selectedId = state.selectedMapChapterId;
 
@@ -28,11 +29,13 @@ export default function ChapterBlocks({ chapters }) {
           const color = getActColor(ch.act);
           const blockHeight = heightForWordCount(ch.wordCount);
           const isSelected = ch.id === selectedId;
+          const scenes = ch.scenes || [];
+          const matches = pov ? scenesForPov(ch, pov).length : null;
 
           return (
             <button
               key={ch.id}
-              className={`chapter-block${isSelected ? ' selected' : ''}`}
+              className={`chapter-block${isSelected ? ' selected' : ''}${pov && matches === 0 ? ' dimmed' : ''}`}
               style={{
                 height: `${blockHeight}px`,
                 borderColor: color,
@@ -44,6 +47,16 @@ export default function ChapterBlocks({ chapters }) {
               <span className="chapter-block-num">
                 {ch.number}
               </span>
+              {pov && matches > 0 && (
+                <span className="chapter-block-pov-count" title={`${matches} ${pov} scene${matches === 1 ? '' : 's'}`}>
+                  {matches}
+                </span>
+              )}
+              {scenes.length > 0 && (
+                <span className="chapter-block-ticks" aria-hidden="true">
+                  {scenes.map((_, i) => <span key={i} className="chapter-block-tick" />)}
+                </span>
+              )}
               {ch.beat === null || ch.beat === undefined ? (
                 <span
                   className="chapter-block-missing-dot"
