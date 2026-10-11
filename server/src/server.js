@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import { connectMongo } from './db.js';
 import * as devAuthService from './services/devAuthService.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { migrateDraftHistory } from './services/snapshotMigration.js';
 
 import authRouter from './routes/auth.js';
 import { requireAuth } from './middleware/requireAuth.js';
@@ -59,6 +60,11 @@ app.use(errorHandler);
 
 async function start() {
   await connectMongo();
+  try {
+    await migrateDraftHistory();
+  } catch (err) {
+    console.error('Draft history migration failed:', err);
+  }
   if (devAuthService.isBypassEnabled()) {
     await devAuthService.ensureDevUser();
     console.warn(`⚠ DEV AUTH BYPASS ENABLED — every request is logged in as ${devAuthService.DEV_USER.email}`);

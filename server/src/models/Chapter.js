@@ -1,16 +1,6 @@
 import mongoose from 'mongoose';
 import { idTransform } from './idTransform.js';
 
-const draftHistoryEntrySchema = new mongoose.Schema(
-  {
-    savedAt: { type: String },
-    wordCount: { type: Number, default: 0 },
-    contentSnapshot: { type: String },
-    htmlSnapshot: { type: String },
-  },
-  { _id: false }
-);
-
 const summarySchema = new mongoose.Schema(
   {
     text: { type: String, default: '' },
@@ -31,7 +21,6 @@ const chapterSchema = new mongoose.Schema(
     content: { type: String, default: '' }, // plain text, derived from contentHtml by the editor
     contentHtml: { type: String, default: '' },
     wordCount: { type: Number, default: 0 },
-    draftHistory: { type: [draftHistoryEntrySchema], default: [] },
     status: { type: String, default: 'outline' },
     notes: { type: String, default: '' },
     summary: { type: summarySchema, default: () => ({}) },

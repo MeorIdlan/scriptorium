@@ -179,7 +179,7 @@ router.post('/pacing', loadWorkFromBody(), async (req, res, next) => {
   try {
     const workId = req.work.id;
 
-    const chapters = await Chapter.find({ workId }).select('-content -contentHtml -draftHistory').sort({ order: 1 });
+    const chapters = await Chapter.find({ workId }).select('-content -contentHtml').sort({ order: 1 });
     const map = (await MapModel.findOne({ workId }).lean()) || {};
 
     const chapterSummary = chapters.map((ch) => ({

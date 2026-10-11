@@ -19,7 +19,7 @@ export async function exportWork(workId, format, options = {}) {
   const meta = { ...work.toJSON(), author: owner?.name || '' };
 
   const [chapterDocs, map] = await Promise.all([
-    Chapter.find({ workId }).select('-contentHtml -draftHistory').sort({ order: 1 }).lean(),
+    Chapter.find({ workId }).select('-contentHtml').sort({ order: 1 }).lean(),
     MapModel.findOne({ workId }).lean(),
   ]);
   const chapters = chapterDocs
