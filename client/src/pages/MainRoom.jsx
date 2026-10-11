@@ -8,6 +8,7 @@ import Toolbar from '../components/editor/Toolbar.jsx';
 import Editor from '../components/editor/Editor.jsx';
 import WordCounter from '../components/editor/WordCounter.jsx';
 import RightPanel from '../components/panel/RightPanel.jsx';
+import MilestonesModal from '../components/overlays/MilestonesModal.jsx';
 
 export default function MainRoom() {
   const { workId, chapterId: urlChapterId } = useParams();
@@ -18,6 +19,7 @@ export default function MainRoom() {
   const [chapterContent, setChapterContent] = useState({ text: '', html: '' });
   const [addingChapter, setAddingChapter] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState('');
+  const [milestonesOpen, setMilestonesOpen] = useState(false);
 
   useWritingSession(workId, editorState.chapterId);
 
@@ -95,13 +97,22 @@ export default function MainRoom() {
         <aside className="chapter-sidebar">
           <div className="chapter-sidebar-header">
             <span className="chapter-sidebar-title">Chapters</span>
-            <button
-              className="chapter-add-btn"
-              onClick={() => setAddingChapter((v) => !v)}
-              title="Add chapter"
-            >
-              +
-            </button>
+            <div className="chapter-sidebar-actions">
+              <button
+                className="chapter-add-btn"
+                onClick={() => setMilestonesOpen(true)}
+                title="Milestones — save and compare the whole book"
+              >
+                ◆
+              </button>
+              <button
+                className="chapter-add-btn"
+                onClick={() => setAddingChapter((v) => !v)}
+                title="Add chapter"
+              >
+                +
+              </button>
+            </div>
           </div>
 
           {addingChapter && (
@@ -159,6 +170,8 @@ export default function MainRoom() {
         {/* Right panel */}
         <RightPanel workId={workId} />
       </div>
+
+      {milestonesOpen && <MilestonesModal workId={workId} onDismiss={() => setMilestonesOpen(false)} />}
     </div>
   );
 }

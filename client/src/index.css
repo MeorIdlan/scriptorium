@@ -2809,6 +2809,47 @@ a:hover {
 }
 .btn-danger:hover:not(:disabled) { background: rgba(224, 122, 122, 0.2); }
 
+.chapter-sidebar-actions { display: flex; gap: 0.25rem; }
+
+.milestone-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.milestone-table th {
+  text-align: left;
+  font-weight: normal;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.milestone-table td {
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.milestone-row-actions { text-align: right; white-space: nowrap; }
+
+.milestone-state {
+  font-size: 0.72rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.milestone-state--changed { color: var(--gold); border-color: var(--gold-dim); }
+.milestone-state--new { color: var(--teal); border-color: rgba(93, 202, 165, 0.4); }
+.milestone-state--deleted { color: var(--coral); border-color: rgba(216, 90, 48, 0.4); }
+
+@media (max-width: 640px) {
+  .milestone-table th:nth-child(3),
+  .milestone-table td:nth-child(3) { display: none; }
+  .milestone-row-actions { white-space: normal; }
+}
+
 @media (max-width: 640px) {
   .history-body { grid-template-columns: 1fr; overflow-y: auto; }
   .history-list { border-right: none; padding-right: 0; max-height: 30vh; }
