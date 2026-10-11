@@ -3,6 +3,7 @@ import { useUI } from '../../context/UIContext.jsx';
 import QuillTab from './QuillTab.jsx';
 import CodexTab from './CodexTab.jsx';
 import CatchTab from './CatchTab.jsx';
+import ScenesTab from './ScenesTab.jsx';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { openCountsByChapter } from '../../utils/catchGroups.js';
@@ -11,6 +12,7 @@ const SLIDE = 'left 0.22s cubic-bezier(0.4,0,0.2,1), width 0.22s cubic-bezier(0.
 
 const TABS = [
   { id: 'quill', label: 'Quill' },
+  { id: 'scenes', label: 'Scenes' },
   { id: 'codex', label: 'Codex' },
   { id: 'catch', label: 'Catch' },
 ];
@@ -58,6 +60,7 @@ export default function RightPanel({ workId }) {
       <div className="panel-body">
         <div key={activePanelTab} className="tab-enter">
           {activePanelTab === 'quill' && <QuillTab workId={workId} />}
+          {activePanelTab === 'scenes' && <ScenesTab workId={workId} />}
           {activePanelTab === 'codex' && <CodexTab workId={workId} />}
           {activePanelTab === 'catch' && <CatchTab workId={workId} />}
         </div>
