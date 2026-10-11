@@ -1,16 +1,39 @@
 import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useAutosave } from '../../hooks/useAutosave.js';
+import { getBlocks, pointToBlockOffset } from '../../utils/editorBlocks.js';
 
 const Editor = forwardRef(function Editor({ workId, initialContent = '', initialHtml = '' }, ref) {
   const editorRef = useRef(null);
-  const { state, setContent, clearReplacement } = useEditor();
+  const { state, setContent, clearReplacement, setSelection } = useEditor();
 
   // Expose the inner DOM node via forwarded ref
   useImperativeHandle(ref, () => editorRef.current);
 
   // Set up autosave
   useAutosave(workId);
+
+  // Remember the last selection made inside the editor: clicking a button in
+  // the side panel can take the selection away before Polish reads it
+  useEffect(() => {
+    function handleSelectionChange() {
+      const root = editorRef.current;
+      const sel = document.getSelection();
+      if (!root || !sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return;
+      if (range.collapsed) {
+        setSelection(null);
+        return;
+      }
+      const blocks = getBlocks(root);
+      const start = pointToBlockOffset(root, blocks, range.startContainer, range.startOffset);
+      const end = pointToBlockOffset(root, blocks, range.endContainer, range.endOffset);
+      setSelection(start && end ? { start, end } : null);
+    }
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+  }, [setSelection]);
 
   // Load initial content only on mount or when key causes remount
   useEffect(() => {

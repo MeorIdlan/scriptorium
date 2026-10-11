@@ -11,6 +11,13 @@ function errorMessage(res, err) {
   return `HTTP ${res.status}`;
 }
 
+function apiError(res, err) {
+  const error = new Error(errorMessage(res, err));
+  error.status = res.status;
+  error.code = err.code;
+  return error;
+}
+
 export async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -20,7 +27,7 @@ export async function apiFetch(path, options = {}) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(errorMessage(res, err));
+    throw apiError(res, err);
   }
   // Handle binary responses (export)
   const contentType = res.headers.get('Content-Type') || '';
@@ -39,7 +46,7 @@ async function download(path, body, fallbackName) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(errorMessage(res, err));
+    throw apiError(res, err);
   }
   const disposition = res.headers.get('Content-Disposition') || '';
   const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i);

@@ -20,7 +20,7 @@ export function useAI() {
       return data;
     } catch (err) {
       const message =
-        err.message === 'NO_API_KEY'
+        err.code === 'NO_API_KEY'
           ? 'No API key configured. Please go to Settings to add your API key.'
           : err.message;
       setError(message);

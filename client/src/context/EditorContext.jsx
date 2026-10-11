@@ -6,6 +6,7 @@ const initialState = {
   html: '', // editor HTML, the saved source of truth
   hasUnsavedChanges: false,
   saveStatus: 'saved', // 'saved' | 'saving' | 'error'
+  selection: null, // last non-empty selection inside the editor, as block offsets
   pendingReplacement: null, // { text, html, id } — signals Editor to swap DOM content
 };
 
@@ -26,10 +27,14 @@ function editorReducer(state, action) {
         ...state,
         content: action.content,
         html: action.html ?? '',
+        selection: null,
         chapterId: action.chapterId,
         hasUnsavedChanges: false,
         saveStatus: 'saved',
       };
+    case 'SET_SELECTION':
+      if (JSON.stringify(state.selection) === JSON.stringify(action.selection)) return state;
+      return { ...state, selection: action.selection };
     case 'REPLACE_CONTENT':
       return { ...state, pendingReplacement: { text: action.text, html: action.html, id: Date.now() } };
     case 'CLEAR_REPLACEMENT':
@@ -60,6 +65,10 @@ export function EditorProvider({ children }) {
     dispatch({ type: 'LOAD_CONTENT', chapterId, content, html });
   }, []);
 
+  const setSelection = useCallback((selection) => {
+    dispatch({ type: 'SET_SELECTION', selection });
+  }, []);
+
   const replaceContent = useCallback((text, html) => {
     dispatch({ type: 'REPLACE_CONTENT', text, html });
   }, []);
@@ -69,7 +78,7 @@ export function EditorProvider({ children }) {
   }, []);
 
   return (
-    <EditorContext.Provider value={{ state, setContent, setSaveStatus, setChapterId, loadContent, replaceContent, clearReplacement }}>
+    <EditorContext.Provider value={{ state, setContent, setSaveStatus, setChapterId, loadContent, replaceContent, clearReplacement, setSelection }}>
       {children}
     </EditorContext.Provider>
   );
