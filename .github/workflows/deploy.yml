@@ -1,12 +1,19 @@
 # Builds the server and client images, pushes them to GHCR, and deploys to the
 # cell1337 droplet using the shared workflow in MeorIdlan/deploy-workflows.
 # Rollback: Actions → Deploy → Run workflow, with image-tag = an earlier tag.
+# The test suites (test.yml) run first and must pass before anything is built;
+# a rollback skips them, since its images were built from tested commits.
 
 name: Deploy
 
 on:
   push:
     branches: [main]
+    # Docs-only pushes change nothing in the images, so they don't build or deploy.
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.claude/**'
   workflow_dispatch:
     inputs:
       image-tag:
@@ -14,8 +21,22 @@ on:
         required: false
         default: ""
 
+# One deploy at a time; pushes that land meanwhile collapse into the newest one.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
 jobs:
+  test:
+    if: github.event_name != 'workflow_dispatch' || inputs.image-tag == ''
+    uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read
+
   deploy:
+    needs: test
+    # Deploy after green tests, or for a rollback (tests skipped).
+    if: ${{ !cancelled() && (needs.test.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.image-tag != '')) }}
     uses: MeorIdlan/deploy-workflows/.github/workflows/deploy.yml@main
     permissions:
       contents: read
