@@ -166,3 +166,15 @@ test('blockEndPoint with the caret on a <br> uses the line that follows it', () 
   assert.deepEqual(blockEndPoint(root, nodes[1]), { node: root, offset: 3 });
   assert.deepEqual(blockEndPoint(root, nodes[4]), { node: root, offset: 5 });
 });
+
+test('a top-level <hr> is its own empty block', () => {
+  const root = editor('<div>One.</div><hr data-scene="a">Two<div>Three.</div>');
+  const blocks = getBlocks(root);
+  assert.deepEqual(blocks.map((b) => b.text), ['One.', '', 'Two', 'Three.']);
+  assert.deepEqual(chapterTargets(blocks).map((t) => t.blockIndex), [0, 2, 3]);
+});
+
+test('a nested <hr> ends the line before it', () => {
+  const root = editor('<div>Before<hr>after</div>');
+  assert.equal(getBlocks(root)[0].text, 'Before\nafter');
+});

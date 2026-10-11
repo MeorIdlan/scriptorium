@@ -8,6 +8,7 @@ const TEXT = 3;
 const BLOCK_TAGS = new Set(['DIV', 'P', 'H1', 'H2', 'H3', 'BLOCKQUOTE']);
 
 const isBlockElement = (node) => node.nodeType === ELEMENT && BLOCK_TAGS.has(node.tagName);
+const isRule = (node) => node.nodeType === ELEMENT && node.tagName === 'HR';
 const holds = (node, other) => node === other || (node.nodeType === ELEMENT && node.contains(other));
 
 export function blockPieces(nodes) {
@@ -35,6 +36,11 @@ export function blockPieces(nodes) {
       text += '\n';
       return;
     }
+    // A rule nested in a block ends the line, like a closed block
+    if (node.tagName === 'HR') {
+      closedBlock = node;
+      return;
+    }
     // A pasted nested <div> starts a new line inside this block
     if (isBlockElement(node)) closedBlock = null;
     if (isBlockElement(node) && text && !text.endsWith('\n')) {
@@ -53,7 +59,7 @@ export function getBlocks(root) {
   const groups = [];
   let run = null;
   for (const node of [...root.childNodes]) {
-    if (isBlockElement(node)) {
+    if (isBlockElement(node) || isRule(node)) {
       run = null;
       groups.push([node]);
     } else {

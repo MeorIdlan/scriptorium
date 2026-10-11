@@ -103,3 +103,10 @@ test('text after a pasted nested div stays on its own line when changed', () => 
   assert.equal(texts(root)[0], 'A one.\nTail here.');
   assert.equal(root.innerHTML, '<div><div>A one.</div>Tail here.</div>');
 });
+
+test('applying Polish keeps scene markers in place', () => {
+  const root = editor('<div>First one.</div><hr data-scene="a" data-status="draft"><div>Second one.</div>');
+  const before = texts(root);
+  applyPolish(root, [change(root, 2, 'Second one.', 'Second, better.'), change(root, 0, 'First one.', 'First, better.')], before);
+  assert.equal(root.innerHTML, '<div>First, better.</div><hr data-scene="a" data-status="draft"><div>Second, better.</div>');
+});
