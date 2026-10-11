@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import ContextUsed from '../panel/ContextUsed.jsx';
 
 const MODE_LABELS = {
@@ -16,7 +17,8 @@ export default function EditorReviewModal({ review, onDismiss }) {
   const { mode, summary, flags = [], context } = review;
   const icon = FLAG_ICONS[mode] ?? '◆';
 
-  return (
+  // Portal: see PolishReviewModal
+  return createPortal(
     <div
       className="modal-backdrop editor-review-backdrop"
       onClick={(e) => e.target === e.currentTarget && onDismiss()}
@@ -70,6 +72,7 @@ export default function EditorReviewModal({ review, onDismiss }) {
           <button className="btn btn-primary" onClick={onDismiss}>Done</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

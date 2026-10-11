@@ -38,7 +38,22 @@ export function diffSentences(original, rewrite) {
   const a = sentenceSpans(original);
   const b = sentenceSpans(rewrite);
   const same = (x, y) => sentenceKey(x) === sentenceKey(y);
-  const dp = lcsTable(a, b, same);
+
+  // Match the shared opening and ending first, so repeated identical
+  // sentences don't shift the alignment and split one edit into two
+  let prefix = 0;
+  while (prefix < a.length && prefix < b.length && same(a[prefix], b[prefix])) prefix += 1;
+  let suffix = 0;
+  while (
+    suffix < a.length - prefix &&
+    suffix < b.length - prefix &&
+    same(a[a.length - 1 - suffix], b[b.length - 1 - suffix])
+  ) {
+    suffix += 1;
+  }
+  const aMid = a.slice(prefix, a.length - suffix);
+  const bMid = b.slice(prefix, b.length - suffix);
+  const dp = lcsTable(aMid, bMid, same);
   const segments = [];
   let pending = null;
 
@@ -55,25 +70,29 @@ export function diffSentences(original, rewrite) {
     segments.push({ type: 'change', fromText: original.slice(start, end), toText, start, end });
     pending = null;
   };
-  const open = (i) => (pending ??= { from: [], to: [], at: i < a.length ? a[i].start : original.length });
+  const equal = (span) => segments.push({ type: 'equal', text: span.text, start: span.start, end: span.end });
+  const open = (i) =>
+    (pending ??= { from: [], to: [], at: i < aMid.length ? aMid[i].start : a[prefix + aMid.length]?.start ?? original.length });
 
+  a.slice(0, prefix).forEach(equal);
   let i = 0;
   let j = 0;
-  while (i < a.length || j < b.length) {
-    if (i < a.length && j < b.length && same(a[i], b[j])) {
+  while (i < aMid.length || j < bMid.length) {
+    if (i < aMid.length && j < bMid.length && same(aMid[i], bMid[j])) {
       flush();
-      segments.push({ type: 'equal', text: a[i].text, start: a[i].start, end: a[i].end });
+      equal(aMid[i]);
       i += 1;
       j += 1;
-    } else if (j < b.length && (i >= a.length || dp[i][j + 1] >= dp[i + 1][j])) {
-      open(i).to.push(b[j]);
+    } else if (j < bMid.length && (i >= aMid.length || dp[i][j + 1] >= dp[i + 1][j])) {
+      open(i).to.push(bMid[j]);
       j += 1;
     } else {
-      open(i).from.push(a[i]);
+      open(i).from.push(aMid[i]);
       i += 1;
     }
   }
   flush();
+  a.slice(a.length - suffix).forEach(equal);
   return segments;
 }
 

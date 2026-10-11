@@ -89,3 +89,12 @@ test('buildChanges maps changes to block offsets and leaves unchanged targets as
   assert.deepEqual(segmentsByTarget.t2, [{ type: 'equal', text: 'Same.' }]);
   assert.deepEqual(segmentsByTarget.t3, [{ type: 'equal', text: 'Gone' }]);
 });
+
+test('diffSentences keeps one change in place among repeated sentences', () => {
+  const same = 'She walked. ';
+  const original = `${same}${same}${same}She walked.`;
+  const first = diffSentences(original, `She strode. ${same}${same}She walked.`).filter((s) => s.type === 'change');
+  assert.deepEqual(first, [{ type: 'change', fromText: 'She walked. ', toText: 'She strode. ', start: 0, end: 12 }]);
+  const last = diffSentences(original, `${same}${same}${same}She strode.`).filter((s) => s.type === 'change');
+  assert.deepEqual(last, [{ type: 'change', fromText: 'She walked.', toText: 'She strode.', start: 36, end: 47 }]);
+});

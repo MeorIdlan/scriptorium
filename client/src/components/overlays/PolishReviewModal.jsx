@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../../utils/api.js';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
@@ -137,7 +138,9 @@ export default function PolishReviewModal({ workId, chapterId, session, summarie
   } else if (allDone && list.length === 0) status = 'No changes suggested.';
   else status = `${list.length} change${list.length === 1 ? '' : 's'} · ${accepted} accepted · ${rejected} rejected`;
 
-  return (
+  // Portal: the Quill panel's tab animation leaves a transform that would
+  // trap a position:fixed overlay inside the panel
+  return createPortal(
     <div className="modal-backdrop draft-polish-backdrop">
       <div className="modal polish-review-modal">
         <div className="modal-header">
@@ -202,6 +205,7 @@ export default function PolishReviewModal({ workId, chapterId, session, summarie
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
