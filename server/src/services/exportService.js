@@ -1,6 +1,6 @@
 import PDFDocument from 'pdfkit';
 import nodepub from 'nodepub';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -8,6 +8,7 @@ import Work from '../models/Work.js';
 import Chapter from '../models/Chapter.js';
 import MapModel from '../models/Map.js';
 import User from '../models/User.js';
+import { exportScenes } from './sceneMarkers.js';
 
 export async function exportWork(workId, format, options = {}) {
   const { includeNotes = false, includeOutline = false } = options;
@@ -19,7 +20,7 @@ export async function exportWork(workId, format, options = {}) {
   const meta = { ...work.toJSON(), author: owner?.name || '' };
 
   const [chapterDocs, map] = await Promise.all([
-    Chapter.find({ workId }).select('-contentHtml').sort({ order: 1 }).lean(),
+    Chapter.find({ workId }).sort({ order: 1 }).lean(),
     MapModel.findOne({ workId }).lean(),
   ]);
   const chapters = chapterDocs
@@ -27,7 +28,7 @@ export async function exportWork(workId, format, options = {}) {
     .filter((ch) => includeOutline || !(ch.status === 'outline' && !ch.wordCount))
     .map((ch) => ({
       title: ch.title || 'Untitled',
-      content: ch.content || '',
+      scenes: exportScenes(ch),
       // The Map's notes field is the one the UI edits
       notes: includeNotes ? (map?.chapters?.[ch._id]?.notes || ch.notes || '').trim() : '',
     }));
@@ -82,7 +83,15 @@ function buildPDF(meta, chapters) {
         doc.fontSize(10).font('Helvetica-Oblique').text(`Notes: ${chapter.notes}`, { lineGap: 2 });
         doc.moveDown();
       }
-      doc.fontSize(12).font('Helvetica').text(chapter.content || '', { lineGap: 4 });
+      doc.fontSize(12).font('Helvetica');
+      chapter.scenes.forEach((paragraphs, i) => {
+        if (i > 0) {
+          doc.moveDown(0.5);
+          doc.text(SCENE_BREAK, { align: 'center' });
+          doc.moveDown(0.5);
+        }
+        for (const p of paragraphs) doc.text(p, { lineGap: 4, paragraphGap: 8 });
+      });
     }
 
     doc.end();
@@ -128,7 +137,7 @@ async function buildEPUBNow(meta, chapters) {
       images: [],
     };
 
-    const allChapters = chapters.length > 0 ? chapters : [{ title: 'Empty', content: '', notes: '' }];
+    const allChapters = chapters.length > 0 ? chapters : [{ title: 'Empty', scenes: [], notes: '' }];
 
     const epub = nodepub.document(epubMeta);
     for (const chapter of allChapters) {
@@ -193,18 +202,7 @@ async function buildDOCX(meta, chapters) {
       );
     }
 
-    const paragraphs = (chapter.content || '').split(/\n\n+/);
-    for (const para of paragraphs) {
-      const trimmed = para.trim();
-      if (trimmed) {
-        children.push(
-          new Paragraph({
-            children: [new TextRun({ text: trimmed })],
-            spacing: { after: 200 },
-          })
-        );
-      }
-    }
+    children.push(...docxBody(chapter.scenes));
   }
 
   const doc = new Document({
@@ -216,6 +214,24 @@ async function buildDOCX(meta, chapters) {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+export const SCENE_BREAK = '* * *';
+
+// A paragraph may hold line breaks (<br> in the editor)
+function docxRuns(text) {
+  return text.split('\n').map((line, i) => new TextRun({ text: line, break: i > 0 ? 1 : 0 }));
+}
+
+export function docxBody(scenes) {
+  const out = [];
+  scenes.forEach((paragraphs, i) => {
+    if (i > 0) {
+      out.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: SCENE_BREAK })], spacing: { after: 200 } }));
+    }
+    for (const p of paragraphs) out.push(new Paragraph({ children: docxRuns(p), spacing: { after: 200 } }));
+  });
+  return out;
+}
+
 function escapeXml(text) {
   return String(text)
     .replace(/&/g, '&amp;')
@@ -225,13 +241,10 @@ function escapeXml(text) {
     .replace(/'/g, '&#39;');
 }
 
-function chapterToHTML({ title, content, notes }) {
-  const body = (content || '')
-    .split(/\n\n+/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map((p) => `<p>${escapeXml(p).replace(/\n/g, '<br/>')}</p>`)
-    .join('');
+export function chapterToHTML({ title, scenes, notes }) {
+  const body = (scenes || [])
+    .map((paragraphs) => paragraphs.map((p) => `<p>${escapeXml(p).replace(/\n/g, '<br/>')}</p>`).join(''))
+    .join(`<p style="text-align:center">${SCENE_BREAK}</p>`);
   const notesHtml = notes ? `<p><em>Notes: ${escapeXml(notes)}</em></p>` : '';
   return `<h1>${escapeXml(title)}</h1>${notesHtml}${body || '<p></p>'}`;
 }
