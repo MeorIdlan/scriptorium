@@ -12,14 +12,26 @@ const OPS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../op
 const DAY = 24 * 60 * 60 * 1000;
 const ARCHIVE_RE = /^scriptorium-\d{8}T\d{6}Z\.archive\.gz$/;
 
-// The stub logs every call and answers by subcommand. STUB_MODE switches
-// mongodump between a normal archive, a failure and empty output.
+// The stub logs every call and answers by the Mongo tool being exec'd.
+// mongodump: STUB_MODE switches between an archive, a failure and no output.
+// mongorestore: saves stdin to STUB_RESTORED; STUB_RESTORE_MODE=fail fails it.
+// mongosh: dropDatabase calls are only logged; any other eval prints
+// STUB_COUNTS ("live|restored <collection> <count>" lines).
 const STUB = `#!/usr/bin/env bash
 echo "$*" >> "$STUB_LOG"
-case "$STUB_MODE" in
-  fail) echo "mongodump: connection refused" >&2; exit 1 ;;
-  empty) exit 0 ;;
-  *) printf 'FAKEARCHIVE' ;;
+case "$*" in
+  *mongodump*)
+    case "$STUB_MODE" in
+      fail) echo "mongodump: connection refused" >&2; exit 1 ;;
+      empty) exit 0 ;;
+      *) printf 'FAKEARCHIVE' ;;
+    esac ;;
+  *mongorestore*)
+    cat > "$STUB_RESTORED"
+    [ "$STUB_RESTORE_MODE" = fail ] && { echo "mongorestore: bad archive" >&2; exit 1; }
+    exit 0 ;;
+  *dropDatabase*) exit 0 ;;
+  *mongosh*) printf '%s\\n' "$STUB_COUNTS" ;;
 esac
 `;
 
@@ -109,4 +121,96 @@ test('RETENTION_DAYS changes how long archives are kept', () => {
   const r = run('mongo-dump.sh', { RETENTION_DAYS: '1' });
   assert.equal(r.status, 0, r.stderr);
   assert.equal(fs.existsSync(twoDays), false);
+});
+
+// --- restore check ---
+
+const MATCHING = [
+  'live users 1', 'live works 2', 'live auditlogs 6',
+  'restored users 1', 'restored works 2', 'restored auditlogs 6',
+].join('\n');
+
+function restore(env = {}, args = []) {
+  return run('mongo-restore-check.sh', {
+    STUB_RESTORED: path.join(tmp, 'restored'),
+    STUB_COUNTS: MATCHING,
+    ...env,
+  }, args);
+}
+const calls = () => (fs.existsSync(stubLog) ? fs.readFileSync(stubLog, 'utf8') : '');
+const restoredBytes = () => fs.readFileSync(path.join(tmp, 'restored'), 'utf8');
+const dropped = () => /dropDatabase/.test(calls());
+
+test('restore check refuses to restore into the source database', () => {
+  seed('scriptorium-20261010T033000Z.archive.gz', 1);
+  const r = restore({ RESTORE_DB: 'scriptorium' });
+  assert.notEqual(r.status, 0);
+  assert.equal(calls(), '', 'docker never called');
+});
+
+test('restore check restores the newest archive into the throwaway db and passes on matching counts', () => {
+  fs.mkdirSync(backupDir);
+  fs.writeFileSync(path.join(backupDir, 'scriptorium-20261009T033000Z.archive.gz'), 'OLDER');
+  fs.writeFileSync(path.join(backupDir, 'scriptorium-20261010T033000Z.archive.gz'), 'NEWEST');
+  const r = restore();
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(restoredBytes(), 'NEWEST');
+  assert.match(calls(), /mongorestore --archive --gzip --nsInclude scriptorium\.\* --nsFrom scriptorium\.\* --nsTo scriptorium_restorecheck\.\* --drop/);
+  assert.match(r.stdout, /PASS/);
+  assert.ok(dropped(), 'throwaway db dropped');
+});
+
+test('restore check uses an archive given as an argument', () => {
+  const chosen = seed('scriptorium-20261001T033000Z.archive.gz', 10);
+  seed('scriptorium-20261010T033000Z.archive.gz', 1);
+  fs.writeFileSync(chosen, 'CHOSEN');
+  const r = restore({}, [chosen]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(restoredBytes(), 'CHOSEN');
+});
+
+test('restore check fails when there is no archive', () => {
+  fs.mkdirSync(backupDir);
+  const r = restore();
+  assert.notEqual(r.status, 0);
+  assert.equal(calls(), '');
+});
+
+test('restore check fails when a collection is missing from the restore', () => {
+  seed('scriptorium-20261010T033000Z.archive.gz', 1);
+  const r = restore({ STUB_COUNTS: 'live users 1\nlive works 2\nrestored users 1' });
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(r.stdout, /works.*MISSING/);
+  assert.match(r.stdout, /FAIL/);
+  assert.ok(dropped(), 'throwaway db dropped even on failure');
+});
+
+test('restore check fails when a collection comes back empty but live has documents', () => {
+  seed('scriptorium-20261010T033000Z.archive.gz', 1);
+  const r = restore({ STUB_COUNTS: 'live users 1\nlive works 2\nrestored users 1\nrestored works 0' });
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(r.stdout, /works.*EMPTY/);
+});
+
+test('restore check passes but flags counts that changed since the dump', () => {
+  seed('scriptorium-20261010T033000Z.archive.gz', 1);
+  const r = restore({ STUB_COUNTS: 'live users 1\nlive auditlogs 8\nrestored users 1\nrestored auditlogs 6' });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /auditlogs.*changed since dump/);
+  assert.match(r.stdout, /PASS/);
+});
+
+test('restore check fails and still drops the throwaway db when mongorestore fails', () => {
+  seed('scriptorium-20261010T033000Z.archive.gz', 1);
+  const r = restore({ STUB_RESTORE_MODE: 'fail' });
+  assert.notEqual(r.status, 0);
+  assert.ok(dropped());
+});
+
+test('restore check keeps the throwaway db with --keep', () => {
+  seed('scriptorium-20261010T033000Z.archive.gz', 1);
+  const r = restore({}, ['--keep']);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(dropped(), false);
+  assert.match(r.stdout, /scriptorium_restorecheck/);
 });
