@@ -148,10 +148,29 @@ Existing features (FR-1 to FR-12) are already built. For MVP 1 each is accepted 
 ## 9. Release plan
 ### MVP 1
 The entire app working. FR-1 to FR-23 and NFR-1 to NFR-7. Exit when G-1 is met.
+- [Foundation](https://trello.com/c/eoJ9XH9f): CI gate, nightly dump (2 stories)
+- [Production verification](https://trello.com/c/3dcKEmre): FR-1 to FR-13, NFR-5, NFR-6 (7 stories)
+- [AI control](https://trello.com/c/Xlgxz4yr): FR-23, NFR-7 (2 stories)
+- [Plot threads](https://trello.com/c/5NaplYK1): FR-14 to FR-17 (4 stories)
+- [Progress](https://trello.com/c/u8vaqnxC): FR-18 (1 story)
+- [Export and backup](https://trello.com/c/OCQSvfai): FR-19 to FR-22 (4 stories)
 ### MVP 2
 FR-24 to FR-41 and NFR-8.
+- [Game mode](https://trello.com/c/HAGWPUDf): FR-24, NFR-8 (4 stories)
+- [Responsive layout](https://trello.com/c/K36SBVkr): FR-25 (2 stories)
+- [Export and backup](https://trello.com/c/OCQSvfai): FR-26 (1 story)
+- [Progress](https://trello.com/c/u8vaqnxC): FR-27 to FR-29 (3 stories)
+- [Map and structure](https://trello.com/c/lrKisO0B): FR-30 to FR-32 (3 stories)
+- [Codex depth](https://trello.com/c/zC2do64d): FR-33 to FR-37 (5 stories)
+- [Writing flow](https://trello.com/c/SK39HOxM): FR-38 to FR-41 (4 stories)
+- [Foundation](https://trello.com/c/eoJ9XH9f): flat-file cleanup (1 story)
 ### Later
 FR-42 to FR-44, and the TipTap editor migration.
+- [Export and backup](https://trello.com/c/OCQSvfai): FR-42, FR-43 (2 stories)
+- [Game mode](https://trello.com/c/HAGWPUDf): FR-44 (1 story)
+- [Foundation](https://trello.com/c/eoJ9XH9f): TipTap migration (1 story)
+
+Board: https://trello.com/b/ixWOyJWe/scriptorium
 
 ## 10. Risks
 | Risk | Likelihood | Impact | Mitigation |
