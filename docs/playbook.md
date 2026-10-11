@@ -1,6 +1,6 @@
 # scriptorium playbook
 
-playbook-template: v2
+playbook-template: v3
 Base branch: `main`
 Required checks: none
 
