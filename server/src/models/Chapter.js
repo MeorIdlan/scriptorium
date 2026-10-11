@@ -24,6 +24,8 @@ const chapterSchema = new mongoose.Schema(
     status: { type: String, default: 'outline' },
     notes: { type: String, default: '' },
     summary: { type: summarySchema, default: () => ({}) },
+    // Derived from contentHtml's scene markers on every save; [] = no markers
+    scenes: { type: [mongoose.Schema.Types.Mixed], default: [] },
     createdAt: { type: String },
     lastEditedAt: { type: String },
     updatedAt: { type: String },

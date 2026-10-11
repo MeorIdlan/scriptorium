@@ -11,6 +11,7 @@ import { generateSummary } from '../services/summaryService.js';
 import Snapshot from '../models/Snapshot.js';
 import CatchModel from '../models/Catch.js';
 import { autoSnapshotDue, takeAutoSnapshot } from '../services/snapshotService.js';
+import { sceneSummaries, chapterText, chapterHtml, moveScene } from '../services/sceneMarkers.js';
 
 const router = Router({ mergeParams: true });
 router.use(loadWork);
@@ -128,6 +129,8 @@ router.put('/:chapterId', async (req, res, next) => {
     delete setFields.id;
     delete setFields.workId;
     delete setFields.summary;
+    delete setFields.scenes;
+    if (req.body.contentHtml !== undefined) setFields.scenes = sceneSummaries(newHtml);
     if (chapter.status === 'outline' && words > 0 && req.body.status === undefined) {
       setFields.status = 'draft';
     }
@@ -154,6 +157,90 @@ router.put('/:chapterId', async (req, res, next) => {
     await recalculate(workId);
 
     res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+});
+
+function chapterResponse(doc) {
+  const json = doc.toJSON();
+  json.summaryStatus = summaryStatus(json);
+  return json;
+}
+
+async function writeMovedChapter(chapter, html, now) {
+  const clean = sanitizeChapterHtml(html);
+  const content = chapterText(clean);
+  const wordCount = countWords(content);
+  const set = { contentHtml: clean, content, wordCount, scenes: sceneSummaries(clean), updatedAt: now };
+  if (chapter.status === 'outline' && wordCount > 0) set.status = 'draft';
+  return Chapter.findOneAndUpdate({ _id: chapter._id, workId: chapter.workId }, { $set: set }, { new: true });
+}
+
+// POST /api/works/:workId/chapters/:chapterId/scenes/move
+router.post('/:chapterId/scenes/move', async (req, res, next) => {
+  try {
+    const { workId, chapterId } = req.params;
+    const { sceneId, toChapterId, toIndex } = req.body || {};
+    // Same shape as the catch routes: the message names the field
+    const invalid = (field, message) => next(httpError(400, 'INVALID_FIELD', message));
+    if (typeof sceneId !== 'string' || !sceneId.trim()) return invalid('sceneId', 'sceneId is required');
+    if (typeof toChapterId !== 'string' || !toChapterId) return invalid('toChapterId', 'toChapterId is required');
+    if (!Number.isInteger(toIndex) || toIndex < 0) return invalid('toIndex', 'toIndex must be a whole number of 0 or more');
+
+    const source = await Chapter.findOne({ _id: chapterId, workId });
+    if (!source) return next(httpError(404, 'NOT_FOUND', 'Chapter not found'));
+    const sameChapter = toChapterId === chapterId;
+    const target = sameChapter ? source : await Chapter.findOne({ _id: toChapterId, workId });
+    if (!target) return invalid('toChapterId', 'toChapterId must be a chapter of this work');
+
+    const result = moveScene({
+      srcHtml: chapterHtml(source),
+      dstHtml: chapterHtml(target),
+      sceneId: sceneId.trim(),
+      toIndex,
+      sameChapter,
+    });
+    if (result.error === 'NOT_FOUND') return next(httpError(404, 'SCENE_NOT_FOUND', 'Scene not found'));
+    if (result.error === 'INVALID_INDEX') return invalid('toIndex', 'toIndex is past the end of the chapter');
+    if (result.error === 'NO_CHANGE') return res.json({ chapters: [] });
+
+    const now = new Date().toISOString();
+    const changed = sameChapter ? [source] : [target, source];
+    // Never move without a way back
+    for (const chapter of changed) {
+      await takeAutoSnapshot(chapter, now, { note: 'Before moving a scene' });
+    }
+
+    // Destination first: a failure in between duplicates the scene, never loses it
+    const updatedTarget = await writeMovedChapter(target, result.dstHtml, now);
+    let updatedSource = updatedTarget;
+    if (!sameChapter) {
+      try {
+        updatedSource = await writeMovedChapter(source, result.srcHtml, now);
+      } catch (err) {
+        console.error('Scene move source write failed:', err);
+        return next(
+          httpError(500, 'MOVE_INCOMPLETE', `The scene was copied to "${target.title}" but not removed from "${source.title}".`)
+        );
+      }
+    }
+
+    const updated = sameChapter ? [updatedTarget] : [updatedTarget, updatedSource];
+    for (const chapter of updated) {
+      try {
+        await scan(workId, chapter._id, chapter.content);
+      } catch (scanErr) {
+        console.error('Consistency scan error:', scanErr);
+      }
+    }
+    try {
+      await recalculate(workId);
+    } catch (err) {
+      console.error('Word count recalculation failed:', err);
+    }
+
+    res.json({ chapters: updated.map(chapterResponse) });
   } catch (err) {
     next(err);
   }
