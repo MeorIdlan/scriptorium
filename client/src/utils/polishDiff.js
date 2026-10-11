@@ -22,6 +22,20 @@ export function splitSentences(text) {
   return sentenceSpans(text).map((s) => s.text);
 }
 
+// One span per line, each keeping its '\n'
+export function paragraphSpans(text) {
+  if (!text) return [];
+  const spans = [];
+  let last = 0;
+  for (const match of text.matchAll(/\n/g)) {
+    const end = match.index + 1;
+    spans.push({ text: text.slice(last, end), start: last, end });
+    last = end;
+  }
+  if (last < text.length) spans.push({ text: text.slice(last), start: last, end: text.length });
+  return spans;
+}
+
 function lcsTable(a, b, same) {
   const dp = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
   for (let i = a.length - 1; i >= 0; i--) {
@@ -34,9 +48,9 @@ function lcsTable(a, b, same) {
 
 const sentenceKey = (s) => s.text.trimEnd();
 
-export function diffSentences(original, rewrite) {
-  const a = sentenceSpans(original);
-  const b = sentenceSpans(rewrite);
+export function diffSentences(original, rewrite, split = sentenceSpans) {
+  const a = split(original);
+  const b = split(rewrite);
   const same = (x, y) => sentenceKey(x) === sentenceKey(y);
 
   // Match the shared opening and ending first, so repeated identical
