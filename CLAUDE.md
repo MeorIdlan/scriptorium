@@ -54,7 +54,7 @@ scriptorium/
 │       ├── middleware/         # errorHandler, requireAuth, requireAdmin, loadWork, emailThrottle
 │       ├── services/           # workService, settingsService, llmService, consistencyService, exportService, wordCountService,
 │       │                       #   authService, authSessionService, otpService, webauthnService, emailService, auditService, devAuthService,
-│       │                       #   snapshotService, snapshotMigration, textDiff (version history), catchFields
+│       │                       #   snapshotService, snapshotMigration, textDiff (version history), catchFields, sceneMarkers (scenes inside chapter HTML)
 │       ├── services/providers/ # anthropic.js, openai.js
 │       ├── utils/authCookie.js
 │       └── routes/             # auth, admin, works, chapters, snapshots, milestones, codex, catches, map, sessions, ai, settings, export

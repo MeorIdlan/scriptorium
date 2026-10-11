@@ -12,6 +12,7 @@ import HookGenerator from '../overlays/HookGenerator.jsx';
 import PolishReviewModal from '../overlays/PolishReviewModal.jsx';
 import { getBlocks, chapterTargets, selectionTargets, batchTargets } from '../../utils/editorBlocks.js';
 import EditorReviewModal from '../overlays/EditorReviewModal.jsx';
+import { sceneAtCaret } from '../../utils/scenes.js';
 
 function RekindlerCard({ snapshot, lastSessionAt, onDismiss }) {
   return (
@@ -143,11 +144,16 @@ export default function QuillTab({ workId }) {
   async function handleAI(action, endpoint) {
     setAiAction(action);
     reset();
-    await call(endpoint, {
-      workId,
-      chapterId: editorState.chapterId,
-      content: editorState.content,
-    });
+    const body = { workId, chapterId: editorState.chapterId, content: editorState.content };
+    if (endpoint === 'hooks') {
+      // Only the scene the caret is in; a chapter without breaks is one scene
+      const scene = sceneAtCaret(document.querySelector('.editor'));
+      if (scene) {
+        body.content = scene.text;
+        if (scene.id) body.sceneId = scene.id;
+      }
+    }
+    await call(endpoint, body);
   }
 
   function handlePolish() {
