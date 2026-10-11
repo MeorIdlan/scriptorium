@@ -9,6 +9,7 @@ import { loadWork } from '../middleware/loadWork.js';
 import { summaryStatus, hashContent } from '../services/summaryText.js';
 import { generateSummary } from '../services/summaryService.js';
 import Snapshot from '../models/Snapshot.js';
+import CatchModel from '../models/Catch.js';
 import { autoSnapshotDue, takeAutoSnapshot } from '../services/snapshotService.js';
 
 const router = Router({ mergeParams: true });
@@ -221,6 +222,9 @@ router.delete('/:chapterId', async (req, res, next) => {
 
     // Milestone snapshots stay so the chapter can be brought back from a milestone
     await Snapshot.deleteMany({ workId, chapterId, kind: { $in: ['auto', 'named'] } });
+
+    // Catches tagged to the chapter stay, untagged
+    await CatchModel.updateMany({ workId, taggedChapterId: chapterId }, { $set: { taggedChapterId: null } });
 
     const now = new Date().toISOString();
     const chapterCount = await Chapter.countDocuments({ workId });

@@ -9,6 +9,7 @@ const catchSchema = new mongoose.Schema(
     capturedDuringChapterId: { type: String, default: null },
     taggedChapterId: { type: String, default: null },
     status: { type: String, default: 'open' },
+    usedAs: { type: mongoose.Schema.Types.Mixed, default: null }, // { kind, refId, label } once used
     createdAt: { type: String },
     updatedAt: { type: String },
   },
