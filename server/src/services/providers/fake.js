@@ -17,6 +17,13 @@ const JSON_OBJECT = {
 };
 
 export async function complete({ prompt }) {
+  if (prompt.includes('Passages to polish:')) {
+    const section = prompt.slice(prompt.lastIndexOf('Passages to polish:'));
+    const passages = [...section.matchAll(/\[\[([\w-]+)\]\]([\s\S]*?)\[\[\/\1\]\]/g)];
+    return passages
+      .map(([, id, text]) => `[[${id}]]${text.replace('very ', 'deeply ').replace('walked', 'strode')}[[/${id}]]`)
+      .join('\n');
+  }
   if (prompt.startsWith('Summarise this chapter')) {
     const title = (prompt.match(/^Chapter [^\n]*$/m) || ['Chapter'])[0];
     return `Fake summary of ${title}.`;

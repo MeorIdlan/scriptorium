@@ -6,6 +6,7 @@ import { complete } from '../services/llmService.js';
 import { httpError } from '../middleware/errorHandler.js';
 import { loadWorkFromBody } from '../middleware/loadWork.js';
 import { buildContext } from '../services/storyContextService.js';
+import { validateTargets, targetWords, maxTokensFor, buildPolishPrompt, parseRewrites } from '../services/polishService.js';
 
 const router = Router();
 
@@ -253,37 +254,30 @@ Return ONLY a JSON object:
 });
 
 // POST /api/ai/polish-draft
+// Rewrites only the given target passages; the whole chapter goes along as context
 router.post('/polish-draft', loadWorkFromBody(), async (req, res, next) => {
   try {
-    const { content } = req.body;
-    if (!content || !content.trim()) {
-      return next(httpError(400, 'MISSING_FIELD', 'content is required'));
-    }
+    const { targets } = req.body;
+    const chapterText = typeof req.body.chapterText === 'string' ? req.body.chapterText : '';
+    const invalid = validateTargets(targets);
+    if (invalid) return next(httpError(400, invalid.code, invalid.message));
 
     const context = await contextFor(
       req,
       { story: true, codex: true, summaries: 'before', mapBeat: true },
-      content
+      targets.map((t) => t.text).join('\n\n')
     );
+    const prompt = buildPolishPrompt({ chapterText, targets });
 
-    const prompt = `You are polishing a writer's rough draft. Improve the grammar, fix clumsy sentence structure, and make the prose more expressive and vivid — while keeping the story direction, plot beats, characters, dialogue, and tone exactly as the writer intended.
+    const raw = await complete({
+      system: SYSTEM_PROMPT,
+      prompt: withContext(context, prompt),
+      maxTokensOverride: maxTokensFor(targetWords(targets)),
+      userId: req.user.id,
+    });
 
-Rules:
-- Do NOT add new plot events, characters, or scenes that are not in the original
-- Do NOT change what happens — only how it is written
-- Fix grammatical errors, awkward phrasing, and unclear sentences
-- Improve word choice and descriptions where the original is flat or generic
-- Preserve the writer's voice as much as possible
-- Preserve dialogue intent — you may fix grammar within dialogue but do not change what characters mean to say
-- Return ONLY the rewritten text with no preamble, commentary, labels, or explanation
-
-Original draft:
-${content}`;
-
-    // Use a high token cap — full chapter rewrites need headroom
-    const polished = await complete({ system: SYSTEM_PROMPT, prompt: withContext(context, prompt), maxTokensOverride: 8000, userId: req.user.id });
-
-    respond(res, { polished }, context);
+    const { rewrites, missing } = parseRewrites(raw, targets.map((t) => t.id));
+    respond(res, { rewrites, missing }, context);
   } catch (err) {
     handleLlmError(err, next);
   }
