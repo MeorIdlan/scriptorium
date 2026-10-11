@@ -6,6 +6,7 @@ import {
   findMentions,
   formatContextBlock,
   MAX_CONTEXT_CATCHES,
+  MAX_SCENE_LINES,
 } from '../src/services/contextBlock.js';
 
 test('normalizeAliases accepts arrays and comma/semicolon strings', () => {
@@ -163,4 +164,38 @@ test('writer notes skip blank entries and add no section when none are left', ()
   const none = formatContextBlock({ story: { title: 'T' }, summaries: [], mentions: [], rules: [], mapBeat: null });
   assert.ok(!none.text.includes("Writer's notes"));
   assert.equal(none.catches, 0);
+});
+
+test('formatContextBlock renders this scene without blank fields', () => {
+  const out = formatContextBlock({ scene: { id: 'a', title: 'The well', pov: 'Mara', location: '', status: 'draft', summary: 'She  finds\nthe letter.' } });
+  assert.match(out.text, /## This scene\nTitle: The well\nPOV: Mara\nStatus: draft\nSummary: She finds the letter\./);
+  assert.ok(!out.text.includes('Location:'));
+  assert.equal(out.scene, true);
+});
+
+test('formatContextBlock omits a scene card with only a status', () => {
+  const out = formatContextBlock({ scene: { id: 'a', title: '', pov: ' ', location: '', status: 'draft', summary: '' } });
+  assert.equal(out.text, '');
+  assert.equal(out.scene, false);
+});
+
+test('formatContextBlock lists the chapter scenes, numbered when untitled, capped', () => {
+  const scenes = [
+    { id: null, title: '', pov: '', summary: '' },
+    { id: 'b', title: 'Road', pov: 'Tam', summary: 'They leave.' },
+    ...Array.from({ length: 40 }, (_, i) => ({ id: `x${i}`, title: '', pov: '', summary: 'y'.repeat(300) })),
+  ];
+  const out = formatContextBlock({ sceneList: scenes });
+  const lines = out.text.split('\n').filter((l) => l.startsWith('- '));
+  assert.equal(out.sceneList, MAX_SCENE_LINES);
+  assert.equal(lines.length, MAX_SCENE_LINES);
+  assert.equal(lines[0], '- Scene 1');
+  assert.equal(lines[1], '- Road (Tam): They leave.');
+  assert.ok(lines[2].length <= 202);
+});
+
+test('formatContextBlock omits the scene list for a chapter without markers', () => {
+  const out = formatContextBlock({ sceneList: [] });
+  assert.equal(out.sceneList, 0);
+  assert.equal(out.text, '');
 });

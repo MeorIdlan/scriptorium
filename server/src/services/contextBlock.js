@@ -133,6 +133,32 @@ function mapSection(mapBeat) {
   return parts.length ? `## This chapter on the Map\n${parts.join(' · ')}` : '';
 }
 
+const SCENE_LINE_MAX = 200;
+export const MAX_SCENE_LINES = 30;
+
+const oneLine = (text) => text.replace(/\s+/g, ' ').trim();
+
+// The card of the scene the writer is working in
+function sceneSection(scene) {
+  if (!scene || ![scene.title, scene.pov, scene.location, scene.summary].some(nonBlank)) return '';
+  const lines = [['Title', scene.title], ['POV', scene.pov], ['Location', scene.location], ['Status', scene.status], ['Summary', scene.summary]]
+    .filter(([, v]) => nonBlank(v))
+    .map(([k, v]) => `${k}: ${oneLine(v)}`);
+  return `## This scene\n${lines.join('\n')}`;
+}
+
+function sceneListSection(scenes) {
+  const list = (scenes || []).filter((s) => s && typeof s === 'object');
+  if (!list.some((s) => s.id)) return { text: '', count: 0 };
+  const lines = list.slice(0, MAX_SCENE_LINES).map((s, i) => {
+    let line = nonBlank(s.title) ? oneLine(s.title) : `Scene ${i + 1}`;
+    if (nonBlank(s.pov)) line += ` (${oneLine(s.pov)})`;
+    if (nonBlank(s.summary)) line += `: ${oneLine(s.summary)}`;
+    return `- ${clip(line, SCENE_LINE_MAX)}`;
+  });
+  return { text: `## Scenes in this chapter\n${lines.join('\n')}`, count: lines.length };
+}
+
 // Open catches tagged to this chapter: ideas the writer meant to use here
 function catchesSection(catches) {
   const lines = (catches || [])
@@ -146,10 +172,19 @@ function catchesSection(catches) {
   };
 }
 
-export function formatContextBlock({ story, summaries, mentions, rules, mapBeat, catches }) {
+export function formatContextBlock({ story, summaries, mentions, rules, mapBeat, scene, sceneList, catches }) {
   const codex = codexSection(mentions, rules);
+  const thisScene = sceneSection(scene);
+  const scenes = sceneListSection(sceneList);
   const notes = catchesSection(catches);
-  const sections = [storySection(story), summariesSection(summaries), codex.text, mapSection(mapBeat), notes.text].filter(Boolean);
+  const sections = [storySection(story), summariesSection(summaries), codex.text, mapSection(mapBeat), thisScene, scenes.text, notes.text].filter(Boolean);
   const text = sections.length ? `<story_context>\n${HEADER}\n\n${sections.join('\n\n')}\n</story_context>` : '';
-  return { text, codexNames: codex.codexNames, rules: codex.rules, catches: notes.count };
+  return {
+    text,
+    codexNames: codex.codexNames,
+    rules: codex.rules,
+    scene: Boolean(thisScene),
+    sceneList: scenes.count,
+    catches: notes.count,
+  };
 }

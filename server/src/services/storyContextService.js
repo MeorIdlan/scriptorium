@@ -20,13 +20,13 @@ async function openCatchesFor(workId, chapterId) {
   }
 }
 
-export async function buildContext({ work, chapterId, sourceText = '', needs = {} }) {
+export async function buildContext({ work, chapterId, sceneId, sourceText = '', needs = {} }) {
   const workId = work._id;
-  const needChapters = Boolean(needs.summaries || needs.mapBeat);
+  const needChapters = Boolean(needs.summaries || needs.mapBeat || needs.scene || needs.sceneList);
 
   const [chapters, codex, map, catches] = await Promise.all([
     needChapters
-      ? Chapter.find({ workId }).select('number title order content summary').sort({ order: 1 }).lean()
+      ? Chapter.find({ workId }).select('number title order content summary scenes').sort({ order: 1 }).lean()
       : [],
     needs.codex ? Codex.findOne({ workId }).lean() : null,
     needs.mapBeat ? MapModel.findOne({ workId }).lean() : null,
@@ -58,6 +58,10 @@ export async function buildContext({ work, chapterId, sourceText = '', needs = {
   const mapEntry = current && map?.chapters?.[current._id];
   const mapBeat = needs.mapBeat && mapEntry ? { act: mapEntry.act, beat: mapEntry.beat, notes: mapEntry.notes } : null;
 
+  const chapterScenes = Array.isArray(current?.scenes) ? current.scenes : [];
+  const scene = needs.scene && sceneId ? chapterScenes.find((s) => s && s.id === sceneId) || null : null;
+  const sceneList = needs.sceneList ? chapterScenes : null;
+
   const story = needs.story
     ? {
         title: work.title,
@@ -69,12 +73,14 @@ export async function buildContext({ work, chapterId, sourceText = '', needs = {
       }
     : null;
 
-  const { text, codexNames, rules, catches: catchCount } = formatContextBlock({
+  const { text, codexNames, rules, scene: sceneSent, sceneList: sceneLines, catches: catchCount } = formatContextBlock({
     story,
     summaries,
     mentions: needs.codex ? findMentions(codex, sourceText) : null,
     rules: needs.codex ? codex?.worldRules || [] : null,
     mapBeat,
+    scene,
+    sceneList,
     catches,
   });
 
@@ -90,6 +96,8 @@ export async function buildContext({ work, chapterId, sourceText = '', needs = {
       rules,
       act: mapBeat?.act || null,
       beat: mapBeat?.beat || null,
+      scene: sceneSent,
+      sceneList: sceneLines,
       catches: catchCount,
     },
   };

@@ -14,6 +14,8 @@ export default function ContextUsed({ context }) {
   if (context.codex?.length) parts.push(plural(context.codex.length, 'Codex entry', 'Codex entries'));
   if (context.rules) parts.push(plural(context.rules, 'rule', 'rules'));
   if (context.beat) parts.push(`Beat: ${context.beat}`);
+  if (context.scene) parts.push("this scene's card");
+  if (context.sceneList) parts.push(plural(context.sceneList, 'scene card', 'scene cards'));
   if (context.catches) parts.push(plural(context.catches, "writer's note", "writer's notes"));
 
   const hasDetails = context.codex?.length > 0 || context.act || context.beat;
