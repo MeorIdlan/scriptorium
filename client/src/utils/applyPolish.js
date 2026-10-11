@@ -12,10 +12,24 @@ function insertNodes(doc, parent, before, text) {
   });
 }
 
+// Inline elements between a node and its block: a rewrite should land in the
+// least-formatted text node at the insertion point, not inherit the italics of
+// a neighbouring word that happens to end there
+function inlineDepth(block, node) {
+  const container = block.nodes.length === 1 && block.nodes[0].nodeType === ELEMENT ? block.nodes[0] : block.nodes[0].parentNode;
+  let depth = 0;
+  for (let n = node.parentNode; n && n !== container; n = n.parentNode) depth += 1;
+  return depth;
+}
+
 function insertAt(block, offset, text) {
   const doc = block.nodes[0].ownerDocument;
   const { pieces } = blockPieces(block.nodes);
-  const textPiece = pieces.find((p) => p.kind === 'text' && p.start <= offset && offset <= p.end);
+  const touching = pieces.filter((p) => p.kind === 'text' && p.start <= offset && offset <= p.end);
+  const textPiece = touching.reduce(
+    (best, p) => (!best || inlineDepth(block, p.node) < inlineDepth(block, best.node) ? p : best),
+    null
+  );
   if (textPiece) {
     const node = textPiece.node;
     const at = offset - textPiece.start;
@@ -38,6 +52,9 @@ function insertAt(block, offset, text) {
   if (edge) {
     if (edge.kind === 'virtual' && edge.end === offset) {
       insertNodes(doc, edge.node, edge.node.firstChild, text);
+    } else if (edge.kind === 'virtual-after') {
+      if (edge.start === offset) insertNodes(doc, edge.node, null, text);
+      else insertNodes(doc, edge.node.parentNode, edge.node.nextSibling, text);
     } else {
       const before = edge.start === offset ? edge.node : edge.node.nextSibling;
       insertNodes(doc, edge.node.parentNode, before, text);

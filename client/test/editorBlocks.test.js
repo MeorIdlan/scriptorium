@@ -89,3 +89,15 @@ test('batchTargets splits an over-long target at sentence boundaries', () => {
   assert.equal(parts.map((p) => text.slice(p.start, p.end)).join(' '), text);
   assert.deepEqual(parts.map((p) => p.id), parts.map((_, i) => `t${i + 1}`));
 });
+
+test('blockPieces adds a line break after a nested block when text follows', () => {
+  const root = editor('<div>A<div>B</div>C</div>');
+  assert.equal(getBlocks(root)[0].text, 'A\nB\nC');
+});
+
+test('batchTargets caps the number of targets per batch', () => {
+  const targets = Array.from({ length: 200 }, (_, i) => ({ blockIndex: i, start: 0, end: 9, text: '"No," she said.' }));
+  const batches = batchTargets(targets, 1500);
+  assert.ok(batches.every((b) => b.length <= 60), batches.map((b) => b.length).join(','));
+  assert.equal(batches.flat().length, 200);
+});

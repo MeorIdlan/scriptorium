@@ -68,3 +68,9 @@ test('parseRewrites reports missing, empty and duplicated passages as missing', 
   });
   assert.deepEqual(parseRewrites(undefined, ['t1']), { rewrites: [], missing: ['t1'] });
 });
+
+test('maxTokensFor budgets for marker overhead per target', () => {
+  assert.equal(maxTokensFor(100, 0), 420);
+  assert.equal(maxTokensFor(1500, 60), 3500 + 960);
+  assert.equal(maxTokensFor(2000, 250), 8000);
+});

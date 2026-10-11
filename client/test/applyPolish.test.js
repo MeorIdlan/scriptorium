@@ -80,3 +80,26 @@ test('applies a pure insertion at the end of a block', () => {
   applyPolish(root, [{ id: 'x', blockIndex: 0, start: 4, end: 4, fromText: '', toText: ' Added.', status: 'accepted' }], before);
   assert.equal(texts(root)[0], 'One. Added.');
 });
+
+test('a rewritten plain sentence does not pick up formatting from the text before it', () => {
+  const root = editor('<div><i>He paused. </i>Then he left.</div>');
+  const before = texts(root);
+  applyPolish(root, [change(root, 0, 'Then he left.', 'Then he walked away.')], before);
+  assert.equal(root.innerHTML, '<div><i>He paused. </i>Then he walked away.</div>');
+});
+
+test('a rewrite starting at an italic first word keeps the rest of the sentence plain', () => {
+  const root = editor('<div><i>Damn</i>, he thought. It rained.</div>');
+  const before = texts(root);
+  applyPolish(root, [change(root, 0, 'Damn, he thought. ', 'Damn it, he thought. ')], before);
+  assert.equal(root.innerHTML, '<div>Damn it, he thought. It rained.</div>');
+});
+
+test('text after a pasted nested div stays on its own line when changed', () => {
+  const root = editor('<div><div>A one.</div>tail here.</div>');
+  const before = texts(root);
+  assert.equal(before[0], 'A one.\ntail here.');
+  applyPolish(root, [change(root, 0, 'tail here.', 'Tail here.')], before);
+  assert.equal(texts(root)[0], 'A one.\nTail here.');
+  assert.equal(root.innerHTML, '<div><div>A one.</div>Tail here.</div>');
+});

@@ -272,7 +272,7 @@ router.post('/polish-draft', loadWorkFromBody(), async (req, res, next) => {
     const raw = await complete({
       system: SYSTEM_PROMPT,
       prompt: withContext(context, prompt),
-      maxTokensOverride: maxTokensFor(targetWords(targets)),
+      maxTokensOverride: maxTokensFor(targetWords(targets), targets.length),
       userId: req.user.id,
     });
 

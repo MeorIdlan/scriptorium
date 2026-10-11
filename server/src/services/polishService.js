@@ -28,9 +28,11 @@ export function validateTargets(targets) {
   return null;
 }
 
-// About 1.5 tokens per word plus headroom, so a full request can't be cut off
-export function maxTokensFor(words) {
-  return Math.min(8000, Math.ceil((words * 22) / 10) + 200); // integer math: 100 * 2.2 isn't exactly 220
+// About 1.5 tokens per word, ~16 tokens of [[tN]]…[[/tN]] markers per target,
+// plus headroom, so a full request can't be cut off
+export function maxTokensFor(words, targetCount = 0) {
+  // integer math: 100 * 2.2 isn't exactly 220
+  return Math.min(8000, Math.ceil((words * 22) / 10) + targetCount * 16 + 200);
 }
 
 export function buildPolishPrompt({ chapterText, targets }) {

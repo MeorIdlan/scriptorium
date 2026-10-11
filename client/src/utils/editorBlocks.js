@@ -13,26 +13,38 @@ const holds = (node, other) => node === other || (node.nodeType === ELEMENT && n
 export function blockPieces(nodes) {
   const pieces = [];
   let text = '';
-  const walk = (node) => {
+  let closedBlock = null; // nested block just ended; the next content starts a new line
+  const breakAfterBlock = () => {
+    if (closedBlock && text && !text.endsWith('\n')) {
+      pieces.push({ kind: 'virtual-after', node: closedBlock, start: text.length, end: text.length + 1 });
+      text += '\n';
+    }
+    closedBlock = null;
+  };
+  const walk = (node, nested) => {
     if (node.nodeType === TEXT) {
+      if (node.data) breakAfterBlock();
       pieces.push({ kind: 'text', node, start: text.length, end: text.length + node.data.length });
       text += node.data;
       return;
     }
     if (node.nodeType !== ELEMENT) return;
     if (node.tagName === 'BR') {
+      breakAfterBlock();
       pieces.push({ kind: 'break', node, start: text.length, end: text.length + 1 });
       text += '\n';
       return;
     }
     // A pasted nested <div> starts a new line inside this block
+    if (isBlockElement(node)) closedBlock = null;
     if (isBlockElement(node) && text && !text.endsWith('\n')) {
       pieces.push({ kind: 'virtual', node, start: text.length, end: text.length + 1 });
       text += '\n';
     }
-    for (const child of [...node.childNodes]) walk(child);
+    for (const child of [...node.childNodes]) walk(child, true);
+    if (nested && isBlockElement(node)) closedBlock = node;
   };
-  for (const node of nodes) walk(node);
+  for (const node of nodes) walk(node, false);
   return { pieces, text };
 }
 
@@ -135,14 +147,17 @@ function splitLongTarget(target, maxWords) {
     .map((p) => ({ ...p, start: target.start + p.start, end: target.start + p.end }));
 }
 
-export function batchTargets(targets, maxWords = 1500) {
+// Each target costs marker tokens in the reply, so cap how many go per request
+export const MAX_TARGETS_PER_BATCH = 60;
+
+export function batchTargets(targets, maxWords = 1500, maxTargets = MAX_TARGETS_PER_BATCH) {
   const split = targets.flatMap((t) => splitLongTarget(t, maxWords));
   const batches = [];
   let current = [];
   let words = 0;
   split.forEach((t, i) => {
     const w = countWords(t.text);
-    if (current.length && words + w > maxWords) {
+    if (current.length && (words + w > maxWords || current.length >= maxTargets)) {
       batches.push(current);
       current = [];
       words = 0;
