@@ -55,6 +55,11 @@ export function ActiveWorkProvider({ children }) {
       ]);
       dispatch({ type: 'SET_WORK', work });
       dispatch({ type: 'SET_CHAPTERS', chapters });
+      // Badges need catches before the Catch tab is opened; failure here is not fatal
+      api
+        .get(`/works/${workId}/catches`)
+        .then((catches) => dispatch({ type: 'SET_CATCHES', catches }))
+        .catch((err) => console.error('Failed to load catches:', err));
       dispatch({ type: 'SET_LOADING', loading: false });
     } catch (err) {
       dispatch({ type: 'SET_ERROR', error: err.message });

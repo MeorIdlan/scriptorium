@@ -848,6 +848,17 @@ a:hover {
   color: var(--text-dim);
 }
 .chapter-item.active .chapter-item-num { color: var(--gold-dim); }
+.chapter-item { position: relative; }
+.chapter-item.has-catches .chapter-item-title { padding-right: 0.75rem; }
+.chapter-item-catch-dot {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.6rem;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+}
 
 .chapter-item-title {
   font-size: 0.82rem;

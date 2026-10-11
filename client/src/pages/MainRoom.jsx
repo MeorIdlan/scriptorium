@@ -9,6 +9,7 @@ import Editor from '../components/editor/Editor.jsx';
 import WordCounter from '../components/editor/WordCounter.jsx';
 import RightPanel from '../components/panel/RightPanel.jsx';
 import MilestonesModal from '../components/overlays/MilestonesModal.jsx';
+import { openCountsByChapter } from '../utils/catchGroups.js';
 
 export default function MainRoom() {
   const { workId, chapterId: urlChapterId } = useParams();
@@ -88,6 +89,8 @@ export default function MainRoom() {
     return <div className="loading-page"><p className="error-text">{state.error}</p></div>;
   }
 
+  const catchCounts = openCountsByChapter(state.catches);
+
   return (
     <div className="main-room">
       <Toolbar editorRef={editorRef} />
@@ -134,19 +137,29 @@ export default function MainRoom() {
           )}
 
           <div className="chapter-list">
-            {state.chapters.map((ch) => (
-              <button
-                key={ch.id}
-                className={`chapter-item${ch.id === editorState.chapterId ? ' active' : ''}`}
-                onClick={() => handleChapterSelect(ch.id)}
-              >
-                <span className="chapter-item-num">Ch. {ch.number}</span>
-                <span className="chapter-item-title">{ch.title || 'Untitled'}</span>
-                {ch.status === 'outline' && (
-                  <span className="chapter-item-badge outline">outline</span>
-                )}
-              </button>
-            ))}
+            {state.chapters.map((ch) => {
+              const openCatches = catchCounts.get(ch.id) || 0;
+              return (
+                <button
+                  key={ch.id}
+                  className={`chapter-item${ch.id === editorState.chapterId ? ' active' : ''}${openCatches ? ' has-catches' : ''}`}
+                  onClick={() => handleChapterSelect(ch.id)}
+                >
+                  <span className="chapter-item-num">Ch. {ch.number}</span>
+                  <span className="chapter-item-title">{ch.title || 'Untitled'}</span>
+                  {ch.status === 'outline' && (
+                    <span className="chapter-item-badge outline">outline</span>
+                  )}
+                  {openCatches > 0 && (
+                    <span
+                      className="chapter-item-catch-dot"
+                      title={`${openCatches} open catch${openCatches === 1 ? '' : 'es'}`}
+                      aria-label={`${openCatches} open catch${openCatches === 1 ? '' : 'es'}`}
+                    />
+                  )}
+                </button>
+              );
+            })}
             {state.chapters.length === 0 && (
               <p className="chapter-list-empty">No chapters yet</p>
             )}

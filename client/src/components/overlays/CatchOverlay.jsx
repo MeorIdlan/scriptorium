@@ -3,6 +3,7 @@ import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { api } from '../../utils/api.js';
+import { chapterLabel } from '../../utils/catchGroups.js';
 
 export default function CatchOverlay() {
   const { state, dispatch } = useUI();
@@ -98,7 +99,7 @@ export default function CatchOverlay() {
           <option value="">No chapter tag</option>
           {chapters.map((ch) => (
             <option key={ch.id} value={ch.id}>
-              Ch. {ch.number} — {ch.title || 'Untitled'}
+              {chapterLabel(ch)}
             </option>
           ))}
         </select>
