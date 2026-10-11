@@ -1262,18 +1262,72 @@ a:hover {
   gap: 0.75rem;
 }
 
+.catch-search {
+  width: 100%;
+}
+
+.catch-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.catch-filter-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  padding: 0.15rem 0.6rem;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+.catch-filter-btn:hover { color: var(--text); }
+.catch-filter-btn.active {
+  color: var(--gold);
+  border-color: var(--gold-dim);
+  background: rgba(201, 169, 110, 0.07);
+}
+
+.catch-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.catch-group.current .catch-tab-label { color: var(--gold-dim); }
+
 .catch-row {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 0.65rem 0.75rem;
 }
+.catch-group.current .catch-row { border-color: rgba(201, 169, 110, 0.3); }
 
 .catch-row-text {
   font-size: 0.85rem;
   color: var(--text);
   line-height: 1.4;
   margin-bottom: 0.3rem;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  cursor: pointer;
+}
+.catch-row-text.clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.catch-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--text-dim);
 }
 
 .catch-row-chapter {
@@ -1282,15 +1336,45 @@ a:hover {
   color: var(--teal);
   border-radius: 999px;
   padding: 0.05rem 0.45rem;
-  font-size: 0.72rem;
-  margin-bottom: 0.35rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catch-row-used { color: var(--text-muted); }
+
+.catch-row-error {
+  font-size: 0.75rem;
+  color: var(--error);
+  margin-top: 0.35rem;
 }
 
 .catch-row-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.35rem;
   margin-top: 0.35rem;
+  opacity: 0;
+  transition: opacity var(--transition);
 }
+.catch-row:hover .catch-row-actions,
+.catch-row:focus-within .catch-row-actions,
+.catch-row-actions.visible {
+  opacity: 1;
+}
+@media (hover: none), (max-width: 640px) {
+  .catch-row-actions { opacity: 1; }
+}
+
+.catch-row.editing,
+.catch-use {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.catch-use { margin-top: 0.4rem; }
+.catch-edit-text { width: 100%; resize: vertical; }
 
 /* ============================================================
    Map View
