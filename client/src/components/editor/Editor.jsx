@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useAutosave } from '../../hooks/useAutosave.js';
 import { getBlocks, pointToBlockOffset, topLevelNode, rememberCaret, rememberedCaret } from '../../utils/editorBlocks.js';
-import { lockMarkers, insertSceneBreak } from '../../utils/scenes.js';
+import { normalizeMarkers, insertSceneBreak } from '../../utils/scenes.js';
 
 // The top-level node holding a range's end, as remembered for inserts
 function caretTopNode(root, range) {
@@ -55,7 +55,7 @@ const Editor = forwardRef(function Editor({ workId, initialContent = '', initial
       // turns its newlines back into line breaks
       editorRef.current.innerText = initialContent || '';
     }
-    lockMarkers(editorRef.current);
+    normalizeMarkers(editorRef.current);
     // Only run when component mounts (key-based remount handles chapter switching)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -66,15 +66,15 @@ const Editor = forwardRef(function Editor({ workId, initialContent = '', initial
     const { text, html } = state.pendingReplacement;
     if (html) editorRef.current.innerHTML = html;
     else editorRef.current.innerText = text;
-    lockMarkers(editorRef.current);
+    normalizeMarkers(editorRef.current);
     setContent(editorRef.current.innerText || '', editorRef.current.innerHTML);
     clearReplacement();
   }, [state.pendingReplacement, setContent, clearReplacement]);
 
   const handleInput = useCallback(() => {
     if (editorRef.current) {
-      // Pasted markers come in editable
-      lockMarkers(editorRef.current);
+      // Pasted markers may lack an id, repeat one, or be editable
+      normalizeMarkers(editorRef.current);
       setContent(editorRef.current.innerText || '', editorRef.current.innerHTML);
     }
   }, [setContent]);

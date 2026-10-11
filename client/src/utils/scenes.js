@@ -116,15 +116,32 @@ export function writeSceneCard(root, index, fields) {
   return true;
 }
 
-export function lockMarkers(root) {
+const SAFE_ID = /^[\w-]{1,64}$/;
+
+// Pasted rules come in without an id, with a copied id, or editable: every
+// top-level <hr> becomes a locked marker with an id unique in the chapter,
+// matching what the server's sanitizer will store
+export function normalizeMarkers(root) {
   let changed = 0;
+  const seen = new Set();
   for (const child of root.children) {
-    if (isMarker(child) && child.getAttribute('contenteditable') !== 'false') {
-      child.setAttribute('contenteditable', 'false');
+    if (child.tagName !== 'HR') continue;
+    let id = child.getAttribute('data-scene') || '';
+    if (!SAFE_ID.test(id) || seen.has(id)) {
+      id = newSceneId();
+      child.setAttribute('data-scene', id);
+      changed += 1;
+    } else if (child.getAttribute('contenteditable') !== 'false') {
       changed += 1;
     }
+    seen.add(id);
+    child.setAttribute('contenteditable', 'false');
   }
   return changed;
+}
+
+export function lockMarkers(root) {
+  return normalizeMarkers(root);
 }
 
 // Chrome can put inserted HTML inside the caret's block; a marker only

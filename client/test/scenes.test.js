@@ -10,6 +10,7 @@ import {
   markerHtml,
   writeSceneCard,
   lockMarkers,
+  normalizeMarkers,
   liftMarker,
   positionOptions,
   afterBlockPoint,
@@ -150,4 +151,16 @@ test('afterBlockPoint is a top-level point after the caret block', () => {
   assert.deepEqual(afterBlockPoint(editor(''), null).offset, 0);
   const legacy = editor('Line one<br>Line two');
   assert.deepEqual(afterBlockPoint(legacy, legacy.childNodes[0]), { node: legacy, offset: 1 });
+});
+
+test('normalizeMarkers gives pasted bare and duplicate markers their own ids', () => {
+  const root = editor('<div>a</div><hr data-scene="s1"><div>b</div><hr><div>c</div><hr data-scene="s1"><div>d</div><hr data-scene="bad id!"><div>e</div>');
+  assert.equal(normalizeMarkers(root), 4);
+  const ids = [...root.children].filter((n) => n.tagName === 'HR').map((h) => h.getAttribute('data-scene'));
+  assert.equal(ids[0], 's1');
+  assert.equal(new Set(ids).size, 4);
+  assert.ok(ids.slice(1).every((id) => /^scn_\d+_[0-9a-f]{6}$/.test(id)));
+  assert.ok([...root.querySelectorAll('hr')].every((h) => h.getAttribute('contenteditable') === 'false'));
+  assert.deepEqual(sceneList(root).map((s) => s.text), ['a', 'b', 'c', 'd', 'e']);
+  assert.equal(normalizeMarkers(root), 0);
 });
