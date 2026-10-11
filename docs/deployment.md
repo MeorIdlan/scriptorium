@@ -93,7 +93,7 @@ The containers themselves are stateless.
 
 | | |
 |---|---|
-| Schedule | daily at 03:30 UTC, from `/etc/cron.d/scriptorium-backup` (runs as root) |
+| Schedule | nightly at 02:00 Kuala Lumpur time (18:00 UTC, as the droplet runs on UTC), from `/etc/cron.d/scriptorium-backup` (runs as root) |
 | What | `mongodump --db scriptorium --archive --gzip` inside the shared Mongo container `mongo-mongo-1`. Other databases on that Mongo are not included |
 | Where | `/var/backups/scriptorium/scriptorium-<YYYYMMDDTHHMMSSZ>.archive.gz` on the droplet (folder `700`, files `600`) |
 | Retention | 7 days. Older archives are deleted only after a successful dump, so failures never age out the last good copy |

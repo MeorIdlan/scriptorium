@@ -151,12 +151,12 @@ test('dump gives up, writes nothing and prunes nothing when mongodump hangs past
   assert.deepEqual(fs.readdirSync(backupDir), [path.basename(old)]);
 });
 
-test('cron entry runs the installed dump as root at 03:30 UTC and logs it', () => {
+test('cron entry runs the installed dump as root at 02:00 Kuala Lumpur time (18:00 UTC) and logs it', () => {
   const cron = fs.readFileSync(path.join(OPS, 'scriptorium-backup.cron'), 'utf8');
   assert.ok(cron.endsWith('\n'), 'cron.d ignores a last line without a newline');
   const jobs = cron.split('\n').filter((l) => l.trim() && !l.startsWith('#') && !/^[A-Z]+=/.test(l));
   assert.deepEqual(jobs, [
-    '30 3 * * * root /usr/local/sbin/scriptorium-mongo-dump >> /var/log/scriptorium-backup.log 2>&1',
+    '0 18 * * * root /usr/local/sbin/scriptorium-mongo-dump >> /var/log/scriptorium-backup.log 2>&1',
   ]);
   assert.match(cron, /^PATH=.*\/usr\/bin/m);
 });
