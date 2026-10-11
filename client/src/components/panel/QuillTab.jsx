@@ -9,7 +9,8 @@ import PacingResult from './PacingResult.jsx';
 import ContextUsed from './ContextUsed.jsx';
 import { summaryRefreshPending, loadingLabel } from '../../utils/summaryStatus.js';
 import HookGenerator from '../overlays/HookGenerator.jsx';
-import DraftPolishModal from '../overlays/DraftPolishModal.jsx';
+import PolishReviewModal from '../overlays/PolishReviewModal.jsx';
+import { getBlocks, chapterTargets, selectionTargets, batchTargets } from '../../utils/editorBlocks.js';
 import EditorReviewModal from '../overlays/EditorReviewModal.jsx';
 
 function RekindlerCard({ snapshot, lastSessionAt, onDismiss }) {
@@ -72,7 +73,8 @@ export default function QuillTab({ workId }) {
   const [showRekindlerPrompt, setShowRekindlerPrompt] = useState(false);
   const [rekindlerLoading, setRekindlerLoading] = useState(false);
   const [aiAction, setAiAction] = useState(null);
-  const [polishedDraft, setPolishedDraft] = useState(null);
+  const [polishSession, setPolishSession] = useState(null);
+  const [polishResult, setPolishResult] = useState(null);
   const [editorReview, setEditorReview] = useState(null);
 
   useEffect(() => {
@@ -148,20 +150,22 @@ export default function QuillTab({ workId }) {
     });
   }
 
-  async function handlePolishDraft() {
-    if (!editorState.content?.trim()) return;
-    setAiAction('polish');
-    reset();
-    setPolishedDraft(null);
-    const data = await call('polish-draft', {
-      workId,
-      chapterId: editorState.chapterId,
-      content: editorState.content,
+  function handlePolish() {
+    const editorEl = document.querySelector('.editor');
+    if (!editorEl) return;
+    const blocks = getBlocks(editorEl);
+    const mode = editorState.selection ? 'selection' : 'chapter';
+    const targets = mode === 'selection' ? selectionTargets(blocks, editorState.selection) : chapterTargets(blocks);
+    if (targets.length === 0) return;
+    setPolishResult(null);
+    setPolishSession({
+      mode,
+      batches: batchTargets(targets),
+      blockTexts: blocks.map((b) => b.text),
+      chapterText: editorState.content,
     });
-    if (data?.polished) {
-      setPolishedDraft({ text: data.polished, context: data.context });
-    }
   }
+
 
   async function handleEditorReview(mode) {
     if (!editorState.content?.trim()) return;
@@ -215,13 +219,20 @@ export default function QuillTab({ workId }) {
         </button>
         <button
           className="btn btn-ghost quill-ai-btn quill-ai-btn--polish"
-          onClick={handlePolishDraft}
-          disabled={loading || !editorState.content?.trim()}
-          title="Rewrites the draft with better grammar and description, keeping the story direction unchanged"
+          onClick={handlePolish}
+          disabled={loading || Boolean(polishSession) || !editorState.content?.trim()}
+          title="Suggests rewrites you can accept or reject one by one, keeping the story direction unchanged"
         >
-          ✦ Polish this draft
+          ✦ Polish {editorState.selection ? 'selection' : 'chapter'}
         </button>
       </div>
+
+      {polishResult && (
+        <p className="polish-notice">
+          Applied {polishResult.applied} change{polishResult.applied === 1 ? '' : 's'}
+          {polishResult.skipped > 0 && ` · ${polishResult.skipped} skipped because the text changed`}
+        </p>
+      )}
 
       <div className="quill-actions">
         <p className="quill-actions-label">AI Editor</p>
@@ -281,11 +292,16 @@ export default function QuillTab({ workId }) {
         <HookGenerator workId={workId} />
       )}
 
-      {polishedDraft && (
-        <DraftPolishModal
-          polished={polishedDraft.text}
-          context={polishedDraft.context}
-          onDismiss={() => setPolishedDraft(null)}
+      {polishSession && (
+        <PolishReviewModal
+          workId={workId}
+          chapterId={editorState.chapterId}
+          session={polishSession}
+          summariesPending={summaryRefreshPending(workState.chapters, editorState.chapterId, 'before')}
+          onClose={(result) => {
+            setPolishSession(null);
+            setPolishResult(result);
+          }}
         />
       )}
 

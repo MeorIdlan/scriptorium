@@ -3037,3 +3037,76 @@ a:hover {
   margin-top: 0.5rem;
   width: 100%;
 }
+
+/* ============================================================
+   Polish Review
+   ============================================================ */
+.polish-review-modal {
+  width: min(900px, 94vw);
+  max-width: none;
+  max-height: 90vh;
+}
+
+.polish-review-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.polish-review-status { font-size: 0.82rem; color: var(--text-muted); }
+.polish-review-status--error { color: var(--error); }
+.polish-review-bulk { display: flex; gap: 0.5rem; }
+
+.polish-review-body {
+  font-family: Georgia, serif;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: var(--text);
+}
+
+.polish-para { margin: 0 0 1rem; white-space: pre-wrap; }
+.polish-waiting { color: var(--text-dim); }
+
+.polish-change {
+  border-radius: var(--radius-sm);
+  padding: 0 0.1rem;
+  background: rgba(201, 169, 110, 0.07);
+}
+.polish-change--accepted { background: rgba(93, 202, 165, 0.08); }
+.polish-change--rejected { background: none; }
+
+.polish-del { color: var(--coral); text-decoration: line-through; }
+.polish-add { color: var(--teal); }
+.polish-rejected { color: var(--text-muted); }
+
+.polish-change-actions {
+  display: inline-flex;
+  gap: 0.15rem;
+  margin-left: 0.3rem;
+  vertical-align: middle;
+}
+
+.polish-change-btn {
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 0.15rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.polish-change-btn:hover { color: var(--text); border-color: var(--gold-dim); }
+.polish-change-btn.active { color: var(--bg); background: var(--gold); border-color: var(--gold); }
+
+.polish-part-failed { color: var(--error); font-size: 0.82rem; font-family: inherit; }
+.polish-note, .polish-notice { color: var(--text-muted); font-size: 0.8rem; font-style: italic; }
+.polish-notice { margin-top: 0.5rem; }
+
+@media (max-width: 640px) {
+  .polish-review-toolbar { padding: 0.6rem 1rem; }
+}
