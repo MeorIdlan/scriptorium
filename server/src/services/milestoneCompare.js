@@ -1,5 +1,8 @@
 import { diffStats } from './textDiff.js';
 
+// The editor writes non-breaking and doubled spaces freely; spacing alone isn't a change
+const normalize = (text) => text.replace(/\s+/g, ' ').trim();
+
 // One row per chapter in the milestone or in the work today: today's chapters
 // in today's order, then chapters deleted since, in milestone order. Pure.
 export function milestoneRows(milestoneChapters, snapshotTexts, currentChapters) {
@@ -18,7 +21,7 @@ export function milestoneRows(milestoneChapters, snapshotTexts, currentChapters)
     }
     const thenText = snapshotTexts.get(entry.snapshotId) ?? '';
     const nowText = ch.content || '';
-    const same = thenText === nowText;
+    const same = normalize(thenText) === normalize(nowText);
     const stats = same ? { added: 0, removed: 0 } : diffStats(thenText, nowText);
     rows.push({
       chapterId: ch._id, title: ch.title, state: same ? 'unchanged' : 'changed', snapshotId: entry.snapshotId,

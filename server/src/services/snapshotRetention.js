@@ -1,5 +1,5 @@
 // Which automatic snapshots to drop. Pure; named and milestone snapshots are
-// never touched. Buckets are fixed calendar days/weeks (UTC), so a snapshot
+// never touched, nor are automatic ones with a note ('Before restore'). Buckets are fixed calendar days/weeks (UTC), so a snapshot
 // that survives isn't swapped out later just because time moved on.
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -9,7 +9,7 @@ const DAILY_UNTIL_MS = 30 * DAY_MS;
 export function thinSnapshots(snapshots, now) {
   const nowMs = new Date(now).getTime();
   const autos = snapshots
-    .filter((s) => s.kind === 'auto')
+    .filter((s) => s.kind === 'auto' && !s.note)
     .map((s) => ({ id: s.id, t: Date.parse(s.createdAt) }))
     .filter((s) => !Number.isNaN(s.t))
     .sort((a, b) => b.t - a.t);

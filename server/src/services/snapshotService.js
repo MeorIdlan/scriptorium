@@ -14,9 +14,9 @@ export async function autoSnapshotDue(chapterId, now) {
 }
 
 async function thinChapter(chapterId, now) {
-  const rows = await Snapshot.find({ chapterId, kind: 'auto' }).select('_id kind createdAt').lean();
-  const ids = thinSnapshots(rows.map((r) => ({ id: r._id, kind: r.kind, createdAt: r.createdAt })), now);
-  if (ids.length) await Snapshot.deleteMany({ _id: { $in: ids }, kind: 'auto' });
+  const rows = await Snapshot.find({ chapterId, kind: 'auto' }).select('_id kind note createdAt').lean();
+  const ids = thinSnapshots(rows.map((r) => ({ id: r._id, kind: r.kind, note: r.note, createdAt: r.createdAt })), now);
+  if (ids.length) await Snapshot.deleteMany({ _id: { $in: ids }, kind: 'auto', note: { $in: ['', null] } });
 }
 
 // Saves the chapter's text (as passed: the pre-change document) as an

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { buildHistoryDiff, collapseUnchanged } from '../../utils/historyDiff.js';
+import { buildHistoryDiff, collapseUnchanged, hasTextChanges } from '../../utils/historyDiff.js';
 import { formatNumber } from '../../utils/wordCount.js';
 
 // Word-level comparison of two plain texts. Give it a `key` per pair so
@@ -9,7 +9,7 @@ export default function VersionDiff({ before, after }) {
   const segments = useMemo(() => collapseUnchanged(diff.segments), [diff]);
   const [expanded, setExpanded] = useState(() => new Set());
 
-  if (diff.segments.every((s) => s.type === 'equal')) {
+  if (!hasTextChanges(diff)) {
     return <p className="version-diff-empty">No text changes (formatting changes aren't shown).</p>;
   }
 

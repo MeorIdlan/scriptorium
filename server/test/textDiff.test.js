@@ -34,3 +34,12 @@ test('a change too large to compare word by word counts every word in it', () =>
   assert.deepEqual(diffStats(before, after), { added: 1, removed: 1 });
   assert.deepEqual(diffStats(before, after, { maxCells: 4 }), { added: 3, removed: 3 });
 });
+
+test('many paragraphs with spread-out edits still count only the edited words', () => {
+  const paras = Array.from({ length: 10 }, (_, i) => `p${i} alpha beta`);
+  const edited = [...paras];
+  edited[2] = 'p2 alpha gamma';
+  edited[8] = 'p8 alpha delta';
+  // 7 × 7 changed-stretch paragraphs exceed 40 cells, but the 2 edited paragraphs fit
+  assert.deepEqual(diffStats(paras.join('\n\n'), edited.join('\n\n'), { maxCells: 40 }), { added: 2, removed: 2 });
+});

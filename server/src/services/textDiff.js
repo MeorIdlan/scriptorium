@@ -27,8 +27,9 @@ function wordStats(before, after, maxCells) {
 }
 
 export function diffStats(before, after, { maxCells = MAX_DIFF_CELLS } = {}) {
-  const a = before ? before.split('\n') : [];
-  const b = after ? after.split('\n') : [];
+  // Blank lines carry no words, and dropping them halves the paragraphs to align
+  const a = before ? before.split('\n').filter((line) => line.trim()) : [];
+  const b = after ? after.split('\n').filter((line) => line.trim()) : [];
 
   let prefix = 0;
   while (prefix < a.length && prefix < b.length && a[prefix] === b[prefix]) prefix += 1;
@@ -43,8 +44,21 @@ export function diffStats(before, after, { maxCells = MAX_DIFF_CELLS } = {}) {
   const am = a.slice(prefix, a.length - suffix);
   const bm = b.slice(prefix, b.length - suffix);
 
-  // Too many paragraphs to align: compare the whole changed stretch as one run
-  if (am.length * bm.length > maxCells) return wordStats(am.join('\n'), bm.join('\n'), maxCells);
+  // Too many paragraphs to align in order: match identical paragraphs anywhere,
+  // then compare only the ones left over
+  if (am.length * bm.length > maxCells) {
+    const left = new Map();
+    for (const p of bm) left.set(p, (left.get(p) || 0) + 1);
+    const onlyA = [];
+    for (const p of am) {
+      const n = left.get(p) || 0;
+      if (n) left.set(p, n - 1);
+      else onlyA.push(p);
+    }
+    const onlyB = [];
+    for (const [p, n] of left) for (let k = 0; k < n; k++) onlyB.push(p);
+    return wordStats(onlyA.join('\n'), onlyB.join('\n'), maxCells);
+  }
 
   const dp = Array.from({ length: am.length + 1 }, () => new Int32Array(bm.length + 1));
   for (let i = am.length - 1; i >= 0; i--) {

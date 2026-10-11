@@ -16,11 +16,55 @@ function changeParts(fromText, toText, maxCells) {
   return diffWords(fromText, toText);
 }
 
+// Too big to align even by paragraph: keep the shared opening and ending
+// paragraphs, and show everything between them as one change
+function coarseDiff(a, b) {
+  const pa = paragraphSpans(a);
+  const pb = paragraphSpans(b);
+  let prefix = 0;
+  while (prefix < pa.length && prefix < pb.length && pa[prefix].text === pb[prefix].text) prefix += 1;
+  let suffix = 0;
+  while (
+    suffix < pa.length - prefix &&
+    suffix < pb.length - prefix &&
+    pa[pa.length - 1 - suffix].text === pb[pb.length - 1 - suffix].text
+  ) {
+    suffix += 1;
+  }
+  const startA = prefix ? pa[prefix - 1].end : 0;
+  const endA = suffix ? pa[pa.length - suffix].start : a.length;
+  const startB = prefix ? pb[prefix - 1].end : 0;
+  const endB = suffix ? pb[pb.length - suffix].start : b.length;
+  const equal = (span) => ({ type: 'equal', text: span.text });
+  return [
+    ...pa.slice(0, prefix).map(equal),
+    { type: 'change', fromText: a.slice(startA, endA), toText: b.slice(startB, endB) },
+    ...pa.slice(pa.length - suffix).map(equal),
+  ];
+}
+
+function middleSize(spansA, spansB) {
+  let prefix = 0;
+  while (prefix < spansA.length && prefix < spansB.length && spansA[prefix].text === spansB[prefix].text) prefix += 1;
+  let suffix = 0;
+  while (
+    suffix < spansA.length - prefix &&
+    suffix < spansB.length - prefix &&
+    spansA[spansA.length - 1 - suffix].text === spansB[spansB.length - 1 - suffix].text
+  ) {
+    suffix += 1;
+  }
+  return (spansA.length - prefix - suffix) * (spansB.length - prefix - suffix);
+}
+
 export function buildHistoryDiff(before, after, { maxCells = MAX_DIFF_CELLS } = {}) {
   const a = before || '';
   const b = after || '';
   const paragraphLevel = sentenceSpans(a).length * sentenceSpans(b).length > maxCells;
-  const raw = diffSentences(a, b, paragraphLevel ? paragraphSpans : sentenceSpans);
+  let raw;
+  if (!paragraphLevel) raw = diffSentences(a, b, sentenceSpans);
+  else if (middleSize(paragraphSpans(a), paragraphSpans(b)) <= maxCells) raw = diffSentences(a, b, paragraphSpans);
+  else raw = a === b ? paragraphSpans(a).map((span) => ({ type: 'equal', text: span.text })) : coarseDiff(a, b);
 
   let added = 0;
   let removed = 0;
@@ -67,4 +111,10 @@ export function collapseUnchanged(segments, context = 1) {
     if (tail) out.push({ type: 'equal', text: pieces.slice(head + hidden).join('') });
   });
   return out;
+}
+
+// False when the versions differ only in spacing (e.g. the editor's
+// non-breaking spaces), so the view can say "No text changes"
+export function hasTextChanges(diff) {
+  return diff.segments.some((s) => s.type === 'change' && s.parts.some((p) => p.type !== 'same' && /\S/.test(p.text)));
 }

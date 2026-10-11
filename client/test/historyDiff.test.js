@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildHistoryDiff, collapseUnchanged } from '../src/utils/historyDiff.js';
+import { buildHistoryDiff, collapseUnchanged, hasTextChanges } from '../src/utils/historyDiff.js';
 import { paragraphSpans } from '../src/utils/polishDiff.js';
 
 const texts = (segments) => segments.map((s) => s.text ?? s.parts.map((p) => p.text).join('|'));
@@ -100,4 +100,22 @@ test('collapseUnchanged hides the middle of a long stretch between changes', () 
     { type: 'equal', text: 'D\nstart ' },
     change,
   ]);
+});
+
+test('a comparison too large even for paragraphs shows the changed stretch as one change', () => {
+  const before = 'Same start.\nA one.\nB two.\nC three.\nSame end.';
+  const after = 'Same start.\nA uno.\nB two.\nC tres.\nSame end.';
+  const diff = buildHistoryDiff(before, after, { maxCells: 4 });
+  assert.equal(diff.paragraphLevel, true);
+  assert.deepEqual(diff.segments.map((s) => s.type), ['equal', 'change', 'equal']);
+  assert.equal(diff.segments[0].text, 'Same start.\n');
+  assert.equal(diff.segments[2].text, 'Same end.');
+});
+
+test('hasTextChanges ignores whitespace-only differences', () => {
+  assert.equal(hasTextChanges(buildHistoryDiff('He  said hi.', 'He said hi.')), false);
+  assert.equal(hasTextChanges(buildHistoryDiff('said hi', 'said hi')), false);
+  assert.equal(hasTextChanges(buildHistoryDiff(' Lead.', 'Lead.')), false);
+  assert.equal(hasTextChanges(buildHistoryDiff('The cat sat.', 'The dog sat.')), true);
+  assert.equal(hasTextChanges(buildHistoryDiff('Wait.', 'Wait!')), true);
 });

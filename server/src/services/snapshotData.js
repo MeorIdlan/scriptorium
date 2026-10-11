@@ -18,15 +18,20 @@ export function snapshotFields(chapter) {
 }
 
 // Old embedded `draftHistory` entries → automatic snapshots. Ids are derived
-// from the chapter and time, so re-running the migration is safe.
+// from the chapter, time and position, so re-running the migration is safe.
+// It runs once on real data and removes `draftHistory` after, so every entry
+// with text is kept: a bad date falls back to the chapter's last update, and
+// entries sharing a time get distinct ids.
 export function snapshotsFromDraftHistory(chapter) {
+  const fallback = Date.parse(chapter.updatedAt ?? chapter.createdAt);
   const seen = new Set();
   const docs = [];
-  for (const entry of chapter.draftHistory || []) {
-    const t = Date.parse(entry?.savedAt);
-    if (Number.isNaN(t)) continue;
-    const _id = `snap_${chapter._id}_${t}`;
-    if (seen.has(_id)) continue;
+  (chapter.draftHistory || []).forEach((entry, index) => {
+    if (!entry || (entry.contentSnapshot == null && entry.htmlSnapshot == null)) return;
+    let t = Date.parse(entry.savedAt);
+    if (Number.isNaN(t)) t = Number.isNaN(fallback) ? 0 : fallback;
+    let _id = `snap_${chapter._id}_${t}`;
+    if (seen.has(_id)) _id = `${_id}_${index}`;
     seen.add(_id);
     docs.push({
       _id,
@@ -40,8 +45,8 @@ export function snapshotsFromDraftHistory(chapter) {
       content: entry.contentSnapshot || '',
       contentHtml: entry.htmlSnapshot || '',
       wordCount: entry.wordCount || 0,
-      createdAt: entry.savedAt,
+      createdAt: new Date(t).toISOString(),
     });
-  }
+  });
   return docs;
 }

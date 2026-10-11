@@ -51,3 +51,12 @@ test('milestoneRows fills titles, words and changes per state', () => {
 test('milestoneRows on an empty milestone and empty work', () => {
   assert.deepEqual(milestoneRows([], new Map(), []), []);
 });
+
+test('milestoneRows treats whitespace-only differences as unchanged', () => {
+  const rows = milestoneRows(
+    [{ chapterId: 'c1', title: 'One', order: 0, snapshotId: 's1', wordCount: 2 }],
+    new Map([['s1', 'A  b.']]),
+    [{ _id: 'c1', title: 'One', content: 'A b. ', wordCount: 2 }]
+  );
+  assert.equal(rows[0].state, 'unchanged');
+});

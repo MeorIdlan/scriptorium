@@ -62,3 +62,11 @@ test('handles empty input and unparseable dates', () => {
   assert.deepEqual(thinSnapshots([], NOW), []);
   assert.deepEqual(thinSnapshots([auto('x', 'not a date')], NOW), []);
 });
+
+test('never thins an automatic snapshot that carries a note (Before restore)', () => {
+  const snaps = [
+    { id: 'before', kind: 'auto', note: 'Before restore', createdAt: '2026-10-05T08:00:00.000Z' },
+    auto('later', '2026-10-05T20:00:00.000Z'),
+  ];
+  assert.deepEqual(thinSnapshots(snaps, NOW), []);
+});

@@ -37,7 +37,8 @@ export function paragraphSpans(text) {
 }
 
 function lcsTable(a, b, same) {
-  const dp = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  // Typed rows: a large comparison's table would otherwise cost several times the memory
+  const dp = Array.from({ length: a.length + 1 }, () => new Int32Array(b.length + 1));
   for (let i = a.length - 1; i >= 0; i--) {
     for (let j = b.length - 1; j >= 0; j--) {
       dp[i][j] = same(a[i], b[j]) ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);

@@ -34,18 +34,25 @@ test('snapshotsFromDraftHistory maps entries to automatic snapshots with fixed i
   }]);
 });
 
-test('snapshotsFromDraftHistory skips bad dates and duplicate times', () => {
+test('snapshotsFromDraftHistory keeps every entry that has text', () => {
   const chapter = {
-    _id: 'c', workId: 'w', title: 'T',
+    _id: 'c', workId: 'w', title: 'T', updatedAt: '2026-10-02T00:00:00.000Z',
     draftHistory: [
       { savedAt: 'garbage', contentSnapshot: 'x' },
       { savedAt: '2026-10-01T10:00:00.000Z', contentSnapshot: 'first' },
       { savedAt: '2026-10-01T10:00:00.000Z', contentSnapshot: 'second' },
+      { savedAt: 'Thu, 01 Oct 2026 11:00:00 GMT', contentSnapshot: 'rfc' },
       {},
     ],
   };
   const docs = snapshotsFromDraftHistory(chapter);
-  assert.equal(docs.length, 1);
-  assert.equal(docs[0].content, 'first');
+  assert.deepEqual(docs.map((d) => [d.content, d.createdAt]), [
+    ['x', '2026-10-02T00:00:00.000Z'],
+    ['first', '2026-10-01T10:00:00.000Z'],
+    ['second', '2026-10-01T10:00:00.000Z'],
+    ['rfc', '2026-10-01T11:00:00.000Z'],
+  ]);
+  assert.equal(new Set(docs.map((d) => d._id)).size, 4);
+  assert.equal(docs[2]._id, `snap_c_${Date.parse('2026-10-01T10:00:00.000Z')}_2`);
   assert.deepEqual(snapshotsFromDraftHistory({ _id: 'c', workId: 'w', title: 'T' }), []);
 });

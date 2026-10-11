@@ -8,7 +8,7 @@ import { snapshotsFromDraftHistory } from './snapshotData.js';
 export async function migrateDraftHistory() {
   const chapters = Chapter.collection.find(
     { draftHistory: { $exists: true } },
-    { projection: { workId: 1, title: 1, draftHistory: 1 } }
+    { projection: { workId: 1, title: 1, draftHistory: 1, updatedAt: 1, createdAt: 1 } }
   );
   let moved = 0;
   for await (const chapter of chapters) {
