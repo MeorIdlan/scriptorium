@@ -168,3 +168,56 @@ export function batchTargets(targets, maxWords = 1500, maxTargets = MAX_TARGETS_
   if (current.length) batches.push(current);
   return batches;
 }
+
+// ── Caret memory for inserting catches ──────────────────────────────────────
+// Kept per editor root rather than in React state: the caret moves on every
+// keystroke, and the editor remounts (a new root) for each chapter.
+const caretByRoot = new WeakMap();
+
+export function topLevelNode(root, node) {
+  let current = node;
+  while (current && current.parentNode !== root) current = current.parentNode;
+  return current && current.parentNode === root ? current : null;
+}
+
+export function rememberCaret(root, node) {
+  caretByRoot.set(root, node);
+}
+
+export function rememberedCaret(root) {
+  return caretByRoot.get(root) || null;
+}
+
+// End of the block holding the caret node, or of the last block when the
+// caret is unknown or its node has left the editor
+export function blockEndPoint(root, caretNode) {
+  const blocks = getBlocks(root);
+  if (blocks.length === 0) return { node: root, offset: 0 };
+  const block = (caretNode && blocks.find((b) => b.nodes.includes(caretNode))) || blocks[blocks.length - 1];
+  const last = block.nodes[block.nodes.length - 1];
+  if (block.nodes.length === 1 && isBlockElement(last)) return { node: last, offset: last.childNodes.length };
+  return { node: root, offset: [...root.childNodes].indexOf(last) + 1 };
+}
+
+// Inserts text as new paragraph(s) after the caret's block. execCommand keeps
+// it in the browser's undo history and fires `input`, so autosave sees it.
+export function insertParagraphAfter(root, caretNode, text) {
+  const doc = root.ownerDocument;
+  const point = blockEndPoint(root, caretNode);
+  root.focus();
+  const range = doc.createRange();
+  range.setStart(point.node, point.offset);
+  range.collapse(true);
+  const selection = doc.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  const lines = text.split('\n');
+  let inserted = false;
+  if (root.textContent.trim() !== '' || root.querySelector('br')) inserted = doc.execCommand('insertParagraph');
+  lines.forEach((line, i) => {
+    if (i > 0) doc.execCommand('insertParagraph');
+    if (line) inserted = doc.execCommand('insertText', false, line) || inserted;
+  });
+  return inserted;
+}

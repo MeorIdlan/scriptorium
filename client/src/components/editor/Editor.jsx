@@ -1,7 +1,7 @@
 import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useAutosave } from '../../hooks/useAutosave.js';
-import { getBlocks, pointToBlockOffset } from '../../utils/editorBlocks.js';
+import { getBlocks, pointToBlockOffset, topLevelNode, rememberCaret } from '../../utils/editorBlocks.js';
 
 const Editor = forwardRef(function Editor({ workId, initialContent = '', initialHtml = '' }, ref) {
   const editorRef = useRef(null);
@@ -22,14 +22,20 @@ const Editor = forwardRef(function Editor({ workId, initialContent = '', initial
       if (!root || !sel || sel.rangeCount === 0) return;
       const range = sel.getRangeAt(0);
       if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return;
+      // Remembered for inserting catches; cheap, so it runs on every caret move
+      const end = range.endContainer;
+      rememberCaret(
+        root,
+        end === root ? root.childNodes[Math.max(0, range.endOffset - 1)] || null : topLevelNode(root, end)
+      );
       if (range.collapsed) {
         setSelection(null);
         return;
       }
       const blocks = getBlocks(root);
       const start = pointToBlockOffset(root, blocks, range.startContainer, range.startOffset);
-      const end = pointToBlockOffset(root, blocks, range.endContainer, range.endOffset);
-      setSelection(start && end ? { start, end } : null);
+      const stop = pointToBlockOffset(root, blocks, range.endContainer, range.endOffset);
+      setSelection(start && stop ? { start, end: stop } : null);
     }
     document.addEventListener('selectionchange', handleSelectionChange);
     return () => document.removeEventListener('selectionchange', handleSelectionChange);

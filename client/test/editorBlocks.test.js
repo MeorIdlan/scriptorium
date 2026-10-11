@@ -8,6 +8,10 @@ import {
   chapterTargets,
   selectionTargets,
   batchTargets,
+  topLevelNode,
+  rememberCaret,
+  rememberedCaret,
+  blockEndPoint,
 } from '../src/utils/editorBlocks.js';
 
 function editor(html) {
@@ -100,4 +104,49 @@ test('batchTargets caps the number of targets per batch', () => {
   const batches = batchTargets(targets, 1500);
   assert.ok(batches.every((b) => b.length <= 60), batches.map((b) => b.length).join(','));
   assert.equal(batches.flat().length, 200);
+});
+
+test('topLevelNode finds the child of the editor that holds a node', () => {
+  const root = editor('Bare <b>bold</b><div>Two <i>it</i></div>');
+  const italic = root.querySelector('i').firstChild;
+  assert.equal(topLevelNode(root, italic), root.querySelector('div'));
+  assert.equal(topLevelNode(root, root.querySelector('b').firstChild), root.querySelector('b'));
+  assert.equal(topLevelNode(root, root), null);
+  assert.equal(topLevelNode(root, editor('<div>x</div>').firstChild), null);
+});
+
+test('rememberedCaret is per editor root', () => {
+  const a = editor('<div>A</div>');
+  const b = editor('<div>B</div>');
+  rememberCaret(a, a.firstChild);
+  assert.equal(rememberedCaret(a), a.firstChild);
+  assert.equal(rememberedCaret(b), null);
+});
+
+test('blockEndPoint is the end of the caret block for a <div> block', () => {
+  const root = editor('<div>One</div><div>Two <b>x</b></div><div>Three</div>');
+  const second = root.childNodes[1];
+  assert.deepEqual(blockEndPoint(root, second), { node: second, offset: second.childNodes.length });
+});
+
+test('blockEndPoint is after the last node of a bare first-line run', () => {
+  const root = editor('Bare <b>bold</b> tail<div>Two</div>');
+  const bold = root.querySelector('b');
+  // run = [text, b, text]; the point is in the root, after the run's third node
+  assert.deepEqual(blockEndPoint(root, bold), { node: root, offset: 3 });
+});
+
+test('blockEndPoint falls back to the last block when the caret is unknown or gone', () => {
+  const root = editor('<div>One</div><div>Two</div>');
+  const last = root.childNodes[1];
+  const expected = { node: last, offset: last.childNodes.length };
+  assert.deepEqual(blockEndPoint(root, null), expected);
+  const removed = root.childNodes[0];
+  removed.remove();
+  assert.deepEqual(blockEndPoint(root, removed), expected);
+});
+
+test('blockEndPoint for an empty editor is the start of the root', () => {
+  const root = editor('');
+  assert.deepEqual(blockEndPoint(root, null), { node: root, offset: 0 });
 });
