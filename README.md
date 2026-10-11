@@ -89,8 +89,8 @@ Two GitHub Actions workflows:
 To reproduce the CI test run locally (Node 24):
 
 ```bash
-cd server && npm ci && npm test
-cd client && npm ci && npm test
+(cd server && npm ci && npm test)
+(cd client && npm ci && npm test)
 ```
 
 ## Structure
