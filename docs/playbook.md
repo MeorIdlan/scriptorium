@@ -1,6 +1,6 @@
 # scriptorium playbook
 
-playbook-template: v1
+playbook-template: v2
 Base branch: `main`
 Required checks: none
 
@@ -14,6 +14,7 @@ How agents work on this repo. Every gate is a hard stop: don't start the next ga
 - **TDD** always: failing test first, for every task.
 
 ## Gates
+Each gate pass is recorded as a card comment `[gate:<n>] <summary>` (`<n>` = `0`–`6`, `verify`, `merged`, `closed`), posted only for approvals the dev actually gave. A new session resumes from the latest tag, checked against the branch, files and checklist. After each approval in Gates 3–5 and every few completed tasks, sync the card (`/task-sync` when available).
 
 ### 0. Freshness
 A SessionStart hook fetches origin and reports branch state. Read that report before anything else. If it's missing or the fetch failed, run `git fetch --prune origin` yourself and tell the dev the hook needs (re)setup.
