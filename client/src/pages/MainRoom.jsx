@@ -12,6 +12,7 @@ import MilestonesModal from '../components/overlays/MilestonesModal.jsx';
 import { openCountsByChapter } from '../utils/catchGroups.js';
 import { useUI } from '../context/UIContext.jsx';
 import { sceneList, scrollToScene } from '../utils/scenes.js';
+import { chapterToLoad } from '../utils/chapterLoad.js';
 
 export default function MainRoom() {
   const { workId, chapterId: urlChapterId } = useParams();
@@ -19,7 +20,7 @@ export default function MainRoom() {
   const { state, loadWork } = useActiveWork();
   const { state: editorState, loadContent } = useEditor();
   const editorRef = useRef(null);
-  const [chapterContent, setChapterContent] = useState({ text: '', html: '' });
+  const [chapterContent, setChapterContent] = useState({ id: null, text: '', html: '' });
   const [addingChapter, setAddingChapter] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState('');
   const [milestonesOpen, setMilestonesOpen] = useState(false);
@@ -31,7 +32,7 @@ export default function MainRoom() {
   // "Open in editor" from the Map: scroll once the chapter is in the editor
   useEffect(() => {
     const pending = uiState.pendingScene;
-    if (!pending || pending.chapterId !== editorState.chapterId) return;
+    if (!pending || pending.chapterId !== editorState.chapterId || chapterContent.id !== pending.chapterId) return;
     const frame = requestAnimationFrame(() => {
       const root = document.querySelector('.editor');
       if (root) scrollToScene(root, sceneList(root)[pending.sceneIndex]);
@@ -49,27 +50,22 @@ export default function MainRoom() {
 
   // Determine which chapter to open
   useEffect(() => {
-    if (!state.chapters || state.chapters.length === 0) return;
-
-    let targetChapterId = urlChapterId;
-    if (!targetChapterId && state.work?.currentChapterId) {
-      targetChapterId = state.work.currentChapterId;
-    }
-    if (!targetChapterId) {
-      targetChapterId = state.chapters[0]?.id;
-    }
-
-    if (targetChapterId && targetChapterId !== editorState.chapterId) {
-      loadChapter(targetChapterId);
-    }
-  }, [state.chapters, state.work, urlChapterId]);
+    const target = chapterToLoad({
+      urlChapterId,
+      work: state.work,
+      chapters: state.chapters,
+      editorChapterId: editorState.chapterId,
+      loadedChapterId: chapterContent.id,
+    });
+    if (target) loadChapter(target);
+  }, [state.chapters, state.work, urlChapterId, chapterContent.id]);
 
   async function loadChapter(chId) {
     try {
       const chapter = await api.get(`/works/${workId}/chapters/${chId}`);
       const text = chapter.content || '';
       const html = chapter.contentHtml || '';
-      setChapterContent({ text, html });
+      setChapterContent({ id: chId, text, html });
       loadContent(chId, text, html);
     } catch (err) {
       console.error('Failed to load chapter:', err);
@@ -190,7 +186,8 @@ export default function MainRoom() {
               workId={workId}
               initialContent={chapterContent.text}
               initialHtml={chapterContent.html}
-              key={editorState.chapterId} // re-mount on chapter change
+              // Re-mount on chapter change, and once this page has the chapter's text
+              key={`${editorState.chapterId}:${chapterContent.id}`}
             />
           </div>
           <WordCounter />
