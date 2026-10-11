@@ -3,7 +3,7 @@ import { SCENE_STATUSES, STATUS_LABELS, SCENE_LIMITS, sceneFieldError, sceneLabe
 
 const FIELDS = ['title', 'pov', 'location', 'summary'];
 
-export default function SceneRow({ scene, current, characters, places, onJump, onSave, onRemove, children, dragProps, busy, error }) {
+export default function SceneRow({ scene, current, characters, places, onJump, onSave, onRemove, children, dragProps, dragging, dropTarget, busy, error }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
   const [confirming, setConfirming] = useState(false);
@@ -25,9 +25,13 @@ export default function SceneRow({ scene, current, characters, places, onJump, o
   const meta = [scene.pov, scene.location].filter((v) => v && v.trim()).join(' · ');
 
   return (
-    <li className={`scene-row${current ? ' current' : ''}`} {...dragProps}>
+    <li
+      className={`scene-row${current ? ' current' : ''}${dragging ? ' dragging' : ''}${dropTarget ? ' drop-target' : ''}`}
+      {...dragProps}
+    >
       {!editing && (
         <>
+          {dragProps && <span className="scene-row-handle" aria-hidden="true" title="Drag to reorder">⋮⋮</span>}
           <button className="scene-row-main" onClick={onJump} title="Go to this scene">
             <span className="scene-row-title">{sceneLabel(scene)}</span>
             {meta && <span className="scene-row-meta">{meta}</span>}
