@@ -5,6 +5,7 @@ import {
   countMentions,
   findMentions,
   formatContextBlock,
+  MAX_CONTEXT_CATCHES,
 } from '../src/services/contextBlock.js';
 
 test('normalizeAliases accepts arrays and comma/semicolon strings', () => {
@@ -124,4 +125,42 @@ test('countMentions matches regardless of Unicode normalization', () => {
   assert.equal(countMentions(nfc, `${nfd} ran.`), 1);
   assert.equal(countMentions(nfd, `${nfc} ran.`), 1);
   assert.equal(countMentions(nfc, `${nfd}y ran.`), 0);
+});
+
+test('formatContextBlock renders writer notes after the Map section', () => {
+  const out = formatContextBlock({
+    story: { title: 'Bells' },
+    summaries: [],
+    mentions: [],
+    rules: [],
+    mapBeat: { act: 'Act I', beat: '', notes: '' },
+    catches: ['She lies about the letter', 'Rain on the well'],
+  });
+  const t = out.text;
+  assert.ok(t.includes("## Writer's notes for this chapter\n- She lies about the letter\n- Rain on the well"));
+  assert.ok(t.indexOf('## This chapter on the Map') < t.indexOf("## Writer's notes for this chapter"));
+  assert.equal(out.catches, 2);
+});
+
+test('writer notes are one line each, clipped to 300 characters, at most 10', () => {
+  const many = Array.from({ length: 12 }, (_, i) => `Note ${i}`);
+  many[0] = 'Line one\n\n  line   two\tend';
+  many[1] = 'x'.repeat(400);
+  const out = formatContextBlock({ story: null, summaries: [], mentions: [], rules: [], mapBeat: null, catches: many });
+  const lines = out.text.split('\n').filter((l) => l.startsWith('- '));
+  assert.equal(MAX_CONTEXT_CATCHES, 10);
+  assert.equal(lines.length, 10);
+  assert.equal(lines[0], '- Line one line two end');
+  assert.equal(lines[1].length, 2 + 300);
+  assert.ok(lines[1].endsWith('…'));
+  assert.equal(out.catches, 10);
+});
+
+test('writer notes skip blank entries and add no section when none are left', () => {
+  const out = formatContextBlock({ story: null, summaries: [], mentions: [], rules: [], mapBeat: null, catches: ['  ', '', null] });
+  assert.equal(out.text, '');
+  assert.equal(out.catches, 0);
+  const none = formatContextBlock({ story: { title: 'T' }, summaries: [], mentions: [], rules: [], mapBeat: null });
+  assert.ok(!none.text.includes("Writer's notes"));
+  assert.equal(none.catches, 0);
 });

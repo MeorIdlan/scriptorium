@@ -1,5 +1,7 @@
 const ENTRY_MAX = 400;
 const CODEX_BUDGET = 8000;
+const CATCH_MAX = 300;
+export const MAX_CONTEXT_CATCHES = 10;
 const WORD_CHAR = '[\\p{L}\\p{M}\\p{N}_]';
 
 const HEADER =
@@ -131,9 +133,23 @@ function mapSection(mapBeat) {
   return parts.length ? `## This chapter on the Map\n${parts.join(' · ')}` : '';
 }
 
-export function formatContextBlock({ story, summaries, mentions, rules, mapBeat }) {
+// Open catches tagged to this chapter: ideas the writer meant to use here
+function catchesSection(catches) {
+  const lines = (catches || [])
+    .map((c) => (typeof c === 'string' ? c.replace(/\s+/g, ' ').trim() : ''))
+    .filter(Boolean)
+    .slice(0, MAX_CONTEXT_CATCHES)
+    .map((c) => `- ${clip(c, CATCH_MAX)}`);
+  return {
+    text: lines.length ? `## Writer's notes for this chapter\n${lines.join('\n')}` : '',
+    count: lines.length,
+  };
+}
+
+export function formatContextBlock({ story, summaries, mentions, rules, mapBeat, catches }) {
   const codex = codexSection(mentions, rules);
-  const sections = [storySection(story), summariesSection(summaries), codex.text, mapSection(mapBeat)].filter(Boolean);
+  const notes = catchesSection(catches);
+  const sections = [storySection(story), summariesSection(summaries), codex.text, mapSection(mapBeat), notes.text].filter(Boolean);
   const text = sections.length ? `<story_context>\n${HEADER}\n\n${sections.join('\n\n')}\n</story_context>` : '';
-  return { text, codexNames: codex.codexNames, rules: codex.rules };
+  return { text, codexNames: codex.codexNames, rules: codex.rules, catches: notes.count };
 }
