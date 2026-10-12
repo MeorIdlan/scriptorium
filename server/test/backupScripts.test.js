@@ -456,8 +456,8 @@ test('Spaces lifecycle rule expires only dumps under scriptorium/backups/ after 
 
 // Stand-ins for the installed dump and upload: each logs that it ran, prints a
 // line (after 20 KB of padding when STUB_PAD is set) and exits with STUB_DUMP_EXIT / STUB_UPLOAD_EXIT. The curl stub logs its
-// arguments, appends what it read on stdin to STUB_CURL_BODY, and fails when
-// STUB_CURL_MODE=fail.
+// arguments, appends the --data-binary @file body to STUB_CURL_BODY, and fails
+// every time when STUB_CURL_MODE=fail, or only the first STUB_CURL_FAILS times.
 const STEP_STUB = (name, exitVar) => `#!/usr/bin/env bash
 echo ${name} >> "$STUB_STEPS"
 [ -n "$STUB_PAD" ] && head -c 20000 /dev/zero | tr '\\0' x && echo
@@ -466,8 +466,11 @@ exit "\${${exitVar}:-0}"
 `;
 const CURL_STUB = `#!/usr/bin/env bash
 echo "$*" >> "$STUB_CURL_LOG"
-cat >> "$STUB_CURL_BODY"
-[ "$STUB_CURL_MODE" = fail ] && { echo "curl: (6) Could not resolve host: hc-ping.com" >&2; exit 6; }
+prev=0; for a in "$@"; do [ "$prev" = 1 ] && cat "\${a#@}" >> "$STUB_CURL_BODY"; [ "$a" = --data-binary ] && prev=1 || prev=0; done
+calls=$(wc -l < "$STUB_CURL_LOG")
+if [ "$STUB_CURL_MODE" = fail ] || [ "$calls" -le "\${STUB_CURL_FAILS:-0}" ]; then
+  echo "curl: (6) Could not resolve host: hc-ping.com" >&2; exit 6
+fi
 exit 0
 `;
 const PING_URL = 'https://hc-ping.com/test-uuid';
@@ -482,6 +485,7 @@ function nightly(env = {}) {
     DUMP_CMD: path.join(bin, 'dump'),
     UPLOAD_CMD: path.join(bin, 'upload'),
     HC_URL_FILE: urlFile,
+    PING_RETRY_DELAY: '0',
     STUB_STEPS: path.join(tmp, 'steps.log'),
     STUB_CURL_LOG: path.join(tmp, 'curl.log'),
     STUB_CURL_BODY: path.join(tmp, 'curl.body'),
@@ -518,6 +522,29 @@ test('nightly run pings /fail with the output when the upload fails', () => {
   assert.match(readOr('curl.body'), /dump ok\nupload: FAILED: boom/);
 });
 
+test('nightly run retries a failed ping and succeeds on a later attempt', () => {
+  const r = nightly({ STUB_CURL_FAILS: '2' });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.deepEqual(pinged(), [PING_URL, PING_URL, PING_URL]);
+  assert.match(r.stdout, /pinged healthchecks \(ok\)/);
+  assert.doesNotMatch(r.stdout, /WARN/);
+});
+
+test('nightly run gives up on the ping after 3 attempts', () => {
+  const r = nightly({ STUB_CURL_MODE: 'fail' });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(pinged().length, 3);
+  assert.match(r.stdout, /WARN: healthchecks ping failed/);
+});
+
+test('nightly run treats an empty ping URL file like a missing one', () => {
+  fs.writeFileSync(path.join(tmp, 'healthchecks-url'), ' \n', { mode: 0o600 });
+  const r = nightly();
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(readOr('curl.log'), '', 'curl never called');
+  assert.match(r.stdout, /WARN: no healthchecks URL/);
+});
+
 test('nightly run still backs up and warns when there is no ping URL file', () => {
   const r = nightly({ HC_URL_FILE: path.join(tmp, 'no-such-file') });
   assert.equal(r.status, 0, r.stdout + r.stderr);
@@ -540,4 +567,13 @@ test('nightly run sends only the last 10 KB of output to /fail, ending with the 
   const body = readOr('curl.body');
   assert.ok(body.length <= 10000, `body is ${body.length} bytes`);
   assert.match(body, /dump: FAILED: boom\n$/);
+});
+
+test('nightly run still pings /fail, without the output, when it cannot make a temp file', () => {
+  const r = nightly({ STUB_DUMP_EXIT: '1', TMPDIR: path.join(tmp, 'no-such-dir') });
+  assert.equal(r.status, 1);
+  assert.deepEqual(pinged(), [`${PING_URL}/fail`]);
+  assert.match(r.stdout, /dump: FAILED: boom/, 'output still reaches the log');
+  assert.match(r.stdout, /WARN: no temp file/);
+  assert.equal(readOr('curl.body'), '');
 });

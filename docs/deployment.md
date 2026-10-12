@@ -99,7 +99,7 @@ The containers themselves are stateless.
 | Retention | 7 days. Older archives are deleted only after a successful dump, so failures never age out the last good copy |
 | Off-box copy | right after a successful dump, the same cron job uploads the new archive to DO Spaces (see [Off-box copy](#off-box-copy-do-spaces)). A failed dump skips the upload |
 | Log | `/var/log/scriptorium-backup.log`, a `wrote …` / `pruned …` / `uploaded …` / `FAILED: …` line per step, then `pinged healthchecks (ok\|fail)` or a `WARN: …` about the ping |
-| Alerts | a [Healthchecks.io](https://healthchecks.io) check emails the dev when a run fails (dump or upload) or doesn't report by 19:00 UTC. A successful run sends nothing. See [Alerts](#alerts-healthchecksio) |
+| Alerts | a [Healthchecks.io](https://healthchecks.io) check emails the dev when a run fails (dump or upload) or doesn't report by 20:00 UTC. A successful run sends nothing. See [Alerts](#alerts-healthchecksio) |
 
 The dumps hold passkey credentials, session tokens and writers' AI API keys:
 treat them as secrets, both on the droplet and in Spaces.
@@ -128,6 +128,7 @@ healthchecks URL` and nothing alerts.
     chmod 644 /etc/cron.d/scriptorium-backup     # cron.d files must not be writable by others
     scriptorium-mongo-dump                       # first dump by hand; check it says "wrote"
     scriptorium-spaces-upload                    # first upload by hand; check it says "uploaded"
+    scriptorium-backup-run                       # the whole nightly job; check it ends "pinged healthchecks (ok)"
 
 **Check it's running**: `tail /var/log/scriptorium-backup.log` should show a
 `wrote`, an `uploaded` and a `pinged healthchecks (ok)` line per night,
@@ -143,7 +144,7 @@ emails the dev when one is a failure or doesn't come.
 |---|---|
 | Success | `scriptorium-backup-run` pings the check URL. No email |
 | Failed dump or upload | it pings `<url>/fail` with the last 10 KB of the run's output, so the email shows the `FAILED:` line. Email within a minute or so |
-| Missed run | cron not running, the droplet down, or the ping itself failing (logged as `WARN: healthchecks ping failed`): no ping by 18:00 UTC + 1 h grace, so an email at about 19:00 UTC (03:00 KL) |
+| Missed run | cron not running, the droplet down, or the ping failing 3 tries in a row (logged as `WARN: healthchecks ping failed`): no ping by 18:00 UTC + 2 h grace, so an email at about 20:00 UTC (04:00 KL). The grace is longer than the slowest run the timeouts allow (1 h dump + 30 min upload), so a slow but good night doesn't alert |
 | Back to normal | the next successful run turns the check back up and sends an "up" email |
 | Ping URL | `/etc/scriptorium-backup/healthchecks-url` on the droplet, root-only (`600`). Never in the repo: anyone holding it can mark the check green |
 
@@ -154,7 +155,7 @@ The ping never changes the backup's own result or exit code.
 1. Sign up at healthchecks.io (free plan) with the email that should get the
    alerts. Email to the account address is on by default under Integrations.
 2. Add a check named `scriptorium-backup`: **Schedule** Cron, expression
-   `0 18 * * *`, **Time Zone** UTC, **Grace Time** 1 hour. Copy its ping URL
+   `0 18 * * *`, **Time Zone** UTC, **Grace Time** 2 hours. Copy its ping URL
    (`https://hc-ping.com/<uuid>`).
 3. On the droplet, as root (an editor, so the URL doesn't land in shell
    history):
@@ -173,10 +174,10 @@ The ping never changes the backup's own result or exit code.
   (fail)`, and a "down" email arrives with the `FAILED:` line in it. Then run
   `scriptorium-backup-run` again to get back to up (an "up" email
   follows).
-- *Missed run*: rename the URL file for one night (`mv
+- *Missed run*: once the check is up again, rename the URL file for one night (`mv
   /etc/scriptorium-backup/healthchecks-url{,.off}` before 18:00 UTC). The
   backup still runs but logs `WARN: no healthchecks URL`, and the "down" email
-  arrives at about 19:00 UTC. Move the file back afterwards.
+  arrives at about 20:00 UTC. Move the file back afterwards.
 
 **Replace the URL** (if it leaks): make a new check with the same settings,
 put its URL in the file, run `scriptorium-backup-run` to confirm, then delete
