@@ -97,31 +97,90 @@ The containers themselves are stateless.
 | What | `mongodump --db scriptorium --archive --gzip` inside the shared Mongo container `mongo-mongo-1`. Other databases on that Mongo are not included |
 | Where | `/var/backups/scriptorium/scriptorium-<YYYYMMDDTHHMMSSZ>.archive.gz` on the droplet (folder `700`, files `600`) |
 | Retention | 7 days. Older archives are deleted only after a successful dump, so failures never age out the last good copy |
-| Log | `/var/log/scriptorium-backup.log`, a `wrote …` / `pruned …` / `FAILED: …` line per run |
-| Alerts | none yet: a failed dump only writes `FAILED:` to the log, so check it by hand |
+| Off-box copy | right after a successful dump, the same cron job uploads the new archive to DO Spaces (see [Off-box copy](#off-box-copy-do-spaces)). A failed dump skips the upload |
+| Log | `/var/log/scriptorium-backup.log`, a `wrote …` / `pruned …` / `uploaded …` / `FAILED: …` line per run |
+| Alerts | none yet: a failed dump or upload only writes `FAILED:` to the log, so check it by hand |
 
 The dumps hold passkey credentials, session tokens and writers' AI API keys:
-treat them as secrets. They live only on the droplet for now, so losing the
-droplet loses them too; copying them off-box is a planned follow-up.
+treat them as secrets, both on the droplet and in Spaces.
 
 The scripts live in `ops/backup/` and take env overrides (`MONGO_CONTAINER`,
 `DB`, `BACKUP_DIR`, `RETENTION_DAYS`, `DUMP_TIMEOUT` in seconds, default 1h;
 the restore check also `RESTORE_DB`, which must end in `_restorecheck`, and
-`VOLATILE_COLLECTIONS`).
+`VOLATILE_COLLECTIONS`; the upload also `SPACES_CONFIG`, `SPACES_URI` and
+`UPLOAD_TIMEOUT` in seconds, default 30 min).
 
-**Install or update** (from a repo checkout, then on the droplet as root):
+**Install or update** (from a repo checkout, then on the droplet as root). Set
+up Spaces first ([below](#off-box-copy-do-spaces)): without it, every nightly
+upload logs `FAILED: no Spaces config`.
 
     scp ops/backup/mongo-dump.sh          root@<droplet>:/usr/local/sbin/scriptorium-mongo-dump
     scp ops/backup/mongo-restore-check.sh root@<droplet>:/usr/local/sbin/scriptorium-mongo-restore-check
+    scp ops/backup/spaces-upload.sh       root@<droplet>:/usr/local/sbin/scriptorium-spaces-upload
     scp ops/backup/scriptorium-backup.cron root@<droplet>:/etc/cron.d/scriptorium-backup
 
-    chmod 755 /usr/local/sbin/scriptorium-mongo-dump /usr/local/sbin/scriptorium-mongo-restore-check
+    chmod 755 /usr/local/sbin/scriptorium-mongo-dump /usr/local/sbin/scriptorium-mongo-restore-check \
+              /usr/local/sbin/scriptorium-spaces-upload
     chmod 644 /etc/cron.d/scriptorium-backup     # cron.d files must not be writable by others
     scriptorium-mongo-dump                       # first dump by hand; check it says "wrote"
+    scriptorium-spaces-upload                    # first upload by hand; check it says "uploaded"
 
-**Check it's running**: `tail /var/log/scriptorium-backup.log` and
-`ls -l /var/backups/scriptorium` should show one new archive per day and no
-more than about 7–8 of them.
+**Check it's running**: `tail /var/log/scriptorium-backup.log` should show a
+`wrote` and an `uploaded` line per night, `ls -l /var/backups/scriptorium` one
+new archive per day and no more than about 7–8 of them.
+
+### Off-box copy (DO Spaces)
+
+| | |
+|---|---|
+| Where | private Space `scriptorium-backups` (in the droplet's region), objects `scriptorium/scriptorium-<YYYYMMDDTHHMMSSZ>.archive.gz`, uploaded with a private ACL |
+| How | `scriptorium-spaces-upload` (`ops/backup/spaces-upload.sh`) runs `s3cmd put` on the newest archive, or on one given as an argument. It never touches the local copy |
+| Retention | 30 days, enforced by the bucket's lifecycle rule (`ops/backup/spaces-lifecycle.xml`), which also clears stalled multipart uploads after 1 day. DO applies lifecycle rules about once a day |
+| Credentials | a bucket-scoped (limited, Read/Write/Delete) Spaces key in `/etc/scriptorium-backup/s3cfg` on the droplet, root-only (`600`, folder `700`). Never in the repo |
+| Failures | `FAILED: …` in the backup log and exit 1; the local archive stays, and the next night uploads the next one |
+
+**One-time setup:**
+
+1. In the DO console, create a Space named `scriptorium-backups` in the
+   droplet's region with **File Listing: Restricted** and no CDN. (Space names
+   are global; if it's taken, pick another and add
+   `SPACES_URI=s3://<name>/scriptorium/` as a line above the job in
+   `/etc/cron.d/scriptorium-backup`.)
+2. Under **Spaces Object Storage → Access Keys**, create a **limited access**
+   key for that Space only, with **Read/Write/Delete**. This is the nightly key.
+3. On the droplet, as root, install s3cmd and write its config with the key.
+   Use an editor so the secret doesn't land in shell history:
+
+       apt install s3cmd
+       install -d -m 700 /etc/scriptorium-backup
+       install -m 600 /dev/null /etc/scriptorium-backup/s3cfg
+       nano /etc/scriptorium-backup/s3cfg
+
+   with (replace `sgp1` with the Space's region):
+
+       [default]
+       access_key = <limited key>
+       secret_key = <limited secret>
+       host_base = sgp1.digitaloceanspaces.com
+       host_bucket = %(bucket)s.sgp1.digitaloceanspaces.com
+       use_https = True
+
+4. Set the lifecycle rule. Limited keys can't change bucket configuration, so
+   use a **Full Access** key once, from a throwaway config, then delete it:
+
+       install -m 600 /dev/null /root/s3cfg-full && nano /root/s3cfg-full   # same as above, full-access key
+       s3cmd -c /root/s3cfg-full setlifecycle spaces-lifecycle.xml s3://scriptorium-backups
+       s3cmd -c /root/s3cfg-full getlifecycle s3://scriptorium-backups      # shows Days 30 on scriptorium/
+       rm /root/s3cfg-full
+
+   (`scp ops/backup/spaces-lifecycle.xml` to the droplet first.) If the full
+   key was made only for this, revoke it in the console.
+5. Run the first upload by hand (`scriptorium-spaces-upload`), then
+   `s3cmd -c /etc/scriptorium-backup/s3cfg ls s3://scriptorium-backups/scriptorium/`.
+
+**Rotate the key**: create a new limited key, swap it into
+`/etc/scriptorium-backup/s3cfg`, run `scriptorium-spaces-upload`, then revoke
+the old key.
 
 ### Restore drill
 
@@ -139,6 +198,22 @@ documents. Counts that differ only because of writes since the dump (audit
 logs, sessions) are flagged as `changed since dump` but pass. The short-lived
 auth collections (`authsessions`, `otpcodes`, `webauthnchallenges`, which
 expire by TTL) are only ever flagged, never failed.
+
+### Restore from Spaces
+
+When the droplet's copies are gone or too new (Spaces keeps 30 days, the
+droplet 7), fetch the archive from Spaces, prove it with the drill, then use
+it for a [real restore](#real-restore). Skip the copy in step 1 there: the
+archive is already at `/root/restore-from.archive.gz`.
+
+    s3cmd -c /etc/scriptorium-backup/s3cfg ls s3://scriptorium-backups/scriptorium/
+    s3cmd -c /etc/scriptorium-backup/s3cfg get \
+      s3://scriptorium-backups/scriptorium/<file> /root/restore-from.archive.gz
+    chmod 600 /root/restore-from.archive.gz
+    scriptorium-mongo-restore-check /root/restore-from.archive.gz   # must say PASS
+
+On a new droplet, bring up the shared Mongo stack and do step 3 of the
+one-time setup above (s3cmd and its config, with the same limited key) first.
 
 ### Real restore
 
