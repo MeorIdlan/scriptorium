@@ -9,40 +9,61 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete })
   const [picking, setPicking] = useState(false);
   const [custom, setCustom] = useState(thread.color);
   const [confirming, setConfirming] = useState(false);
-  const saving = useRef(false);
+  // Fields with a save in flight: only a repeat save of the same field is dropped
+  const saving = useRef(new Set());
+  // Whether each editor is open, readable by a blur that fires while it unmounts
+  const nameOpen = useRef(false);
+  const descOpen = useRef(false);
 
-  const commit = async (fields, close) => {
-    if (saving.current) return;
-    saving.current = true;
+  const openName = () => {
+    nameOpen.current = true;
+    setName(thread.name);
+  };
+  const closeName = () => {
+    nameOpen.current = false;
+    setName(null);
+  };
+  const openDesc = () => {
+    descOpen.current = true;
+    setDesc(thread.description);
+  };
+  const closeDesc = () => {
+    descOpen.current = false;
+    setDesc(null);
+  };
+
+  const commit = async (key, fields, close) => {
+    if (saving.current.has(key)) return;
+    saving.current.add(key);
     try {
       if (await onSave(fields)) close();
     } finally {
-      saving.current = false;
+      saving.current.delete(key);
     }
   };
 
   const nameError = name !== null ? threadNameError(name) : null;
   const saveName = () => {
-    if (name === null || nameError) return;
+    if (!nameOpen.current || name === null || nameError) return;
     const next = name.trim();
-    if (next === thread.name) return setName(null);
-    commit({ name: next }, () => setName(null));
+    if (next === thread.name) return closeName();
+    commit('name', { name: next }, closeName);
   };
   const onNameKey = (e) => {
     if (e.key === 'Enter') saveName();
-    if (e.key === 'Escape') setName(null);
+    if (e.key === 'Escape') closeName();
   };
 
   const descError = desc !== null ? threadDescriptionError(desc) : null;
   const saveDesc = () => {
-    if (desc === null || descError) return;
+    if (!descOpen.current || desc === null || descError) return;
     const next = desc.trim();
-    if (next === thread.description) return setDesc(null);
-    commit({ description: next }, () => setDesc(null));
+    if (next === thread.description) return closeDesc();
+    commit('description', { description: next }, closeDesc);
   };
 
-  const pickColor = (color) => commit({ color }, () => setPicking(false));
-  const toggleStatus = () => commit({ status: thread.status === 'open' ? 'resolved' : 'open' }, () => {});
+  const pickColor = (color) => commit('color', { color }, () => setPicking(false));
+  const toggleStatus = () => commit('status', { status: thread.status === 'open' ? 'resolved' : 'open' }, () => {});
 
   return (
     <li className={`thread-row thread-row--${thread.status}`}>
@@ -58,7 +79,7 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete })
           }}
         />
         {name === null ? (
-          <button className="thread-name" onClick={() => setName(thread.name)} title="Rename">
+          <button className="thread-name" onClick={openName} title="Rename">
             {thread.name}
           </button>
         ) : (
@@ -105,7 +126,7 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete })
         </div>
       )}
       {desc === null ? (
-        <button className="thread-desc" onClick={() => setDesc(thread.description)}>
+        <button className="thread-desc" onClick={openDesc}>
           {thread.description ? thread.description.split('\n')[0] : 'Add a description'}
         </button>
       ) : (
@@ -115,7 +136,7 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete })
           rows={3}
           value={desc}
           onChange={(e) => setDesc(e.target.value)}
-          onKeyDown={(e) => e.key === 'Escape' && setDesc(null)}
+          onKeyDown={(e) => e.key === 'Escape' && closeDesc()}
           onBlur={saveDesc}
           autoFocus
         />

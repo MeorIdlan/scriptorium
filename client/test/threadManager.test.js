@@ -99,3 +99,69 @@ test('asks before deleting and says how many tags go', async () => {
   assert.equal(view.changed(), 1);
   await view.unmount();
 });
+
+test('a status click is not lost while a description save is in flight', async () => {
+  let release;
+  const slow = new Promise((resolve) => {
+    release = resolve;
+  });
+  const view = await mount({
+    routes: { 'PUT /works/w1/threads/thr_1': (body) => (body.description ? slow.then(() => ({})) : {}) },
+  });
+  await click(view.query('.thread-desc'));
+  const area = view.query('.thread-desc-input');
+  await type(area, 'Ada is the heir.');
+  await blur(area); // the browser blurs the textarea before the click lands
+  await click(view.query('.thread-status'));
+  release();
+  await click(view.query('.thread-name')); // lets the slow reply settle
+  assert.deepEqual(
+    view.writes().map((w) => w.body),
+    [{ description: 'Ada is the heir.' }, { status: 'resolved' }],
+  );
+  await view.unmount();
+});
+
+test('Escape on the name cancels the rename even if the input blurs as it unmounts', async () => {
+  const view = await mount();
+  await click(view.query('.thread-name'));
+  const input = view.query('.thread-name-input');
+  await type(input, 'Debt');
+  await press(input, 'Escape');
+  await blur(input);
+  assert.equal(view.writes().length, 0);
+  await view.unmount();
+});
+
+test('Escape on the description cancels the edit even if the textarea blurs as it unmounts', async () => {
+  const view = await mount();
+  await click(view.query('.thread-desc'));
+  const area = view.query('.thread-desc-input');
+  await type(area, 'Changed');
+  await press(area, 'Escape');
+  await blur(area);
+  assert.equal(view.writes().length, 0);
+  await view.unmount();
+});
+
+test('a new thread is posted once even if the input blurs after Enter', async () => {
+  const view = await mount({ routes: { 'POST /works/w1/threads': { id: 'thr_2', name: 'Lost letter' } } });
+  await click(view.button('New thread'));
+  const input = view.query('.thread-new-name');
+  await type(input, 'Lost letter');
+  await press(input, 'Enter');
+  await blur(input);
+  assert.equal(view.writes().filter((w) => w.method === 'POST').length, 1);
+  await view.unmount();
+});
+
+test('Escape on a new thread posts nothing even if the input blurs', async () => {
+  const view = await mount();
+  await click(view.button('New thread'));
+  const input = view.query('.thread-new-name');
+  await type(input, 'Lost letter');
+  await press(input, 'Escape');
+  await blur(input);
+  assert.equal(view.writes().length, 0);
+  await view.unmount();
+});

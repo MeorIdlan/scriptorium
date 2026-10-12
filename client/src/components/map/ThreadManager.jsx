@@ -9,6 +9,7 @@ export default function ThreadManager({ workId, threads, chapters, onChanged }) 
   const [newName, setNewName] = useState('');
   const [errors, setErrors] = useState({});
   const creating = useRef(false);
+  const addingRef = useRef(false); // readable by a blur that fires while the field unmounts
   const base = `/works/${workId}/threads`;
 
   // Resolves true on success; on failure the server's message shows under the row
@@ -24,19 +25,25 @@ export default function ThreadManager({ workId, threads, chapters, onChanged }) 
     }
   };
 
+  const openNew = () => {
+    addingRef.current = true;
+    setAdding(true);
+  };
   const cancelNew = () => {
+    addingRef.current = false;
     setAdding(false);
     setNewName('');
     setErrors((e) => ({ ...e, new: null }));
   };
   const newError = newName.trim() ? threadNameError(newName) : null;
   const create = async () => {
-    if (creating.current) return;
+    if (creating.current || !addingRef.current) return;
     if (!newName.trim()) return cancelNew();
     if (newError) return;
     creating.current = true;
     try {
       if (await run('new', () => api.post(base, { name: newName.trim() }))) {
+        addingRef.current = false;
         setAdding(false);
         setNewName('');
       }
@@ -54,7 +61,7 @@ export default function ThreadManager({ workId, threads, chapters, onChanged }) 
       <div className="thread-manager-head">
         <h3 className="thread-manager-title">Plot threads</h3>
         {!adding && (
-          <button className="btn btn-secondary btn-sm" onClick={() => setAdding(true)}>
+          <button className="btn btn-secondary btn-sm" onClick={openNew}>
             New thread
           </button>
         )}
