@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Retention for the off-box dump copies in DO Spaces (docs/deployment.md → Data).
+     Apply once with a Full Access key; limited keys can't set lifecycle rules:
+       s3cmd -c <full-access s3cfg> setlifecycle spaces-lifecycle.xml s3://<bucket>
+     Check with: s3cmd -c <s3cfg> getlifecycle s3://<bucket> -->
+<LifecycleConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Rule>
+    <ID>scriptorium-dumps-30-days</ID>
+    <Prefix>scriptorium/</Prefix>
+    <Status>Enabled</Status>
+    <Expiration>
+      <Days>30</Days>
+    </Expiration>
+    <AbortIncompleteMultipartUpload>
+      <DaysAfterInitiation>1</DaysAfterInitiation>
+    </AbortIncompleteMultipartUpload>
+  </Rule>
+</LifecycleConfiguration>
