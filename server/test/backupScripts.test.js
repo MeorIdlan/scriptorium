@@ -428,3 +428,16 @@ for (const [dumpExit, uploads] of [[0, true], [1, false]]) {
     assert.equal(fs.readFileSync(logFile, 'utf8'), uploads ? 'dumped\nuploaded\n' : 'dumped\n');
   });
 }
+
+test('Spaces lifecycle rule expires dumps under scriptorium/ after 30 days and cleans up stalled uploads', () => {
+  const xml = fs.readFileSync(path.join(OPS, 'spaces-lifecycle.xml'), 'utf8');
+  const rules = xml.match(/<Rule>[\s\S]*?<\/Rule>/g) ?? [];
+  assert.equal(rules.length, 1);
+  const [rule] = rules;
+  assert.match(rule, /<Status>Enabled<\/Status>/);
+  assert.match(rule, /<Prefix>scriptorium\/<\/Prefix>/);
+  assert.match(rule, /<Expiration>\s*<Days>30<\/Days>\s*<\/Expiration>/);
+  assert.match(rule, /<AbortIncompleteMultipartUpload>\s*<DaysAfterInitiation>1<\/DaysAfterInitiation>/);
+  // The upload script writes under the same prefix the rule expires.
+  assert.match(fs.readFileSync(path.join(OPS, 'spaces-upload.sh'), 'utf8'), /SPACES_URI:-s3:\/\/[^/]+\/scriptorium\/\}/);
+});
