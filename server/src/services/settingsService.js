@@ -40,6 +40,17 @@ export function isAiEnabled(settings) {
   return isAiAvailable(settings) && settings.aiEnabled !== false;
 }
 
+// Throws unless AI may run; a missing key keeps the NO_API_KEY code the
+// client already explains
+export function assertAiEnabled(settings) {
+  if (!isAiAvailable(settings)) {
+    throw httpError(400, 'NO_API_KEY', 'No API key configured for active provider');
+  }
+  if (!isAiEnabled(settings)) {
+    throw httpError(403, 'AI_DISABLED', 'AI features are turned off. Turn them on in Settings.');
+  }
+}
+
 // Checks an aiEnabled change against the settings as they will be after the
 // save (partial.providers is the already-merged provider map); null when fine
 export function validateAiToggle(current, partial) {
