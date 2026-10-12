@@ -32,6 +32,20 @@ test('requireAiEnabled refuses before the route runs when AI is off', async () =
   assert.equal(err.code, 'AI_DISABLED');
 });
 
+test('requireAiEnabled lets requests through to the test-only fake provider', async (t) => {
+  const saved = { NODE_ENV: process.env.NODE_ENV, LLM_PROVIDER_OVERRIDE: process.env.LLM_PROVIDER_OVERRIDE };
+  t.after(() => {
+    for (const [k, v] of Object.entries(saved)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  });
+  process.env.NODE_ENV = 'test';
+  process.env.LLM_PROVIDER_OVERRIDE = 'fake';
+  const mw = requireAiEnabled(async () => noKey);
+  assert.equal(await run(mw, { user: { id: 'user_1' } }), undefined);
+});
+
 test('requireAiEnabled calls next with no error when AI is on', async () => {
   const mw = requireAiEnabled(async () => withKey);
   assert.equal(await run(mw, { user: { id: 'user_1' } }), undefined);

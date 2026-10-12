@@ -17,9 +17,13 @@ export function listProviders() {
   return PROVIDERS;
 }
 
+// Local verification only: never reachable in development or production
+export function usesFakeLlm() {
+  return process.env.NODE_ENV === 'test' && process.env.LLM_PROVIDER_OVERRIDE === 'fake';
+}
+
 export async function complete({ system, prompt, maxTokensOverride, userId } = {}) {
-  // Local verification only: never reachable in development or production
-  if (process.env.NODE_ENV === 'test' && process.env.LLM_PROVIDER_OVERRIDE === 'fake') {
+  if (usesFakeLlm()) {
     return fakeProvider.complete({ system, prompt });
   }
   const settings = await getSettings(userId);
