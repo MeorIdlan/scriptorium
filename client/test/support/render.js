@@ -106,3 +106,21 @@ export async function click(el) {
   });
   await flush();
 }
+
+// Presses a key on an element (React reads event.key)
+export async function press(el, key) {
+  await act(async () => {
+    const event = new window.Event('keydown', { bubbles: true });
+    Object.defineProperty(event, 'key', { value: key });
+    el.dispatchEvent(event);
+  });
+  await flush();
+}
+
+// React's onBlur listens for focusout
+export async function blur(el) {
+  await act(async () => {
+    el.dispatchEvent(new window.Event('focusout', { bubbles: true }));
+  });
+  await flush();
+}

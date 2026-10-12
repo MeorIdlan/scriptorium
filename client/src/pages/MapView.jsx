@@ -6,11 +6,12 @@ import TensionCurve from '../components/map/TensionCurve.jsx';
 import ChapterBlocks from '../components/map/ChapterBlocks.jsx';
 import BeatRow from '../components/map/BeatRow.jsx';
 import ChapterDetail from '../components/map/ChapterDetail.jsx';
+import ThreadManager from '../components/map/ThreadManager.jsx';
 import { povOptions } from '../utils/sceneMap.js';
 
 export default function MapView() {
   const { workId } = useParams();
-  const { state, loadWork, refreshMap } = useActiveWork();
+  const { state, loadWork, refreshMap, refreshThreads } = useActiveWork();
   const { state: uiState } = useUI();
   const [pov, setPov] = useState('');
 
@@ -18,8 +19,9 @@ export default function MapView() {
     if (workId) {
       loadWork(workId);
       refreshMap(workId);
+      refreshThreads(workId);
     }
-  }, [workId, loadWork, refreshMap]);
+  }, [workId, loadWork, refreshMap, refreshThreads]);
 
   // Tension, beat, act and notes live in the Map document, keyed by chapter id
   const chapters = useMemo(() => {
@@ -67,6 +69,15 @@ export default function MapView() {
         )}
         <ChapterBlocks chapters={chapters} pov={pov} />
         <BeatRow chapters={chapters} />
+      </div>
+
+      <div className="map-threads-section">
+        <ThreadManager
+          workId={workId}
+          threads={state.threads}
+          chapters={state.chapters}
+          onChanged={() => refreshThreads(workId)}
+        />
       </div>
 
       <div className="map-detail-section">

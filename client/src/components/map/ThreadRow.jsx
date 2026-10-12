@@ -1,0 +1,145 @@
+import { useRef, useState } from 'react';
+import { THREAD_PALETTE, threadNameError, threadDescriptionError, deleteMessage } from '../../utils/threads.js';
+
+// One plot thread. onSave(fields) resolves true when the server accepted it;
+// a refused edit stays open with what the writer typed.
+export default function ThreadRow({ thread, tagCount, error, onSave, onDelete }) {
+  const [name, setName] = useState(null); // null = not editing
+  const [desc, setDesc] = useState(null);
+  const [picking, setPicking] = useState(false);
+  const [custom, setCustom] = useState(thread.color);
+  const [confirming, setConfirming] = useState(false);
+  const saving = useRef(false);
+
+  const commit = async (fields, close) => {
+    if (saving.current) return;
+    saving.current = true;
+    try {
+      if (await onSave(fields)) close();
+    } finally {
+      saving.current = false;
+    }
+  };
+
+  const nameError = name !== null ? threadNameError(name) : null;
+  const saveName = () => {
+    if (name === null || nameError) return;
+    const next = name.trim();
+    if (next === thread.name) return setName(null);
+    commit({ name: next }, () => setName(null));
+  };
+  const onNameKey = (e) => {
+    if (e.key === 'Enter') saveName();
+    if (e.key === 'Escape') setName(null);
+  };
+
+  const descError = desc !== null ? threadDescriptionError(desc) : null;
+  const saveDesc = () => {
+    if (desc === null || descError) return;
+    const next = desc.trim();
+    if (next === thread.description) return setDesc(null);
+    commit({ description: next }, () => setDesc(null));
+  };
+
+  const pickColor = (color) => commit({ color }, () => setPicking(false));
+  const toggleStatus = () => commit({ status: thread.status === 'open' ? 'resolved' : 'open' }, () => {});
+
+  return (
+    <li className={`thread-row thread-row--${thread.status}`}>
+      <div className="thread-row-main">
+        <button
+          className="thread-swatch"
+          style={{ background: thread.color }}
+          aria-label="Change colour"
+          title="Change colour"
+          onClick={() => {
+            setCustom(thread.color);
+            setPicking(!picking);
+          }}
+        />
+        {name === null ? (
+          <button className="thread-name" onClick={() => setName(thread.name)} title="Rename">
+            {thread.name}
+          </button>
+        ) : (
+          <input
+            type="text"
+            className="form-input thread-name-input"
+            aria-label="Thread name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={onNameKey}
+            onBlur={saveName}
+            autoFocus
+          />
+        )}
+        <button
+          className={`thread-status thread-status--${thread.status}`}
+          aria-pressed={thread.status === 'resolved'}
+          title={thread.status === 'open' ? 'Mark resolved' : 'Reopen'}
+          onClick={toggleStatus}
+        >
+          {thread.status === 'open' ? 'Open' : 'Resolved'}
+        </button>
+        {!confirming && (
+          <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(true)}>
+            Delete
+          </button>
+        )}
+      </div>
+      {picking && (
+        <div className="thread-palette">
+          {THREAD_PALETTE.map((color) => (
+            <button
+              key={color}
+              className={`thread-palette-color${color === thread.color ? ' current' : ''}`}
+              style={{ background: color }}
+              aria-label={`Colour ${color}`}
+              onClick={() => pickColor(color)}
+            />
+          ))}
+          <input type="color" aria-label="Custom colour" value={custom} onChange={(e) => setCustom(e.target.value)} />
+          <button className="btn btn-ghost btn-sm" onClick={() => pickColor(custom)}>
+            Use colour
+          </button>
+        </div>
+      )}
+      {desc === null ? (
+        <button className="thread-desc" onClick={() => setDesc(thread.description)}>
+          {thread.description ? thread.description.split('\n')[0] : 'Add a description'}
+        </button>
+      ) : (
+        <textarea
+          className="form-input thread-desc-input"
+          aria-label="Thread description"
+          rows={3}
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          onKeyDown={(e) => e.key === 'Escape' && setDesc(null)}
+          onBlur={saveDesc}
+          autoFocus
+        />
+      )}
+      {nameError && <p className="field-error">{nameError}</p>}
+      {descError && <p className="field-error">{descError}</p>}
+      {error && <p className="field-error">{error}</p>}
+      {confirming && (
+        <div className="thread-confirm">
+          <p>{deleteMessage(thread.name, tagCount)}</p>
+          <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-danger btn-sm"
+            onClick={() => {
+              setConfirming(false);
+              onDelete();
+            }}
+          >
+            Delete thread
+          </button>
+        </div>
+      )}
+    </li>
+  );
+}
