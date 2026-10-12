@@ -77,10 +77,12 @@ export default function Settings() {
     ])
       .then(([s, p]) => {
         setSettings(s);
+        setAiState(s);
         setProviders(Array.isArray(p) ? p : []);
-        // Auto-fetch models if a key is already saved
+        // Auto-fetch models if a key is already saved. With AI off, nothing
+        // reaches the provider until the writer asks (Test Key, the switch)
         const provider = s?.activeProvider;
-        if (provider && s?.providers?.[provider]?.hasKey) {
+        if (s?.aiEnabled && provider && s?.providers?.[provider]?.hasKey) {
           fetchModels(provider, '').then((models) => {
             if (models) {
               const currentModel = s?.providers?.[provider]?.model;
@@ -219,6 +221,11 @@ export default function Settings() {
       setSettings((s) => ({ ...s, aiEnabled: updated.aiEnabled, aiAvailable: updated.aiAvailable }));
       setAiState(updated);
       showToast(enabled ? 'AI features on' : 'AI features off');
+      // Models weren't loaded while AI was off
+      const provider = settings?.activeProvider;
+      if (updated.aiEnabled && !fetchedModels && provider && settings?.providers?.[provider]?.hasKey) {
+        fetchModels(provider, '');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
