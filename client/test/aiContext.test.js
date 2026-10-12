@@ -38,7 +38,7 @@ test('setAiState switches AI without remounting', async () => {
   const p = view.query('p');
   await act(async () => state.setAiState({ aiEnabled: true, aiAvailable: true }));
   assert.equal(view.text(), 'ai on');
-  assert.equal(view.query('p'), p);
+  assert.ok(view.query('p') === p, 'probe was remounted');
   await act(async () => state.setAiState({ aiEnabled: false, aiAvailable: true }));
   assert.equal(view.text(), 'ai off');
   await view.unmount();

@@ -39,10 +39,23 @@ export async function flush() {
   });
 }
 
+// Roots still mounted, so a failed test can't leave timers running
+const mounted = new Set();
+
+export async function cleanup() {
+  for (const unmount of [...mounted]) await unmount();
+}
+
 export async function render(element) {
   const container = window.document.createElement('div');
   window.document.body.appendChild(container);
   const root = createRoot(container);
+  async function unmount() {
+    if (!mounted.delete(unmount)) return;
+    await act(async () => root.unmount());
+    container.remove();
+  }
+  mounted.add(unmount);
   await act(async () => root.render(element));
   await flush();
   return {
@@ -51,10 +64,7 @@ export async function render(element) {
       await act(async () => root.render(next));
       await flush();
     },
-    async unmount() {
-      await act(async () => root.unmount());
-      container.remove();
-    },
+    unmount,
   };
 }
 

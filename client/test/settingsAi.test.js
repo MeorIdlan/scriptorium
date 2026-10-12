@@ -38,7 +38,7 @@ test('turning AI on shows the AI sections without a reload', async () => {
   assert.doesNotMatch(view.text(), /AI Behaviour/);
   await toggle(aiSwitch(view), true);
   assert.match(view.text(), /AI Behaviour/);
-  assert.equal(view.query('.settings-page'), page);
+  assert.ok(view.query('.settings-page') === page, 'page was remounted');
   await toggle(aiSwitch(view), false);
   assert.doesNotMatch(view.text(), /AI Behaviour/);
   await view.unmount();

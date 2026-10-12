@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
+import { useAiState } from '../../context/AiContext.jsx';
 import ChapterHistoryModal from '../overlays/ChapterHistoryModal.jsx';
 import ChapterSummaryModal from '../overlays/ChapterSummaryModal.jsx';
 import { insertSceneBreak } from '../../utils/scenes.js';
@@ -14,6 +15,7 @@ export default function Toolbar({ editorRef }) {
   const { dispatch } = useUI();
   const { workId } = useParams();
   const { state: editorState } = useEditor();
+  const { aiOn } = useAiState();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
 
@@ -118,13 +120,15 @@ export default function Toolbar({ editorRef }) {
 
       <div className="toolbar-divider" />
 
-      <button
-        className="toolbar-btn toolbar-spark"
-        onClick={() => dispatch({ type: 'TOGGLE_HOOK_GENERATOR' })}
-        title="Open Spark / Hook Generator"
-      >
-        ✨ Spark
-      </button>
+      {aiOn && (
+        <button
+          className="toolbar-btn toolbar-spark"
+          onClick={() => dispatch({ type: 'TOGGLE_HOOK_GENERATOR' })}
+          title="Open Spark / Hook Generator"
+        >
+          ✨ Spark
+        </button>
+      )}
       <button
         className="toolbar-btn toolbar-spark"
         onClick={() => setHistoryOpen(true)}
@@ -133,14 +137,17 @@ export default function Toolbar({ editorRef }) {
       >
         ⟲ History
       </button>
-      <button
-        className="toolbar-btn toolbar-spark"
-        onClick={() => setSummaryOpen(true)}
-        disabled={!editorState.chapterId}
-        title="View or edit the summary AI help uses for this chapter"
-      >
-        ☰ Summary
-      </button>
+      {/* Summaries exist only for AI help */}
+      {aiOn && (
+        <button
+          className="toolbar-btn toolbar-spark"
+          onClick={() => setSummaryOpen(true)}
+          disabled={!editorState.chapterId}
+          title="View or edit the summary AI help uses for this chapter"
+        >
+          ☰ Summary
+        </button>
+      )}
 
       {historyOpen && (
         <ChapterHistoryModal
@@ -149,7 +156,7 @@ export default function Toolbar({ editorRef }) {
           onDismiss={() => setHistoryOpen(false)}
         />
       )}
-      {summaryOpen && (
+      {aiOn && summaryOpen && (
         <ChapterSummaryModal
           workId={workId}
           chapterId={editorState.chapterId}

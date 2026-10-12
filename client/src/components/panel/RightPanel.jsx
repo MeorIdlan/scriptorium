@@ -6,6 +6,7 @@ import CatchTab from './CatchTab.jsx';
 import ScenesTab from './ScenesTab.jsx';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
+import { useAiState } from '../../context/AiContext.jsx';
 import { openCountsByChapter } from '../../utils/catchGroups.js';
 
 const SLIDE = 'left 0.22s cubic-bezier(0.4,0,0.2,1), width 0.22s cubic-bezier(0.4,0,0.2,1)';
@@ -19,7 +20,10 @@ const TABS = [
 
 export default function RightPanel({ workId }) {
   const { state, dispatch } = useUI();
-  const { activePanelTab } = state;
+  const { aiOn } = useAiState();
+  // With AI off the Quill tab is gone; the stored choice comes back with AI
+  const tabs = aiOn ? TABS : TABS.filter((t) => t.id !== 'quill');
+  const activePanelTab = !aiOn && state.activePanelTab === 'quill' ? 'scenes' : state.activePanelTab;
   const { state: workState } = useActiveWork();
   const { state: editorState } = useEditor();
   const catchCount = openCountsByChapter(workState.catches).get(editorState.chapterId) || 0;
@@ -39,12 +43,12 @@ export default function RightPanel({ workId }) {
     indicator.style.left = `${active.offsetLeft}px`;
     indicator.style.width = `${active.offsetWidth}px`;
     mounted.current = true;
-  }, [activePanelTab, catchCount]);
+  }, [activePanelTab, catchCount, aiOn]);
 
   return (
     <div className="right-panel">
       <div className="panel-tabs" ref={tabsRef}>
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             className={`panel-tab${activePanelTab === tab.id ? ' active' : ''}`}
