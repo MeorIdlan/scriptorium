@@ -15,11 +15,18 @@ UPLOAD_CMD="${UPLOAD_CMD:-/usr/local/sbin/scriptorium-spaces-upload}"
 # The check's ping URL: root-only, never in the repo (anyone holding it can
 # mark the check green).
 HC_URL_FILE="${HC_URL_FILE:-/etc/scriptorium-backup/healthchecks-url}"
+PING_RETRY_DELAY="${PING_RETRY_DELAY:-5}"  # seconds between the 3 ping attempts
 
 log() { echo "$(date -u +%FT%TZ) backup-run: $*"; }
 
-out="$(mktemp)"
-trap 'rm -f "$out"' EXIT
+# Without a temp file (/tmp full) the run still happens and still pings, just
+# with an empty /fail body.
+out="$(mktemp)" || out=/dev/null
+body="$(mktemp)" || body=/dev/null
+# Never rm the /dev/null fallback: this runs as root.
+cleanup() { for f in "$out" "$body"; do [ "$f" = /dev/null ] || rm -f "$f"; done; }
+trap cleanup EXIT
+[ "$out" = /dev/null ] || [ "$body" = /dev/null ] && log "WARN: no temp file; the alert won't include the output"
 
 { "$DUMP_CMD" && "$UPLOAD_CMD"; } 2>&1 | tee "$out"
 status=${PIPESTATUS[0]}
@@ -36,9 +43,15 @@ if [ "$status" -eq 0 ]; then
 else
   ping_url="$url/fail"
 fi
-if tail -c 10000 "$out" | curl -fsS -m 10 --retry 3 -o /dev/null --data-binary @- "$ping_url"; then
-  log "pinged healthchecks ($([ "$status" -eq 0 ] && echo ok || echo fail))"
-else
-  log "WARN: healthchecks ping failed; the check will alert as missed"
-fi
+[ "$body" = /dev/null ] || tail -c 10000 "$out" > "$body"
+# Retried by hand: curl's --retry skips DNS and connection errors, and
+# --retry-all-errors needs curl 7.71+.
+for attempt in 1 2 3; do
+  if curl -fsS -m 10 -o /dev/null --data-binary "@$body" "$ping_url"; then
+    log "pinged healthchecks ($([ "$status" -eq 0 ] && echo ok || echo fail))"
+    exit "$status"
+  fi
+  [ "$attempt" -lt 3 ] && sleep "$PING_RETRY_DELAY"
+done
+log "WARN: healthchecks ping failed; the check will alert as missed"
 exit "$status"
