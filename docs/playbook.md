@@ -1,6 +1,6 @@
 # scriptorium playbook
 
-playbook-template: v3
+playbook-template: v4
 Base branch: `main`
 Required checks: none
 
@@ -21,12 +21,12 @@ A SessionStart hook fetches origin and reports branch state. Read that report be
 **Pass:** origin fetched this session; you know how `main` and the current branch stand.
 
 ### 1. Discovery (read-only)
-Read the card (description, criteria, checklist, comments); scan the board for related or duplicate cards; look for branches and PRs containing the card shortlink (`git branch -a --list "*<shortlink>*"`, `gh pr list --state all --search "<shortlink>"`) and other branches touching the same area; read the project's notes; explore the affected code.
-Present a **discovery summary**: what the task is, related work, risks/blockers, and the proposed **track**:
+Read the card (description, comments, and every checklist: `Subtasks`, `Acceptance`, any `Implementation`); scan the board for related or duplicate cards; look for branches and PRs containing the card shortlink (`git branch -a --list "*<shortlink>*"`, `gh pr list --state all --search "<shortlink>"`) and other branches touching the same area; read the project's notes; explore the affected code.
+Present a **discovery summary**: what the task is, the card's subtasks and acceptance criteria word for word (numbered `S1…`, `A1…`), related work, risks/blockers, and the proposed **track**:
 - **Bounded**: well-scoped change to an existing flow. Design and plan in chat, no files.
 - **Architectural**: new subsystem, restructure, or changed interfaces. Spec and plan files.
 When in doubt, architectural.
-**Pass:** dev confirms the summary and track. Then move the card to `In Progress` and comment the track. Blocked, duplicate or already-done cards stop here unmoved.
+**Pass:** dev confirms the summary and track. Then move the card to `In Progress` and comment the track. If the card's acceptance criteria are only in its description, copy them verbatim into an `Acceptance` checklist. Blocked, duplicate or already-done cards stop here unmoved.
 
 ### 2. Workspace
 Offer **git worktree (strongly recommended)** or a plain branch. If a branch for this card already exists, offer to resume it. Create the workspace immediately from fresh `origin/main` and do all further work inside it. Comment the branch and workspace path on the card.
@@ -38,17 +38,19 @@ Ask the dev questions one at a time, propose approaches with a recommendation; b
 
 ### 4. Plan (superpowers `writing-plans`)
 Bounded: short numbered plan in chat. Architectural: the plan file, committed.
-**Pass:** dev explicitly approves the plan. Then add an `Implementation` checklist to the card, one item per plan task, and comment the plan path and task count. Plan changes later need the dev's approval and a matching checklist update.
+The plan covers the card: each task names the subtasks it delivers (`→ S2`), every subtask is delivered by at least one task, and every acceptance criterion names the test or check that proves it. Anything not covered is shown to the dev as a proposed descope.
+**Pass:** dev explicitly approves the plan. Then add an `Implementation` checklist to the card, one item per plan task with its subtask links, and comment the plan path and task count. Plan changes later need the dev's approval and a matching checklist update.
 
 ### 5. Implementation
 Ask the dev for the execution method and recommend one: **subagents** (`subagent-driven-development`) for 3+ mostly independent tasks; **inline** (`executing-plans`) for bounded work, short plans, or tightly coupled tasks.
-While building: TDD per task; logical commits in the workspace; tick a checklist item only once its task is verified; bugs go through `systematic-debugging`. Comment on the card every few tasks (`Tasks 3/8 done; next: …`), on blockers (`Blocked: <what>, need <decision>`) and on scope changes (dev approves first). Record gotchas in the notes as they're found.
-**Pass:** dev chose the method; all plan tasks done and ticked.
+While building: TDD per task; logical commits in the workspace; tick an `Implementation` item only once its task is verified, and tick a subtask as soon as all the items linked to it are ticked; bugs go through `systematic-debugging`. Comment on the card every few tasks (`Tasks 3/8, subtasks 2/4 done; next: …`), on blockers (`Blocked: <what>, need <decision>`) and on scope changes (dev approves first). Record gotchas in the notes as they're found.
+**Pass:** dev chose the method; all plan tasks done and ticked; every subtask ticked or descoped with the dev's OK.
 
 ### Pre-finalize: verify and review
 1. `verification-before-completion`: run the full test suite and linter; read the real output. Failures get fixed, not reported as done.
 2. `requesting-code-review` against the spec/plan; handle findings with `receiving-code-review`; re-verify after fixes.
-**Pass:** tests and lint clean with evidence, no open findings. Comment results and review summary on the card.
+3. Walk the acceptance criteria: tick each one with its evidence (test name, command output, CI run). Criteria that can only be checked after merge are marked as such, not ticked.
+**Pass:** tests and lint clean with evidence, no open findings, every acceptance criterion ticked, descoped or marked after-merge. Comment results, review summary and criteria evidence on the card.
 
 ### 6. Finalize (superpowers `finishing-a-development-branch`)
 Offer: open a PR (draft), merge locally into `main`, keep the branch, or discard (typed confirmation). Pushing, marking ready, merging and deleting remote branches each need the dev's yes.
@@ -56,13 +58,13 @@ The card follows the outcome:
 | Outcome | Card |
 |---|---|
 | PR opened | → `Review`, PR attached, summary comment (tests, files, PR URL, what to check) |
-| Merged | ask; on the dev's yes → `Done` |
+| Merged | check after-merge criteria; ask; on the dev's yes → `Done` |
 | Kept | stays `In Progress`, comment why and what's left |
 | Discarded | ask: back to `To Do`/`Backlog`, or leave |
 Then a notes pass (durable decisions, gotchas, follow-ups, card and PR links; show the dev before committing) and report: card, PR URL, CI status, what to check.
 
 ### After merge
-Offer to remove the worktree and delete the local branch; do it on the dev's yes (keep the worktree while a PR is open). Review fixes go on the same branch, re-verified. Leftover work becomes a new `Backlog` card (dev approves) or a notes follow-up.
+Check and tick any after-merge acceptance criteria; a card goes to `Done` only with every criterion ticked or descoped. Offer to remove the worktree and delete the local branch; do it on the dev's yes (keep the worktree while a PR is open). Review fixes go on the same branch, re-verified. Leftover work becomes a new `Backlog` card (dev approves) or a notes follow-up.
 
 ## Scaling down
 - Quick question or one-line fix: skip the gates.
