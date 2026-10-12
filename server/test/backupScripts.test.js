@@ -369,3 +369,49 @@ test('upload ignores archives of a database whose name only starts with DB', () 
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.equal(uploadedBytes(), 'NEWEST');
 });
+
+for (const [env, why] of [
+  [{ STUB_S3_MODE: 'fail' }, 's3cmd fails'],
+  [{ STUB_S3_MODE: 'hang', UPLOAD_TIMEOUT: '1' }, 's3cmd hangs past UPLOAD_TIMEOUT'],
+]) {
+  test(`upload logs FAILED, exits non-zero and keeps the local archive when ${why}`, () => {
+    const archive = seed('scriptorium-20261010T180000Z.archive.gz', 1);
+    const started = Date.now();
+    const r = upload(env);
+    assert.notEqual(r.status, 0);
+    assert.ok(Date.now() - started < 4000, 'did not wait for the hung upload');
+    assert.match(r.stdout, /FAILED: s3cmd put of scriptorium-20261010T180000Z\.archive\.gz/);
+    assert.doesNotMatch(r.stdout, /uploaded/);
+    assert.equal(fs.readFileSync(archive, 'utf8'), 'OLD');
+  });
+}
+
+test('upload logs FAILED without calling s3cmd when the Spaces config is missing', () => {
+  seed('scriptorium-20261010T180000Z.archive.gz', 1);
+  const r = upload({ SPACES_CONFIG: path.join(tmp, 'no-such-s3cfg') });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stdout, /FAILED: no Spaces config/);
+  assert.equal(s3calls(), '');
+});
+
+test('upload logs FAILED without calling s3cmd when there is no archive', () => {
+  fs.mkdirSync(backupDir);
+  const r = upload();
+  assert.notEqual(r.status, 0);
+  assert.match(r.stdout, /FAILED: no scriptorium-\*\.archive\.gz/);
+  assert.equal(s3calls(), '');
+});
+
+for (const [env, args, why] of [
+  [{ SPACES_URI: 's3://test-bucket/scriptorium' }, [], 'a SPACES_URI without a trailing slash'],
+  [{ DB: 'x/../etc' }, [], 'a DB name that is not a plain identifier'],
+  [{}, ['a.archive.gz', 'b.archive.gz'], 'more than one archive argument'],
+]) {
+  test(`upload refuses ${why} before calling s3cmd`, () => {
+    seed('scriptorium-20261010T180000Z.archive.gz', 1);
+    const r = upload(env, args);
+    assert.notEqual(r.status, 0);
+    assert.match(r.stdout, /FAILED/);
+    assert.equal(s3calls(), '');
+  });
+}
