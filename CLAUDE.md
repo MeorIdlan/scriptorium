@@ -33,7 +33,14 @@ Server env vars are listed in `.env.example` (Mongo URI, Mailgun, `ADMIN_EMAIL`,
 WebAuthn RP id/origin/name, cookie + session TTL). Production uses
 `docker-compose.prod.yml` behind a Cloudflare Tunnel — see `docs/deployment.md`.
 
-No test runner or linter is configured.
+Tests use Node's built-in runner (`node --test`; the client tests use
+`linkedom` as a DOM). No linter is configured. CI (`.github/workflows/test.yml`)
+runs both suites.
+
+```bash
+wsl -d ubuntu -e sh -c "cd server && npm test"
+wsl -d ubuntu -e sh -c "cd client && npm test"
+```
 
 ## Structure
 
