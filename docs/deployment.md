@@ -93,13 +93,13 @@ The containers themselves are stateless.
 
 | | |
 |---|---|
-| Schedule | nightly at 02:00 Kuala Lumpur time (18:00 UTC, as the droplet runs on UTC), from `/etc/cron.d/scriptorium-backup` (runs as root) |
+| Schedule | nightly at 02:00 Kuala Lumpur time (18:00 UTC, as the droplet runs on UTC), from `/etc/cron.d/scriptorium-backup` (runs as root), which calls `scriptorium-backup-run` (`ops/backup/backup-run.sh`): dump, upload, then the Healthchecks ping |
 | What | `mongodump --db scriptorium --archive --gzip` inside the shared Mongo container `mongo-mongo-1`. Other databases on that Mongo are not included |
 | Where | `/var/backups/scriptorium/scriptorium-<YYYYMMDDTHHMMSSZ>.archive.gz` on the droplet (folder `700`, files `600`) |
 | Retention | 7 days. Older archives are deleted only after a successful dump, so failures never age out the last good copy |
 | Off-box copy | right after a successful dump, the same cron job uploads the new archive to DO Spaces (see [Off-box copy](#off-box-copy-do-spaces)). A failed dump skips the upload |
-| Log | `/var/log/scriptorium-backup.log`, a `wrote …` / `pruned …` / `uploaded …` / `FAILED: …` line per run |
-| Alerts | none yet: a failed dump or upload only writes `FAILED:` to the log, so check it by hand |
+| Log | `/var/log/scriptorium-backup.log`, a `wrote …` / `pruned …` / `uploaded …` / `FAILED: …` line per step, then `pinged healthchecks (ok\|fail)` or a `WARN: …` about the ping |
+| Alerts | a [Healthchecks.io](https://healthchecks.io) check emails the dev when a run fails (dump or upload) or doesn't report by 19:00 UTC. A successful run sends nothing. See [Alerts](#alerts-healthchecksio) |
 
 The dumps hold passkey credentials, session tokens and writers' AI API keys:
 treat them as secrets, both on the droplet and in Spaces.
@@ -108,26 +108,79 @@ The scripts live in `ops/backup/` and take env overrides (`MONGO_CONTAINER`,
 `DB`, `BACKUP_DIR`, `RETENTION_DAYS`, `DUMP_TIMEOUT` in seconds, default 1h;
 the restore check also `RESTORE_DB`, which must end in `_restorecheck`, and
 `VOLATILE_COLLECTIONS`; the upload also `SPACES_CONFIG`, `SPACES_URI` and
-`UPLOAD_TIMEOUT` in seconds, default 30 min).
+`UPLOAD_TIMEOUT` in seconds, default 30 min; the nightly run also
+`HC_URL_FILE`, `DUMP_CMD` and `UPLOAD_CMD`).
 
 **Install or update** (from a repo checkout, then on the droplet as root). Set
 up Spaces first ([below](#off-box-copy-do-spaces)): without it, every nightly
-upload logs `FAILED: no Spaces config`.
+upload logs `FAILED: no Spaces config`. Set up the [Healthchecks
+check](#alerts-healthchecksio) too: without its URL file, runs log `WARN: no
+healthchecks URL` and nothing alerts.
 
     scp ops/backup/mongo-dump.sh          root@<droplet>:/usr/local/sbin/scriptorium-mongo-dump
     scp ops/backup/mongo-restore-check.sh root@<droplet>:/usr/local/sbin/scriptorium-mongo-restore-check
     scp ops/backup/spaces-upload.sh       root@<droplet>:/usr/local/sbin/scriptorium-spaces-upload
+    scp ops/backup/backup-run.sh          root@<droplet>:/usr/local/sbin/scriptorium-backup-run
     scp ops/backup/scriptorium-backup.cron root@<droplet>:/etc/cron.d/scriptorium-backup   # last, once the scripts it calls are there
 
     chmod 755 /usr/local/sbin/scriptorium-mongo-dump /usr/local/sbin/scriptorium-mongo-restore-check \
-              /usr/local/sbin/scriptorium-spaces-upload
+              /usr/local/sbin/scriptorium-spaces-upload /usr/local/sbin/scriptorium-backup-run
     chmod 644 /etc/cron.d/scriptorium-backup     # cron.d files must not be writable by others
     scriptorium-mongo-dump                       # first dump by hand; check it says "wrote"
     scriptorium-spaces-upload                    # first upload by hand; check it says "uploaded"
 
 **Check it's running**: `tail /var/log/scriptorium-backup.log` should show a
-`wrote` and an `uploaded` line per night, `ls -l /var/backups/scriptorium` one
-new archive per day and no more than about 7–8 of them.
+`wrote`, an `uploaded` and a `pinged healthchecks (ok)` line per night,
+`ls -l /var/backups/scriptorium` one new archive per day and no more than
+about 7–8 of them. The Healthchecks dashboard shows the check as up.
+
+### Alerts (Healthchecks.io)
+
+The check is a dead-man's switch: Healthchecks expects a ping every night and
+emails the dev when one is a failure or doesn't come.
+
+| | |
+|---|---|
+| Success | `scriptorium-backup-run` pings the check URL. No email |
+| Failed dump or upload | it pings `<url>/fail` with the last 10 KB of the run's output, so the email shows the `FAILED:` line. Email within a minute or so |
+| Missed run | cron not running, the droplet down, or the ping itself failing (logged as `WARN: healthchecks ping failed`): no ping by 18:00 UTC + 1 h grace, so an email at about 19:00 UTC (03:00 KL) |
+| Back to normal | the next successful run turns the check back up and sends an "up" email |
+| Ping URL | `/etc/scriptorium-backup/healthchecks-url` on the droplet, root-only (`600`). Never in the repo: anyone holding it can mark the check green |
+
+The ping never changes the backup's own result or exit code.
+
+**One-time setup:**
+
+1. Sign up at healthchecks.io (free plan) with the email that should get the
+   alerts. Email to the account address is on by default under Integrations.
+2. Add a check named `scriptorium-backup`: **Schedule** Cron, expression
+   `0 18 * * *`, **Time Zone** UTC, **Grace Time** 1 hour. Copy its ping URL
+   (`https://hc-ping.com/<uuid>`).
+3. On the droplet, as root (an editor, so the URL doesn't land in shell
+   history):
+
+       install -d -m 700 /etc/scriptorium-backup
+       install -m 600 /dev/null /etc/scriptorium-backup/healthchecks-url
+       nano /etc/scriptorium-backup/healthchecks-url    # the ping URL, one line
+
+4. Run `scriptorium-backup-run` once by hand. It should end with `pinged
+   healthchecks (ok)`, and the check should turn up on the dashboard.
+
+**Test it** after setup, and after changing the scripts or the check:
+
+- *Failure*: `MONGO_CONTAINER=nope scriptorium-backup-run`. The dump fails
+  (nothing is written or pruned), the run ends with `pinged healthchecks
+  (fail)`, and a "down" email arrives with the `FAILED:` line in it. Then run
+  `scriptorium-backup-run` again to get back to up (an "up" email
+  follows).
+- *Missed run*: rename the URL file for one night (`mv
+  /etc/scriptorium-backup/healthchecks-url{,.off}` before 18:00 UTC). The
+  backup still runs but logs `WARN: no healthchecks URL`, and the "down" email
+  arrives at about 19:00 UTC. Move the file back afterwards.
+
+**Replace the URL** (if it leaks): make a new check with the same settings,
+put its URL in the file, run `scriptorium-backup-run` to confirm, then delete
+the old check.
 
 ### Off-box copy (DO Spaces)
 
@@ -137,7 +190,7 @@ new archive per day and no more than about 7–8 of them.
 | How | `scriptorium-spaces-upload` (`ops/backup/spaces-upload.sh`) runs `s3cmd put` on the newest archive, or on one given as an argument. It never touches the local copy |
 | Retention | 30 days, enforced by a bucket lifecycle rule limited to `scriptorium/backups/` (`ops/backup/spaces-lifecycle.xml`), which also clears stalled multipart uploads there after 1 day. DO applies lifecycle rules about once a day |
 | Credentials | a limited (Read/Write/Delete) Spaces key for `cell1337-bucket` in `/etc/scriptorium-backup/s3cfg` on the droplet, root-only (`600`, folder `700`). Never in the repo |
-| Failures | `FAILED: …` in the backup log and exit 1; the local archive stays. Failed uploads aren't retried: the next night only uploads its own dump, so send a missed night by hand with `scriptorium-spaces-upload /var/backups/scriptorium/<file>` while it's still within the 7 local days |
+| Failures | `FAILED: …` in the backup log, exit 1 and a Healthchecks [alert](#alerts-healthchecksio); the local archive stays. Failed uploads aren't retried: the next night only uploads its own dump, so send a missed night by hand with `scriptorium-spaces-upload /var/backups/scriptorium/<file>` while it's still within the 7 local days |
 
 DO keys can be limited to a bucket but not to a folder. The dev chose the
 shared bucket knowing that this key can read and delete other apps' files in
@@ -239,6 +292,8 @@ job keeps pruning while you investigate:
     cp /var/backups/scriptorium/<good file> /root/restore-from.archive.gz
 
     # 2. Pause the nightly job so it doesn't dump bad data or prune good copies.
+    #    Also pause the Healthchecks check (dashboard → Pause), or it emails
+    #    about the missed run.
     mv /etc/cron.d/scriptorium-backup /root/scriptorium-backup.cron.paused
 
     # 3. Stop the app and keep a safety copy of the current (bad) state.
@@ -251,6 +306,7 @@ job keeps pruning while you investigate:
       --nsInclude 'scriptorium.*' --drop < /root/restore-from.archive.gz
     docker compose -f compose.prod.yml start scriptorium-server
     mv /root/scriptorium-backup.cron.paused /etc/cron.d/scriptorium-backup
+    #    The check un-pauses on the next night's ping.
 
 `--drop` replaces each restored collection; `--nsInclude` keeps the restore
 to the `scriptorium` database. Delete `/root/restore-from.archive.gz` once the
