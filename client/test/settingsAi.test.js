@@ -52,6 +52,8 @@ test('saving the first key turns AI on everywhere', async () => {
   assert.doesNotMatch(view.text(), /AI Behaviour/);
   await type(view.query('input.form-input'), 'sk-test');
   await click(view.button('Save'));
+  const put = view.fetch.calls.find((c) => c.method === 'PUT' && c.path === '/settings');
+  assert.equal(put?.body.providers?.anthropic?.apiKey, 'sk-test');
   assert.match(view.text(), /AI Behaviour/);
   await view.unmount();
 });

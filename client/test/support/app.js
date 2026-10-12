@@ -14,7 +14,7 @@ import { AiProvider } from '../../src/context/AiContext.jsx';
 afterEach(cleanup);
 
 export function aiSettings(on) {
-  return { aiEnabled: on, aiAvailable: on, provider: 'anthropic', autoFeatures: { rekindler: 'prompt' } };
+  return { aiEnabled: on, aiAvailable: on, activeProvider: 'anthropic', autoFeatures: { rekindler: 'prompt' } };
 }
 
 // A route reply that makes the stub answer with an API error

@@ -10,6 +10,9 @@ for (const key of ['HTMLElement', 'HTMLIFrameElement', 'Node', 'MutationObserver
   if (!(key in globalThis)) globalThis[key] = window[key];
 }
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+// react-dom checks `'oninput' in document` when it loads; linkedom has no
+// on* properties, which would switch React to its focus/keyup polyfill
+for (const name of ['oninput', 'onchange']) window.document[name] ??= null;
 window.requestAnimationFrame ??= (cb) => setTimeout(cb, 0);
 window.cancelAnimationFrame ??= (id) => clearTimeout(id);
 window.sessionStorage ??= memoryStorage();
