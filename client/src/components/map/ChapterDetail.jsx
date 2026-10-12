@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../utils/api.js';
 import { useAI } from '../../hooks/useAI.js';
+import { useAiState } from '../../context/AiContext.jsx';
 import { formatNumber } from '../../utils/wordCount.js';
 import PacingResult from '../panel/PacingResult.jsx';
 import ContextUsed from '../panel/ContextUsed.jsx';
@@ -36,6 +37,7 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
   const navigate = useNavigate();
   const { dispatch: uiDispatch } = useUI();
   const { loading: aiLoading, error: aiError, result: aiResult, call: aiCall } = useAI();
+  const { aiOn } = useAiState();
 
   const chapter = chapters.find((ch) => ch.id === chapterId);
 
@@ -152,15 +154,18 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
           </select>
         </div>
 
-        <div className="chapter-detail-field">
-          <label className="chapter-detail-label">
-            Chapter summary{' '}
-            <span className={`summary-status summary-status--${chapter.summaryStatus || 'none'}`}>
-              {SUMMARY_STATUS_LABELS[chapter.summaryStatus || 'none']}
-            </span>
-          </label>
-          <p className="chapter-summary-text">{chapter.summary?.text || '—'}</p>
-        </div>
+        {/* Summaries exist only for AI help */}
+        {aiOn && (
+          <div className="chapter-detail-field">
+            <label className="chapter-detail-label">
+              Chapter summary{' '}
+              <span className={`summary-status summary-status--${chapter.summaryStatus || 'none'}`}>
+                {SUMMARY_STATUS_LABELS[chapter.summaryStatus || 'none']}
+              </span>
+            </label>
+            <p className="chapter-summary-text">{chapter.summary?.text || '—'}</p>
+          </div>
+        )}
 
         <div className="chapter-detail-field">
           <label className="chapter-detail-label">Notes</label>
@@ -216,17 +221,19 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
         )}
 
         <div className="chapter-detail-actions">
-          <button
-            className="btn btn-secondary"
-            onClick={handleAnalysePacing}
-            disabled={aiLoading}
-          >
-            {aiLoading
-              ? summaryRefreshPending(chapters, chapterId, 'all')
-                ? 'Analysing… (updating chapter summaries)'
-                : 'Analysing…'
-              : 'Analyse Pacing'}
-          </button>
+          {aiOn && (
+            <button
+              className="btn btn-secondary"
+              onClick={handleAnalysePacing}
+              disabled={aiLoading}
+            >
+              {aiLoading
+                ? summaryRefreshPending(chapters, chapterId, 'all')
+                  ? 'Analysing… (updating chapter summaries)'
+                  : 'Analysing…'
+                : 'Analyse Pacing'}
+            </button>
+          )}
           <button
             className="btn btn-primary"
             onClick={() => navigate(`/work/${workId}/chapter/${chapterId}`)}
@@ -235,8 +242,8 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
           </button>
         </div>
 
-        {aiError && <p className="panel-error">{aiError}</p>}
-        {aiResult && (
+        {aiOn && aiError && <p className="panel-error">{aiError}</p>}
+        {aiOn && aiResult && (
           <div className="ai-result">
             <PacingResult result={aiResult} chapters={chapters} />
             <ContextUsed context={aiResult.context} />
