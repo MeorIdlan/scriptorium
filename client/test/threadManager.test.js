@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { renderApp, HttpError } from './support/app.js';
-import { click, type, press, blur } from './support/render.js';
+import { click, type, press, blur, pressThenBlur } from './support/render.js';
 import ThreadManager from '../src/components/map/ThreadManager.jsx';
 
 const heir = { id: 'thr_1', name: 'The missing heir', color: '#c9a96e', description: 'Who is Ada?', status: 'open', order: 0 };
@@ -127,8 +127,7 @@ test('Escape on the name cancels the rename even if the input blurs as it unmoun
   await click(view.query('.thread-name'));
   const input = view.query('.thread-name-input');
   await type(input, 'Debt');
-  await press(input, 'Escape');
-  await blur(input);
+  await pressThenBlur(input, 'Escape');
   assert.equal(view.writes().length, 0);
   await view.unmount();
 });
@@ -138,8 +137,7 @@ test('Escape on the description cancels the edit even if the textarea blurs as i
   await click(view.query('.thread-desc'));
   const area = view.query('.thread-desc-input');
   await type(area, 'Changed');
-  await press(area, 'Escape');
-  await blur(area);
+  await pressThenBlur(area, 'Escape');
   assert.equal(view.writes().length, 0);
   await view.unmount();
 });
@@ -149,8 +147,7 @@ test('a new thread is posted once even if the input blurs after Enter', async ()
   await click(view.button('New thread'));
   const input = view.query('.thread-new-name');
   await type(input, 'Lost letter');
-  await press(input, 'Enter');
-  await blur(input);
+  await pressThenBlur(input, 'Enter', 3);
   assert.equal(view.writes().filter((w) => w.method === 'POST').length, 1);
   await view.unmount();
 });
@@ -160,8 +157,7 @@ test('Escape on a new thread posts nothing even if the input blurs', async () =>
   await click(view.button('New thread'));
   const input = view.query('.thread-new-name');
   await type(input, 'Lost letter');
-  await press(input, 'Escape');
-  await blur(input);
+  await pressThenBlur(input, 'Escape');
   assert.equal(view.writes().length, 0);
   await view.unmount();
 });

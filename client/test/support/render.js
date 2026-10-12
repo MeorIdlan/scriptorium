@@ -117,6 +117,22 @@ export async function press(el, key) {
   await flush();
 }
 
+// Presses a key, then fires focusout on the same element in the same act().
+// React holds the key's state update until the act ends, so the element is
+// still attached when focusout fires: what a browser does when removing a
+// focused input. `settle` waits that many timer ticks between the two (for a
+// key that triggers an async save).
+export async function pressThenBlur(el, key, settle = 0) {
+  await act(async () => {
+    const event = new window.Event('keydown', { bubbles: true });
+    Object.defineProperty(event, 'key', { value: key });
+    el.dispatchEvent(event);
+    for (let i = 0; i < settle; i++) await new Promise((r) => setTimeout(r, 0));
+    el.dispatchEvent(new window.Event('focusout', { bubbles: true }));
+  });
+  await flush();
+}
+
 // React's onBlur listens for focusout
 export async function blur(el) {
   await act(async () => {
