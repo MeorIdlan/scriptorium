@@ -35,7 +35,10 @@ WebAuthn RP id/origin/name, cookie + session TTL). Production uses
 
 Tests use Node's built-in runner (`node --test`; the client tests use
 `linkedom` as a DOM). No linter is configured. CI (`.github/workflows/test.yml`)
-runs both suites.
+runs both suites. Some server tests are HTTP tests against an in-memory MongoDB
+(`mongodb-memory-server-core` + `supertest`, harness in `server/test/support/http.js`).
+The first run downloads mongod into `~/.cache/mongodb-binaries`, and they can't
+run inside the Alpine dev container (no musl build of mongod).
 
 ```bash
 wsl -d ubuntu -e sh -c "cd server && npm test"
@@ -57,15 +60,16 @@ scriptorium/
 │   └── src/
 │       ├── server.js           # Express entry — connects Mongo, mounts all /api/* routers
 │       ├── db.js               # Mongo connection
-│       ├── models/             # Mongoose schemas — content: Work, Chapter, Snapshot, Milestone, Codex, Map, Catch, Session, Settings;
+│       ├── models/             # Mongoose schemas — content: Work, Chapter, Snapshot, Milestone, Codex, Map, Catch, Session, Settings, PlotThread;
 │       │                       #   auth: User, Credential, AuthSession, OtpCode, WebauthnChallenge, AuditLog
 │       ├── middleware/         # errorHandler, requireAuth, requireAdmin, loadWork, emailThrottle
 │       ├── services/           # workService, settingsService, llmService, consistencyService, exportService, wordCountService,
 │       │                       #   authService, authSessionService, otpService, webauthnService, emailService, auditService, devAuthService,
-│       │                       #   snapshotService, snapshotMigration, textDiff (version history), catchFields, sceneMarkers (scenes inside chapter HTML)
+│       │                       #   snapshotService, snapshotMigration, textDiff (version history), catchFields, sceneMarkers (scenes inside chapter HTML),
+│       │                       #   threadFields, threadTags, threadCleanup (plot threads; scene tags are data-threads on scene markers)
 │       ├── services/providers/ # anthropic.js, openai.js
 │       ├── utils/authCookie.js
-│       └── routes/             # auth, admin, works, chapters, snapshots, milestones, codex, catches, map, sessions, ai, settings, export
+│       └── routes/             # auth, admin, works, chapters, snapshots, milestones, codex, catches, map, threads, sessions, ai, settings, export
 └── client/
     ├── Dockerfile, Dockerfile.prod, nginx.conf   # prod serves the built bundle via nginx
     ├── index.html
