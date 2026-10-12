@@ -5,6 +5,7 @@ import ApiKeyField from '../components/settings/ApiKeyField.jsx';
 import ModelSelect from '../components/settings/ModelSelect.jsx';
 import ParamSliders from '../components/settings/ParamSliders.jsx';
 import PasskeyManager from '../components/settings/PasskeyManager.jsx';
+import { aiSwitchState } from '../utils/aiSwitch.js';
 
 // Pretty display names for known model ids; anything not listed falls back to the id itself
 const MODEL_NAMES = {
@@ -35,6 +36,7 @@ export default function Settings() {
   const [toast, setToast] = useState(null);
   const [testing, setTesting] = useState(false);
   const [savingKey, setSavingKey] = useState(false);
+  const [savingAi, setSavingAi] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [pendingApiKey, setPendingApiKey] = useState('');
   const [fetchedModels, setFetchedModels] = useState(null);
@@ -203,6 +205,22 @@ export default function Settings() {
     }
   }
 
+  // Saves on its own, like the API key, so the choice never waits on Save Settings
+  async function handleToggleAi(enabled) {
+    setSavingAi(true);
+    setError(null);
+    try {
+      const updated = await api.put('/settings', { aiEnabled: enabled });
+      // Keep any unsaved edits elsewhere on the page
+      setSettings((s) => ({ ...s, aiEnabled: updated.aiEnabled, aiAvailable: updated.aiAvailable }));
+      showToast(enabled ? 'AI features on' : 'AI features off');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingAi(false);
+    }
+  }
+
   function showToast(msg) {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
@@ -210,6 +228,7 @@ export default function Settings() {
 
   const activeProviderSettings = settings?.providers?.[settings?.activeProvider];
   const activeModel = activeProviderSettings?.model || '';
+  const aiSwitch = aiSwitchState(settings, { saving: savingAi });
 
   if (loading) {
     return <div className="loading-page"><p className="loading-text">Loading settings…</p></div>;
@@ -226,6 +245,21 @@ export default function Settings() {
       <div className="settings-form">
         <section className="settings-section">
           <h2 className="settings-section-title">AI Provider</h2>
+
+          <div className="settings-field">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={aiSwitch.checked}
+                disabled={aiSwitch.disabled}
+                onChange={(e) => handleToggleAi(e.target.checked)}
+              />
+              <span className="settings-label">AI features</span>
+            </label>
+            <p className="settings-description">
+              {aiSwitch.hint ?? 'Turn off to keep AI out of your writing entirely.'}
+            </p>
+          </div>
 
           <ProviderSelect
             providers={providers}
