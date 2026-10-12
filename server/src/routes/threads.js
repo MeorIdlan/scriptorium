@@ -3,6 +3,7 @@ import PlotThread from '../models/PlotThread.js';
 import { httpError } from '../middleware/errorHandler.js';
 import { loadWork } from '../middleware/loadWork.js';
 import { threadCreate, threadUpdate, newThreadId, defaultThreadColor } from '../services/threadFields.js';
+import { removeThreadFromWork } from '../services/threadCleanup.js';
 
 const router = Router({ mergeParams: true });
 router.use(loadWork);
@@ -104,8 +105,7 @@ router.put('/:threadId', async (req, res, next) => {
 router.delete('/:threadId', async (req, res, next) => {
   try {
     const { workId, threadId } = req.params;
-    const deleted = await PlotThread.findOneAndDelete({ _id: threadId, workId });
-    if (!deleted) return next(notFound());
+    if (!(await removeThreadFromWork(workId, threadId))) return next(notFound());
     res.status(204).end();
   } catch (err) {
     next(err);

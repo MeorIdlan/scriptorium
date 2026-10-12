@@ -5,6 +5,7 @@ import CatchModel from '../models/Catch.js';
 import Session from '../models/Session.js';
 import Snapshot from '../models/Snapshot.js';
 import Milestone from '../models/Milestone.js';
+import PlotThread from '../models/PlotThread.js';
 
 export async function deleteWorkCascade(workId) {
   await Promise.all([
@@ -15,5 +16,6 @@ export async function deleteWorkCascade(workId) {
     Session.deleteMany({ workId }),
     Snapshot.deleteMany({ workId }),
     Milestone.deleteMany({ workId }),
+    PlotThread.deleteMany({ workId }),
   ]);
 }
