@@ -26,6 +26,8 @@ const chapterSchema = new mongoose.Schema(
     summary: { type: summarySchema, default: () => ({}) },
     // Derived from contentHtml's scene markers on every save; [] = no markers
     scenes: { type: [mongoose.Schema.Types.Mixed], default: [] },
+    // Plot threads tagged on the chapter as a whole (scene tags live on the markers)
+    threadIds: { type: [String], default: [] },
     createdAt: { type: String },
     lastEditedAt: { type: String },
     updatedAt: { type: String },

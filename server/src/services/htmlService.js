@@ -1,5 +1,6 @@
 import sanitizeHtml from 'sanitize-html';
 import { SCENE_ATTRS, SCENE_LIMITS, SCENE_STATUSES, newSceneId } from './sceneMarkers.js';
+import { parseThreadIds } from './threadTags.js';
 
 // Chapter HTML comes from a contentEditable driven by document.execCommand,
 // which emits <b>/<i>/<u>, <font face size>, and text-align on block elements.
@@ -9,7 +10,7 @@ const OPTIONS = {
   allowedAttributes: {
     '*': ['style', 'align'],
     font: ['face', 'size'],
-    hr: ['data-scene', ...Object.values(SCENE_ATTRS), 'data-status'],
+    hr: ['data-scene', ...Object.values(SCENE_ATTRS), 'data-threads', 'data-status'],
   },
   allowedStyles: {
     '*': {
@@ -38,6 +39,8 @@ function sceneMarker() {
       const value = typeof attribs[attr] === 'string' ? attribs[attr].trim().slice(0, SCENE_LIMITS[field]).trim() : '';
       if (value) out[attr] = value;
     }
+    const threads = parseThreadIds(attribs['data-threads']);
+    if (threads.length) out['data-threads'] = threads.join(' ');
     out['data-status'] = SCENE_STATUSES.includes(attribs['data-status']) ? attribs['data-status'] : 'draft';
     return { tagName: 'hr', attribs: out };
   };

@@ -3,6 +3,7 @@
 import { parseDocument } from 'htmlparser2';
 import { randomBytes } from 'node:crypto';
 import { countWords } from './wordCountService.js';
+import { parseThreadIds } from './threadTags.js';
 
 export const SCENE_STATUSES = ['todo', 'draft', 'revise', 'done'];
 export const SCENE_LIMITS = { title: 120, pov: 60, location: 80, summary: 600 };
@@ -84,11 +85,12 @@ export function splitTop(html) {
 }
 
 export function cardOf(marker) {
-  if (!marker) return { id: null, title: '', pov: '', location: '', status: 'draft', summary: '' };
+  if (!marker) return { id: null, title: '', pov: '', location: '', status: 'draft', summary: '', threadIds: [] };
   const a = marker.attribs;
   const card = { id: a['data-scene'] };
   for (const [field, attr] of Object.entries(SCENE_ATTRS)) card[field] = a[attr] || '';
   card.status = SCENE_STATUSES.includes(a['data-status']) ? a['data-status'] : 'draft';
+  card.threadIds = parseThreadIds(a['data-threads']);
   return card;
 }
 
@@ -114,7 +116,7 @@ export function parseScenes(html) {
 export function sceneSummaries(html) {
   const scenes = parseScenes(html);
   if (!scenes.some((s) => s.id)) return [];
-  return scenes.map(({ id, title, pov, location, status, summary, wordCount }) => ({
+  return scenes.map(({ id, title, pov, location, status, summary, wordCount, threadIds }) => ({
     id,
     title,
     pov,
@@ -122,6 +124,7 @@ export function sceneSummaries(html) {
     status,
     summary,
     wordCount,
+    threadIds,
   }));
 }
 
