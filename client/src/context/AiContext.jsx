@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { api } from '../utils/api.js';
 import { useAuth } from './AuthContext.jsx';
 
@@ -14,12 +14,16 @@ function pick(settings) {
 export function AiProvider({ children }) {
   const { status } = useAuth();
   const [state, setState] = useState(null);
+  // Bumped by setAiState, so a read that started before it can't undo it
+  const version = useRef(0);
 
   const refresh = useCallback(async () => {
+    const started = version.current;
     try {
-      setState(pick(await api.get('/settings')));
+      const next = pick(await api.get('/settings'));
+      if (version.current === started) setState(next);
     } catch {
-      setState(null);
+      // Keeps the last known state; before any load that is off
     }
   }, []);
 
@@ -29,7 +33,10 @@ export function AiProvider({ children }) {
   }, [status, refresh]);
 
   // Settings passes its saved reply here so every room updates without a reload
-  const setAiState = useCallback((settings) => setState(pick(settings)), []);
+  const setAiState = useCallback((settings) => {
+    version.current += 1;
+    setState(pick(settings));
+  }, []);
 
   const aiOn = Boolean(state?.aiEnabled && state?.aiAvailable);
 

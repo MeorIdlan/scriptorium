@@ -25,7 +25,7 @@ export class HttpError {
 }
 
 // routes: { 'GET /works': [...], 'POST /ai/hooks': {...} }; a function value
-// gets (body) and returns the reply. Unknown requests reply {}.
+// gets (body) and returns the reply, or a promise of it. Unknown requests reply {}.
 export function stubFetch(routes = {}) {
   const calls = [];
   globalThis.fetch = async (url, options = {}) => {
@@ -35,7 +35,7 @@ export function stubFetch(routes = {}) {
     calls.push({ method, path, body });
     const key = `${method} ${path.split('?')[0]}`;
     let reply = key in routes ? routes[key] : {};
-    if (typeof reply === 'function') reply = reply(body);
+    if (typeof reply === 'function') reply = await reply(body);
     const status = reply instanceof HttpError ? reply.status : 200;
     const json = reply instanceof HttpError ? { error: reply.message, code: reply.code } : reply;
     return new Response(JSON.stringify(json), { status, headers: { 'Content-Type': 'application/json' } });

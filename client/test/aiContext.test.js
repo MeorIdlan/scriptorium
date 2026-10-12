@@ -68,3 +68,16 @@ test('useAI calls the AI endpoint while AI is on', async () => {
   assert.deepEqual(view.fetch.aiCalls().map((c) => c.path), ['/ai/hooks']);
   await view.unmount();
 });
+
+test('a settings reply that started before setAiState does not undo it', async () => {
+  let answer;
+  const view = await renderApp(h(Probe), {
+    ai: false,
+    routes: { 'GET /settings': () => new Promise((resolve) => { answer = resolve; }) },
+  });
+  await act(async () => state.setAiState({ aiEnabled: true, aiAvailable: true }));
+  await act(async () => answer({ aiEnabled: false, aiAvailable: true }));
+  await flush();
+  assert.equal(view.text(), 'ai on');
+  await view.unmount();
+});
