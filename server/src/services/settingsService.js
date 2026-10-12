@@ -28,6 +28,17 @@ export async function saveSettings(userId, partial) {
   return merged;
 }
 
+// AI can only run when the active provider has a key
+export function isAiAvailable(settings) {
+  return Boolean(settings.providers?.[settings.activeProvider]?.apiKey);
+}
+
+// aiEnabled is unset until the writer chooses, so the first saved key turns AI
+// on (and existing users with a key stay on); an explicit false always wins
+export function isAiEnabled(settings) {
+  return isAiAvailable(settings) && settings.aiEnabled !== false;
+}
+
 export function maskSettings(settings) {
   const masked = structuredClone(settings);
   for (const [id, provider] of Object.entries(masked.providers)) {
