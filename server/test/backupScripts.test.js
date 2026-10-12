@@ -304,3 +304,68 @@ test('restore check keeps the throwaway db with --keep', () => {
   assert.equal(dropped(), false);
   assert.match(r.stdout, /scriptorium_restorecheck/);
 });
+
+// --- upload to Spaces ---
+
+// The s3cmd stub logs its arguments and, for put, copies the local file to
+// STUB_UPLOADED. STUB_S3_MODE=fail makes it fail, hang makes it hang.
+const S3CMD_STUB = `#!/usr/bin/env bash
+echo "$*" >> "$STUB_S3_LOG"
+case "$STUB_S3_MODE" in
+  fail) echo "ERROR: S3 error: 403 (AccessDenied)" >&2; exit 77 ;;
+  hang) exec sleep 5 ;;
+esac
+for a in "$@"; do [ -f "$a" ] && cp "$a" "$STUB_UPLOADED"; done
+exit 0
+`;
+
+function upload(env = {}, args = []) {
+  fs.writeFileSync(path.join(bin, 's3cmd'), S3CMD_STUB, { mode: 0o755 });
+  const config = path.join(tmp, 's3cfg');
+  if (!fs.existsSync(config)) fs.writeFileSync(config, '[default]\n', { mode: 0o600 });
+  return run('spaces-upload.sh', {
+    SPACES_CONFIG: config,
+    SPACES_URI: 's3://test-bucket/scriptorium/',
+    STUB_S3_LOG: path.join(tmp, 's3cmd.log'),
+    STUB_UPLOADED: path.join(tmp, 'uploaded'),
+    ...env,
+  }, args);
+}
+const s3calls = () => {
+  const log = path.join(tmp, 's3cmd.log');
+  return fs.existsSync(log) ? fs.readFileSync(log, 'utf8') : '';
+};
+const uploadedBytes = () => fs.readFileSync(path.join(tmp, 'uploaded'), 'utf8');
+
+test('upload sends the newest archive privately to SPACES_URI with the root-only config', () => {
+  fs.mkdirSync(backupDir);
+  fs.writeFileSync(path.join(backupDir, 'scriptorium-20261009T180000Z.archive.gz'), 'OLDER');
+  const newest = path.join(backupDir, 'scriptorium-20261010T180000Z.archive.gz');
+  fs.writeFileSync(newest, 'NEWEST');
+  const r = upload();
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(uploadedBytes(), 'NEWEST');
+  assert.equal(s3calls().trim(),
+    `-c ${path.join(tmp, 's3cfg')} put --acl-private --no-progress ${newest} s3://test-bucket/scriptorium/scriptorium-20261010T180000Z.archive.gz`);
+  assert.match(r.stdout, /uploaded scriptorium-20261010T180000Z\.archive\.gz to s3:\/\/test-bucket\/scriptorium\//);
+  assert.doesNotMatch(r.stdout, /FAILED/);
+});
+
+test('upload sends an archive given as an argument', () => {
+  const chosen = seed('scriptorium-20261001T180000Z.archive.gz', 10);
+  seed('scriptorium-20261010T180000Z.archive.gz', 1);
+  fs.writeFileSync(chosen, 'CHOSEN');
+  const r = upload({}, [chosen]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(uploadedBytes(), 'CHOSEN');
+  assert.match(s3calls(), / s3:\/\/test-bucket\/scriptorium\/scriptorium-20261001T180000Z\.archive\.gz$/m);
+});
+
+test('upload ignores archives of a database whose name only starts with DB', () => {
+  fs.mkdirSync(backupDir);
+  fs.writeFileSync(path.join(backupDir, 'scriptorium-20261010T180000Z.archive.gz'), 'NEWEST');
+  fs.writeFileSync(path.join(backupDir, 'scriptorium-staging-20261011T180000Z.archive.gz'), 'STAGING');
+  const r = upload();
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(uploadedBytes(), 'NEWEST');
+});
