@@ -442,3 +442,93 @@ test('Spaces lifecycle rule expires only dumps under scriptorium/backups/ after 
   // The upload script writes under the same prefix the rule expires.
   assert.match(fs.readFileSync(path.join(OPS, 'spaces-upload.sh'), 'utf8'), /SPACES_URI:-s3:\/\/cell1337-bucket\/scriptorium\/backups\/\}/);
 });
+
+// --- nightly run + Healthchecks ping ---
+
+// Stand-ins for the installed dump and upload: each logs that it ran, prints a
+// line (after 20 KB of padding when STUB_PAD is set) and exits with STUB_DUMP_EXIT / STUB_UPLOAD_EXIT. The curl stub logs its
+// arguments, appends what it read on stdin to STUB_CURL_BODY, and fails when
+// STUB_CURL_MODE=fail.
+const STEP_STUB = (name, exitVar) => `#!/usr/bin/env bash
+echo ${name} >> "$STUB_STEPS"
+[ -n "$STUB_PAD" ] && head -c 20000 /dev/zero | tr '\\0' x && echo
+if [ "\${${exitVar}:-0}" = 0 ]; then echo "${name} ok"; else echo "${name}: FAILED: boom"; fi
+exit "\${${exitVar}:-0}"
+`;
+const CURL_STUB = `#!/usr/bin/env bash
+echo "$*" >> "$STUB_CURL_LOG"
+cat >> "$STUB_CURL_BODY"
+[ "$STUB_CURL_MODE" = fail ] && { echo "curl: (6) Could not resolve host: hc-ping.com" >&2; exit 6; }
+exit 0
+`;
+const PING_URL = 'https://hc-ping.com/test-uuid';
+
+function nightly(env = {}) {
+  fs.writeFileSync(path.join(bin, 'dump'), STEP_STUB('dump', 'STUB_DUMP_EXIT'), { mode: 0o755 });
+  fs.writeFileSync(path.join(bin, 'upload'), STEP_STUB('upload', 'STUB_UPLOAD_EXIT'), { mode: 0o755 });
+  fs.writeFileSync(path.join(bin, 'curl'), CURL_STUB, { mode: 0o755 });
+  const urlFile = path.join(tmp, 'healthchecks-url');
+  if (!fs.existsSync(urlFile)) fs.writeFileSync(urlFile, `${PING_URL}\n`, { mode: 0o600 });
+  return run('backup-run.sh', {
+    DUMP_CMD: path.join(bin, 'dump'),
+    UPLOAD_CMD: path.join(bin, 'upload'),
+    HC_URL_FILE: urlFile,
+    STUB_STEPS: path.join(tmp, 'steps.log'),
+    STUB_CURL_LOG: path.join(tmp, 'curl.log'),
+    STUB_CURL_BODY: path.join(tmp, 'curl.body'),
+    ...env,
+  });
+}
+const readOr = (name) => {
+  const p = path.join(tmp, name);
+  return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
+};
+const pinged = () => readOr('curl.log').trim().split('\n').filter(Boolean).map((l) => l.split(' ').at(-1));
+
+test('nightly run pings the check URL, not /fail, after a good dump and upload', () => {
+  const r = nightly();
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(readOr('steps.log'), 'dump\nupload\n');
+  assert.deepEqual(pinged(), [PING_URL]);
+  assert.match(r.stdout, /dump ok\nupload ok\n/, 'step output still reaches the log');
+  assert.doesNotMatch(r.stdout, /test-uuid/, 'ping URL stays out of the log');
+});
+
+test('nightly run skips the upload and pings /fail with the output when the dump fails', () => {
+  const r = nightly({ STUB_DUMP_EXIT: '1' });
+  assert.equal(r.status, 1);
+  assert.equal(readOr('steps.log'), 'dump\n');
+  assert.deepEqual(pinged(), [`${PING_URL}/fail`]);
+  assert.match(readOr('curl.body'), /dump: FAILED: boom/);
+});
+
+test('nightly run pings /fail with the output when the upload fails', () => {
+  const r = nightly({ STUB_UPLOAD_EXIT: '3' });
+  assert.equal(r.status, 3);
+  assert.deepEqual(pinged(), [`${PING_URL}/fail`]);
+  assert.match(readOr('curl.body'), /dump ok\nupload: FAILED: boom/);
+});
+
+test('nightly run still backs up and warns when there is no ping URL file', () => {
+  const r = nightly({ HC_URL_FILE: path.join(tmp, 'no-such-file') });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(readOr('steps.log'), 'dump\nupload\n');
+  assert.equal(readOr('curl.log'), '', 'curl never called');
+  assert.match(r.stdout, /WARN: no healthchecks URL/);
+});
+
+for (const [env, status] of [[{}, 0], [{ STUB_DUMP_EXIT: '1' }, 1]]) {
+  test(`nightly run keeps the backup's exit code ${status} when the ping itself fails`, () => {
+    const r = nightly({ STUB_CURL_MODE: 'fail', ...env });
+    assert.equal(r.status, status, r.stdout + r.stderr);
+    assert.match(r.stdout, /WARN: healthchecks ping failed/);
+  });
+}
+
+test('nightly run sends only the last 10 KB of output to /fail, ending with the FAILED line', () => {
+  const r = nightly({ STUB_DUMP_EXIT: '1', STUB_PAD: '1' });
+  assert.equal(r.status, 1);
+  const body = readOr('curl.body');
+  assert.ok(body.length <= 10000, `body is ${body.length} bytes`);
+  assert.match(body, /dump: FAILED: boom\n$/);
+});
