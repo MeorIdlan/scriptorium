@@ -2,6 +2,7 @@
 // <hr data-scene …> whose attributes hold the scene's card.
 import { getBlocks, blockEndPoint, topLevelNode, rememberedCaret } from './editorBlocks.js';
 import { countWords } from './wordCount.js';
+import { parseThreadIds } from './threads.js';
 
 export const SCENE_STATUSES = ['todo', 'draft', 'revise', 'done'];
 export const STATUS_LABELS = { todo: 'To do', draft: 'Draft', revise: 'Revise', done: 'Done' };
@@ -16,11 +17,12 @@ export function newSceneId(now = Date.now()) {
 export const isMarker = (node) => node?.nodeType === 1 && node.tagName === 'HR' && node.hasAttribute('data-scene');
 
 function cardOf(marker) {
-  if (!marker) return { id: null, title: '', pov: '', location: '', status: 'draft', summary: '' };
+  if (!marker) return { id: null, title: '', pov: '', location: '', status: 'draft', summary: '', threadIds: [] };
   const card = { id: marker.getAttribute('data-scene') };
   for (const [field, attr] of Object.entries(ATTRS)) card[field] = marker.getAttribute(attr) || '';
   const status = marker.getAttribute('data-status');
   card.status = SCENE_STATUSES.includes(status) ? status : 'draft';
+  card.threadIds = parseThreadIds(marker.getAttribute('data-threads'));
   return card;
 }
 
@@ -80,6 +82,8 @@ export function markerHtml({ id, status = 'draft', ...fields }) {
     const value = (fields[field] || '').trim();
     if (value) attrs.push(`${attr}="${escapeAttr(value)}"`);
   }
+  const threads = parseThreadIds((fields.threadIds || []).join(' '));
+  if (threads.length) attrs.push(`data-threads="${escapeAttr(threads.join(' '))}"`);
   attrs.push(`data-status="${SCENE_STATUSES.includes(status) ? status : 'draft'}"`);
   attrs.push('contenteditable="false"');
   return `<hr ${attrs.join(' ')}>`;
@@ -90,6 +94,12 @@ export function applyCard(marker, fields) {
     const value = (fields[field] || '').trim();
     if (value) marker.setAttribute(attr, value);
     else marker.removeAttribute(attr);
+  }
+  // Card edits don't carry tags; only change them when asked to
+  if ('threadIds' in fields) {
+    const threads = parseThreadIds((fields.threadIds || []).join(' '));
+    if (threads.length) marker.setAttribute('data-threads', threads.join(' '));
+    else marker.removeAttribute('data-threads');
   }
   marker.setAttribute('data-status', SCENE_STATUSES.includes(fields.status) ? fields.status : 'draft');
 }

@@ -76,8 +76,8 @@ test('entities are decoded', () => {
 test('sceneSummaries lists every scene with word counts when markers exist', () => {
   const html = `<div>Open here.</div>${hr('scn_a', ' data-title="T"')}<div>One two three.</div>`;
   assert.deepEqual(sceneSummaries(html), [
-    { id: null, title: '', pov: '', location: '', status: 'draft', summary: '', wordCount: 2 },
-    { id: 'scn_a', title: 'T', pov: '', location: '', status: 'draft', summary: '', wordCount: 3 },
+    { id: null, title: '', pov: '', location: '', status: 'draft', summary: '', wordCount: 2, threadIds: [] },
+    { id: 'scn_a', title: 'T', pov: '', location: '', status: 'draft', summary: '', wordCount: 3, threadIds: [] },
   ]);
 });
 

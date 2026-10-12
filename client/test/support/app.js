@@ -1,9 +1,11 @@
 // Shared setup for component tests: a fetch stub that records every request,
 // and a wrapper with the app's providers
+// render.js goes first: it sets up the DOM globals react-dom reads when it
+// loads, and react-router-dom loads react-dom
+import { render, cleanup } from './render.js';
 import { createElement as h } from 'react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { afterEach } from 'node:test';
-import { render, cleanup } from './render.js';
 import { AuthProvider } from '../../src/context/AuthContext.jsx';
 import { WorksProvider } from '../../src/context/WorksContext.jsx';
 import { ActiveWorkProvider } from '../../src/context/ActiveWorkContext.jsx';

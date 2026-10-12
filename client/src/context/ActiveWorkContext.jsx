@@ -7,6 +7,7 @@ const initialState = {
   codex: null,
   catches: [],
   mapData: null,
+  threads: [],
   loading: false,
   error: null,
 };
@@ -27,6 +28,8 @@ function activeWorkReducer(state, action) {
       return { ...state, catches: action.catches };
     case 'SET_MAP':
       return { ...state, mapData: action.mapData };
+    case 'SET_THREADS':
+      return { ...state, threads: action.threads };
     case 'CLEAR':
       return initialState;
     case 'UPDATE_CHAPTER':
@@ -48,6 +51,7 @@ export function ActiveWorkProvider({ children }) {
 
   const loadWork = useCallback(async (workId) => {
     dispatch({ type: 'SET_LOADING', loading: true });
+    dispatch({ type: 'SET_THREADS', threads: [] });
     try {
       const [work, chapters] = await Promise.all([
         api.get(`/works/${workId}`),
@@ -102,6 +106,15 @@ export function ActiveWorkProvider({ children }) {
     }
   }, []);
 
+  const refreshThreads = useCallback(async (workId) => {
+    try {
+      const threads = await api.get(`/works/${workId}/threads`);
+      dispatch({ type: 'SET_THREADS', threads });
+    } catch (err) {
+      console.error('Failed to refresh threads:', err);
+    }
+  }, []);
+
   const clearActiveWork = useCallback(() => {
     dispatch({ type: 'CLEAR' });
   }, []);
@@ -119,6 +132,7 @@ export function ActiveWorkProvider({ children }) {
         refreshCodex,
         refreshCatches,
         refreshMap,
+        refreshThreads,
         clearActiveWork,
         updateChapter,
       }}
