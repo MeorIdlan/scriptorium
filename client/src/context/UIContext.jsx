@@ -25,6 +25,8 @@ function uiReducer(state, action) {
       return { ...state, selectedMapChapterId: action.chapterId };
     case 'TOGGLE_HOOK_GENERATOR':
       return { ...state, hookGeneratorOpen: !state.hookGeneratorOpen };
+    case 'CLOSE_HOOK_GENERATOR':
+      return { ...state, hookGeneratorOpen: false };
     case 'OPEN_EXPORT':
       return { ...state, exportModalOpen: true, exportWorkId: action.workId };
     case 'CLOSE_EXPORT':

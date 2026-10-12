@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../utils/api.js';
 import { useWorks } from '../../context/WorksContext.jsx';
 import { useAI } from '../../hooks/useAI.js';
+import { useAiState } from '../../context/AiContext.jsx';
 
 const GENRES = ['fantasy', 'sci-fi', 'literary', 'thriller', 'romance', 'historical', 'other'];
 const POVS = [
@@ -25,6 +26,7 @@ export default function NewWorkWizard({ onClose }) {
   const navigate = useNavigate();
   const { addWork } = useWorks();
   const { loading: aiLoading, call: aiCall } = useAI();
+  const { aiOn } = useAiState();
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(INITIAL_FORM);
@@ -213,7 +215,7 @@ export default function NewWorkWizard({ onClose }) {
                 )}
               </div>
 
-              {!hooks.length && (
+              {aiOn && !hooks.length && (
                 <button
                   className="btn btn-secondary wizard-hooks-btn"
                   onClick={generateHooks}
@@ -223,7 +225,7 @@ export default function NewWorkWizard({ onClose }) {
                 </button>
               )}
 
-              {hooks.length > 0 && (
+              {aiOn && hooks.length > 0 && (
                 <div className="wizard-hooks">
                   <p className="wizard-hooks-label">Choose an opening hook (optional):</p>
                   {hooks.map((hook, i) => (

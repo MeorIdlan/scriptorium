@@ -1,14 +1,18 @@
 import { useState, useCallback } from 'react';
 import { api } from '../utils/api.js';
 import { useActiveWork } from '../context/ActiveWorkContext.jsx';
+import { useAiState } from '../context/AiContext.jsx';
 
 export function useAI() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
   const { refreshChapters } = useActiveWork();
+  const { aiOn } = useAiState();
 
   const call = useCallback(async (endpoint, body = {}) => {
+    // Controls are hidden when AI is off; this also stops a late or stray call
+    if (!aiOn) return null;
     setLoading(true);
     setError(null);
     setResult(null);
@@ -28,7 +32,7 @@ export function useAI() {
     } finally {
       setLoading(false);
     }
-  }, [refreshChapters]);
+  }, [aiOn, refreshChapters]);
 
   const reset = useCallback(() => {
     setLoading(false);

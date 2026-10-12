@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node --test \"test/**/*.test.js\""
+    "test": "node --import ./test/support/register.js --test \"test/**/*.test.js\""
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.3.0",
@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
+    "esbuild": "^0.21.5",
     "linkedom": "^0.18.13",
     "vite": "^5.4.0"
   }
