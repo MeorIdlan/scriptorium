@@ -133,21 +133,23 @@ new archive per day and no more than about 7–8 of them.
 
 | | |
 |---|---|
-| Where | private Space `scriptorium-backups` (in the droplet's region), objects `scriptorium/scriptorium-<YYYYMMDDTHHMMSSZ>.archive.gz`, uploaded with a private ACL |
+| Where | the dev's shared private Space `cell1337-bucket` (sgp1), under `scriptorium/backups/scriptorium-<YYYYMMDDTHHMMSSZ>.archive.gz`, uploaded with a private ACL. Other apps keep to their own top-level folders; scriptorium keeps to `scriptorium/` |
 | How | `scriptorium-spaces-upload` (`ops/backup/spaces-upload.sh`) runs `s3cmd put` on the newest archive, or on one given as an argument. It never touches the local copy |
-| Retention | 30 days, enforced by the bucket's lifecycle rule (`ops/backup/spaces-lifecycle.xml`), which also clears stalled multipart uploads after 1 day. DO applies lifecycle rules about once a day |
-| Credentials | a bucket-scoped (limited, Read/Write/Delete) Spaces key in `/etc/scriptorium-backup/s3cfg` on the droplet, root-only (`600`, folder `700`). Never in the repo |
+| Retention | 30 days, enforced by a bucket lifecycle rule limited to `scriptorium/backups/` (`ops/backup/spaces-lifecycle.xml`), which also clears stalled multipart uploads there after 1 day. DO applies lifecycle rules about once a day |
+| Credentials | a limited (Read/Write/Delete) Spaces key for `cell1337-bucket` in `/etc/scriptorium-backup/s3cfg` on the droplet, root-only (`600`, folder `700`). Never in the repo |
 | Failures | `FAILED: …` in the backup log and exit 1; the local archive stays, and the next night uploads the next one |
+
+DO keys can be limited to a bucket but not to a folder. The dev chose the
+shared bucket knowing that this key can read and delete other apps' files in
+it, and that any other app's key for `cell1337-bucket` can read these dumps.
+Keep every key for the bucket as tightly held as this one.
 
 **One-time setup:**
 
-1. In the DO console, create a Space named `scriptorium-backups` in the
-   droplet's region with **File Listing: Restricted** and no CDN. (Space names
-   are global; if it's taken, pick another and add
-   `SPACES_URI=s3://<name>/scriptorium/` as a line above the job in
-   `/etc/cron.d/scriptorium-backup`.)
+1. The Space `cell1337-bucket` (sgp1) already exists. Check it has
+   **File Listing: Restricted** and no CDN.
 2. Under **Spaces Object Storage → Access Keys**, create a **limited access**
-   key for that Space only, with **Read/Write/Delete**. This is the nightly key.
+   key for `cell1337-bucket` with **Read/Write/Delete**. This is the nightly key.
 3. On the droplet, as root, install s3cmd and write its config with the key.
    Use an editor so the secret doesn't land in shell history:
 
@@ -156,7 +158,7 @@ new archive per day and no more than about 7–8 of them.
        install -m 600 /dev/null /etc/scriptorium-backup/s3cfg
        nano /etc/scriptorium-backup/s3cfg
 
-   with (replace `sgp1` with the Space's region):
+   with:
 
        [default]
        access_key = <limited key>
@@ -165,18 +167,27 @@ new archive per day and no more than about 7–8 of them.
        host_bucket = %(bucket)s.sgp1.digitaloceanspaces.com
        use_https = True
 
-4. Set the lifecycle rule. Limited keys can't change bucket configuration, so
-   use a **Full Access** key once, from a throwaway config, then delete it:
+4. Add scriptorium's lifecycle rule. Limited keys can't change bucket
+   configuration, so use a **Full Access** key once, from a throwaway config.
+   `setlifecycle` **replaces the bucket's whole lifecycle config**, so look at
+   what's there first:
 
-       install -m 600 /dev/null /root/s3cfg-full && nano /root/s3cfg-full   # same as above, full-access key
-       s3cmd -c /root/s3cfg-full setlifecycle spaces-lifecycle.xml s3://scriptorium-backups
-       s3cmd -c /root/s3cfg-full getlifecycle s3://scriptorium-backups      # shows Days 30 on scriptorium/
+       install -m 600 /dev/null /root/s3cfg-full && nano /root/s3cfg-full   # as above, full-access key
+       s3cmd -c /root/s3cfg-full getlifecycle s3://cell1337-bucket
+
+   If it reports no lifecycle configuration, apply the file as is. If other
+   rules exist, save them to a file, add the `<Rule>` from
+   `spaces-lifecycle.xml` next to them, and apply that merged file instead:
+
+       s3cmd -c /root/s3cfg-full setlifecycle spaces-lifecycle.xml s3://cell1337-bucket
+       s3cmd -c /root/s3cfg-full getlifecycle s3://cell1337-bucket   # Days 30 on scriptorium/backups/, other rules intact
        rm /root/s3cfg-full
 
    (`scp ops/backup/spaces-lifecycle.xml` to the droplet first.) If the full
-   key was made only for this, revoke it in the console.
+   key was made only for this, revoke it in the console. Other apps adding
+   lifecycle rules later must merge with this one in the same way.
 5. Run the first upload by hand (`scriptorium-spaces-upload`), then
-   `s3cmd -c /etc/scriptorium-backup/s3cfg ls s3://scriptorium-backups/scriptorium/`.
+   `s3cmd -c /etc/scriptorium-backup/s3cfg ls s3://cell1337-bucket/scriptorium/backups/`.
 
 **Rotate the key**: create a new limited key, swap it into
 `/etc/scriptorium-backup/s3cfg`, run `scriptorium-spaces-upload`, then revoke
@@ -206,9 +217,9 @@ droplet 7), fetch the archive from Spaces, prove it with the drill, then use
 it for a [real restore](#real-restore). Skip the copy in step 1 there: the
 archive is already at `/root/restore-from.archive.gz`.
 
-    s3cmd -c /etc/scriptorium-backup/s3cfg ls s3://scriptorium-backups/scriptorium/
+    s3cmd -c /etc/scriptorium-backup/s3cfg ls s3://cell1337-bucket/scriptorium/backups/
     s3cmd -c /etc/scriptorium-backup/s3cfg get \
-      s3://scriptorium-backups/scriptorium/<file> /root/restore-from.archive.gz
+      s3://cell1337-bucket/scriptorium/backups/<file> /root/restore-from.archive.gz
     chmod 600 /root/restore-from.archive.gz
     scriptorium-mongo-restore-check /root/restore-from.archive.gz   # must say PASS
 
