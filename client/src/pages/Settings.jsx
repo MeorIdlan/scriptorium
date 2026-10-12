@@ -6,6 +6,7 @@ import ModelSelect from '../components/settings/ModelSelect.jsx';
 import ParamSliders from '../components/settings/ParamSliders.jsx';
 import PasskeyManager from '../components/settings/PasskeyManager.jsx';
 import { aiSwitchState } from '../utils/aiSwitch.js';
+import { useAiState } from '../context/AiContext.jsx';
 
 // Pretty display names for known model ids; anything not listed falls back to the id itself
 const MODEL_NAMES = {
@@ -29,6 +30,7 @@ function labelModel(m) {
 }
 
 export default function Settings() {
+  const { aiOn, setAiState } = useAiState();
   const [settings, setSettings] = useState(null);
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -150,6 +152,7 @@ export default function Settings() {
       }
       const updated = await api.put('/settings', payload);
       setSettings(updated);
+      setAiState(updated);
       setPendingApiKey('');
       showToast('Settings saved');
     } catch (err) {
@@ -196,6 +199,7 @@ export default function Settings() {
         },
       });
       setSettings(updated);
+      setAiState(updated);
       setPendingApiKey('');
       showToast('API key saved');
     } catch (err) {
@@ -213,6 +217,7 @@ export default function Settings() {
       const updated = await api.put('/settings', { aiEnabled: enabled });
       // Keep any unsaved edits elsewhere on the page
       setSettings((s) => ({ ...s, aiEnabled: updated.aiEnabled, aiAvailable: updated.aiAvailable }));
+      setAiState(updated);
       showToast(enabled ? 'AI features on' : 'AI features off');
     } catch (err) {
       setError(err.message);
@@ -288,48 +293,53 @@ export default function Settings() {
           />
         </section>
 
-        <section className="settings-section">
-          <h2 className="settings-section-title">Generation Parameters</h2>
-          <ParamSliders
-            maxTokens={settings?.generation?.maxTokens}
-            temperature={settings?.generation?.temperature}
-            onChange={setGenerationParam}
-          />
-        </section>
+        {/* Hidden while AI is off; the provider section stays so it can be turned back on */}
+        {aiOn && (
+          <>
+            <section className="settings-section">
+              <h2 className="settings-section-title">Generation Parameters</h2>
+              <ParamSliders
+                maxTokens={settings?.generation?.maxTokens}
+                temperature={settings?.generation?.temperature}
+                onChange={setGenerationParam}
+              />
+            </section>
 
-        <section className="settings-section">
-          <h2 className="settings-section-title">AI Behaviour</h2>
-          <div className="settings-field">
-            <label className="settings-label">Rekindler</label>
-            <p className="settings-description">
-              When you open a work with no saved session, the Rekindler uses AI to summarise where you left off.
-            </p>
-            <div className="settings-radio-group">
-              {[
-                { value: 'auto', label: 'Automatic', desc: 'Runs silently every time' },
-                { value: 'prompt', label: 'Ask me first', desc: 'Shows a prompt before running' },
-                { value: 'never', label: 'Never', desc: 'Disabled entirely' },
-              ].map(({ value, label, desc }) => (
-                <label key={value} className="settings-radio-option">
-                  <input
-                    type="radio"
-                    name="rekindler"
-                    value={value}
-                    checked={(settings?.autoFeatures?.rekindler ?? 'prompt') === value}
-                    onChange={() =>
-                      setSettings((s) => ({
-                        ...s,
-                        autoFeatures: { ...s.autoFeatures, rekindler: value },
-                      }))
-                    }
-                  />
-                  <span className="settings-radio-label">{label}</span>
-                  <span className="settings-radio-desc">{desc}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </section>
+            <section className="settings-section">
+              <h2 className="settings-section-title">AI Behaviour</h2>
+              <div className="settings-field">
+                <label className="settings-label">Rekindler</label>
+                <p className="settings-description">
+                  When you open a work with no saved session, the Rekindler uses AI to summarise where you left off.
+                </p>
+                <div className="settings-radio-group">
+                  {[
+                    { value: 'auto', label: 'Automatic', desc: 'Runs silently every time' },
+                    { value: 'prompt', label: 'Ask me first', desc: 'Shows a prompt before running' },
+                    { value: 'never', label: 'Never', desc: 'Disabled entirely' },
+                  ].map(({ value, label, desc }) => (
+                    <label key={value} className="settings-radio-option">
+                      <input
+                        type="radio"
+                        name="rekindler"
+                        value={value}
+                        checked={(settings?.autoFeatures?.rekindler ?? 'prompt') === value}
+                        onChange={() =>
+                          setSettings((s) => ({
+                            ...s,
+                            autoFeatures: { ...s.autoFeatures, rekindler: value },
+                          }))
+                        }
+                      />
+                      <span className="settings-radio-label">{label}</span>
+                      <span className="settings-radio-desc">{desc}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </>
+        )}
 
         <div className="settings-actions">
           <button className="btn btn-primary" onClick={handleSave}>

@@ -41,6 +41,8 @@ export async function renderApp(element, { ai = false, routes = {}, path = '/', 
   const fetchStub = stubFetch({
     'GET /auth/me': { id: 'user_1', email: 'w@example.com', scope: 'full' },
     'GET /works': [],
+    'GET /auth/passkeys': [],
+    'GET /settings/providers': [],
     'GET /settings': () => settings,
     ...routes,
   });

@@ -58,6 +58,34 @@ export async function render(element) {
   };
 }
 
+// React tracks input values through a setter on the element itself; set the
+// value through the prototype's setter so React sees a real change
+function setNative(el, prop, value) {
+  let proto = Object.getPrototypeOf(el);
+  while (proto && !Object.getOwnPropertyDescriptor(proto, prop)) proto = Object.getPrototypeOf(proto);
+  // linkedom has no `checked` accessor, so React doesn't track it either
+  if (!proto) el[prop] = value;
+  else Object.getOwnPropertyDescriptor(proto, prop).set.call(el, value);
+}
+
+// Types into an input or textarea
+export async function type(el, value) {
+  await act(async () => {
+    setNative(el, 'value', value);
+    el.dispatchEvent(new window.Event('input', { bubbles: true }));
+  });
+  await flush();
+}
+
+// Checks or unchecks a checkbox the way a click would
+export async function toggle(el, checked) {
+  await act(async () => {
+    setNative(el, 'checked', checked);
+    el.dispatchEvent(new window.Event('click', { bubbles: true }));
+  });
+  await flush();
+}
+
 // Clicks an element and waits for the resulting updates
 export async function click(el) {
   await act(async () => {
