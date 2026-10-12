@@ -14,7 +14,8 @@ DB="${DB:-scriptorium}"
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/scriptorium}"
 # s3cmd config with the Spaces endpoint and key: root-only, never in the repo.
 SPACES_CONFIG="${SPACES_CONFIG:-/etc/scriptorium-backup/s3cfg}"
-SPACES_URI="${SPACES_URI:-s3://scriptorium-backups/scriptorium/}"
+# The bucket is shared by the dev's apps; scriptorium keeps to scriptorium/.
+SPACES_URI="${SPACES_URI:-s3://cell1337-bucket/scriptorium/backups/}"
 UPLOAD_TIMEOUT="${UPLOAD_TIMEOUT:-1800}"  # seconds; a hung upload fails instead of blocking the next night's run
 
 log() { echo "$(date -u +%FT%TZ) spaces-upload[$DB]: $*"; }
