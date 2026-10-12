@@ -3,6 +3,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server-core';
+import PlotThread from '../../src/models/PlotThread.js';
 import worksRouter from '../../src/routes/works.js';
 import threadsRouter from '../../src/routes/threads.js';
 import { errorHandler } from '../../src/middleware/errorHandler.js';
@@ -10,6 +11,7 @@ import { errorHandler } from '../../src/middleware/errorHandler.js';
 export async function startDb() {
   const mongod = await MongoMemoryServer.create();
   await mongoose.connect(mongod.getUri());
+  await PlotThread.init(); // build the unique index before any test relies on it
   return async () => {
     await mongoose.disconnect();
     await mongod.stop();

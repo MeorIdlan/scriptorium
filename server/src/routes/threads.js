@@ -52,7 +52,7 @@ router.post('/', async (req, res, next) => {
     });
     res.status(201).json(thread);
   } catch (err) {
-    next(err);
+    next(err?.code === 11000 ? duplicate(req.body?.name?.trim?.() ?? '') : err);
   }
 });
 
@@ -83,6 +83,7 @@ router.put('/:threadId', async (req, res, next) => {
     const { workId, threadId } = req.params;
     const update = threadUpdate(req.body);
     if (!update.ok) return next(refused(update));
+    if (!(await PlotThread.exists({ _id: threadId, workId }))) return next(notFound());
     if (update.set.name && (await nameTaken(workId, update.set.name, threadId))) {
       return next(duplicate(update.set.name));
     }
@@ -95,7 +96,7 @@ router.put('/:threadId', async (req, res, next) => {
     if (!updated) return next(notFound());
     res.json(updated);
   } catch (err) {
-    next(err);
+    next(err?.code === 11000 ? duplicate(req.body?.name?.trim?.() ?? '') : err);
   }
 });
 

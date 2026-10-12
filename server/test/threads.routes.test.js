@@ -111,6 +111,21 @@ test('names are unique per work, ignoring case and spaces', async () => {
   assert.equal(res.body.name, 'THE STORM');
 });
 
+test('two simultaneous creates with the same name leave one thread', async () => {
+  const results = await Promise.all([create({ name: 'Race' }), create({ name: 'RACE' })]);
+  assert.deepEqual(results.map((r) => r.status).sort(), [201, 409]);
+  assert.equal(results.find((r) => r.status === 409).body.code, 'DUPLICATE_NAME');
+  assert.equal(await PlotThread.countDocuments(), 1);
+});
+
+test('renaming to a name taken in another work, with a foreign id, is not found', async () => {
+  await create({ name: 'Taken' });
+  const { id } = (await create({ name: 'Other' }, 'work_a2')).body;
+  const res = await call('put', `${base()}/${id}`).send({ name: 'Taken' });
+  assert.equal(res.status, 404);
+  assert.equal(res.body.code, 'NOT_FOUND');
+});
+
 test('names with regex characters do not collide with others', async () => {
   assert.equal((await create({ name: 'Who (really) did it?' })).status, 201);
   assert.equal((await create({ name: 'Who .* did it?' })).status, 201);

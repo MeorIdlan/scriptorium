@@ -16,4 +16,7 @@ const plotThreadSchema = new mongoose.Schema(
   { toJSON: idTransform, versionKey: false }
 );
 
+// Names are unique per work, ignoring case; the route's check is only a fast path
+plotThreadSchema.index({ workId: 1, name: 1 }, { unique: true, collation: { locale: 'en', strength: 2 } });
+
 export default mongoose.model('PlotThread', plotThreadSchema);
