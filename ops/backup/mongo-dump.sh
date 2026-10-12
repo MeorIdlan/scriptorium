@@ -4,7 +4,8 @@
 # database's archives older than $RETENTION_DAYS. Pruning runs only after a
 # successful dump, so a run of failures never ages out the last good copy.
 # Installed on the droplet as /usr/local/sbin/scriptorium-mongo-dump and run
-# from /etc/cron.d/scriptorium-backup. See docs/deployment.md → Data.
+# by scriptorium-backup-run from /etc/cron.d/scriptorium-backup. See
+# docs/deployment.md → Data.
 set -euo pipefail
 
 MONGO_CONTAINER="${MONGO_CONTAINER:-mongo-mongo-1}"

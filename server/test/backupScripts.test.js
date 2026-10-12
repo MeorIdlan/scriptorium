@@ -151,12 +151,12 @@ test('dump gives up, writes nothing and prunes nothing when mongodump hangs past
   assert.deepEqual(fs.readdirSync(backupDir), [path.basename(old)]);
 });
 
-test('cron entry runs the installed dump as root at 02:00 Kuala Lumpur time (18:00 UTC), uploads it only if the dump succeeded, and logs both', () => {
+test('cron entry runs the installed backup run as root at 02:00 Kuala Lumpur time (18:00 UTC) and logs it', () => {
   const cron = fs.readFileSync(path.join(OPS, 'scriptorium-backup.cron'), 'utf8');
   assert.ok(cron.endsWith('\n'), 'cron.d ignores a last line without a newline');
   const jobs = cron.split('\n').filter((l) => l.trim() && !l.startsWith('#') && !/^[A-Z]+=/.test(l));
   assert.deepEqual(jobs, [
-    '0 18 * * * root { /usr/local/sbin/scriptorium-mongo-dump && /usr/local/sbin/scriptorium-spaces-upload; } >> /var/log/scriptorium-backup.log 2>&1',
+    '0 18 * * * root /usr/local/sbin/scriptorium-backup-run >> /var/log/scriptorium-backup.log 2>&1',
   ]);
   assert.match(cron, /^PATH=.*\/usr\/bin/m);
 });
@@ -416,18 +416,27 @@ for (const [env, args, why] of [
   });
 }
 
-for (const [dumpExit, uploads] of [[0, true], [1, false]]) {
-  test(`cron job ${uploads ? 'runs' : 'skips'} the upload when the dump exits ${dumpExit}`, () => {
-    const cron = fs.readFileSync(path.join(OPS, 'scriptorium-backup.cron'), 'utf8');
-    const job = cron.split('\n').find((l) => /^\d/.test(l)).replace(/^(\S+\s+){6}/, '');
-    const logFile = path.join(tmp, 'backup.log');
-    fs.writeFileSync(path.join(bin, 'scriptorium-mongo-dump'), `#!/bin/sh\necho dumped\nexit ${dumpExit}\n`, { mode: 0o755 });
-    fs.writeFileSync(path.join(bin, 'scriptorium-spaces-upload'), '#!/bin/sh\necho uploaded\n', { mode: 0o755 });
-    const cmd = job.replaceAll('/usr/local/sbin/', `${bin}/`).replace('/var/log/scriptorium-backup.log', logFile);
-    spawnSync('bash', ['-c', cmd]);
-    assert.equal(fs.readFileSync(logFile, 'utf8'), uploads ? 'dumped\nuploaded\n' : 'dumped\n');
+test('cron job runs the installed backup run and appends all of its output to the log', () => {
+  const cron = fs.readFileSync(path.join(OPS, 'scriptorium-backup.cron'), 'utf8');
+  const job = cron.split('\n').find((l) => /^\d/.test(l)).replace(/^(\S+\s+){6}/, '');
+  const logFile = path.join(tmp, 'backup.log');
+  fs.writeFileSync(logFile, 'earlier\n');
+  fs.copyFileSync(path.join(OPS, 'backup-run.sh'), path.join(bin, 'scriptorium-backup-run'));
+  fs.chmodSync(path.join(bin, 'scriptorium-backup-run'), 0o755);
+  fs.writeFileSync(path.join(bin, 'dump'), '#!/bin/sh\necho dumped\n', { mode: 0o755 });
+  fs.writeFileSync(path.join(bin, 'upload'), '#!/bin/sh\necho uploaded >&2\n', { mode: 0o755 });
+  const cmd = job.replaceAll('/usr/local/sbin/', `${bin}/`).replace('/var/log/scriptorium-backup.log', logFile);
+  const r = spawnSync('bash', ['-c', cmd], {
+    env: {
+      ...process.env,
+      DUMP_CMD: path.join(bin, 'dump'),
+      UPLOAD_CMD: path.join(bin, 'upload'),
+      HC_URL_FILE: path.join(tmp, 'no-such-file'),
+    },
   });
-}
+  assert.equal(r.status, 0);
+  assert.match(fs.readFileSync(logFile, 'utf8'), /^earlier\ndumped\nuploaded\n.*WARN: no healthchecks URL/s);
+});
 
 test('Spaces lifecycle rule expires only dumps under scriptorium/backups/ after 30 days and cleans up stalled uploads', () => {
   const xml = fs.readFileSync(path.join(OPS, 'spaces-lifecycle.xml'), 'utf8');

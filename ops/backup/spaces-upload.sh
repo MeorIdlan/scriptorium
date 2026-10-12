@@ -6,7 +6,7 @@
 # FAILED and exits 1. Spaces keeps its own copies for as long as the bucket's
 # lifecycle rule says (spaces-lifecycle.xml).
 # Installed on the droplet as /usr/local/sbin/scriptorium-spaces-upload and run
-# from /etc/cron.d/scriptorium-backup after a successful dump. See
+# by scriptorium-backup-run after a successful dump. See
 # docs/deployment.md → Data.
 set -euo pipefail
 
