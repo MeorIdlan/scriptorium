@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useUI } from '../../context/UIContext.jsx';
 import QuillTab from './QuillTab.jsx';
 import CodexTab from './CodexTab.jsx';
@@ -20,7 +20,7 @@ const TABS = [
 
 export default function RightPanel({ workId }) {
   const { state, dispatch } = useUI();
-  const { aiOn } = useAiState();
+  const { aiOn, ready } = useAiState();
   // With AI off the Quill tab is gone; the stored choice comes back with AI
   const tabs = aiOn ? TABS : TABS.filter((t) => t.id !== 'quill');
   const activePanelTab = !aiOn && state.activePanelTab === 'quill' ? 'scenes' : state.activePanelTab;
@@ -43,7 +43,15 @@ export default function RightPanel({ workId }) {
     indicator.style.left = `${active.offsetLeft}px`;
     indicator.style.width = `${active.offsetWidth}px`;
     mounted.current = true;
-  }, [activePanelTab, catchCount, aiOn]);
+  }, [activePanelTab, catchCount, aiOn, ready]);
+
+  // Spark's hook generator shouldn't reopen by itself when AI comes back
+  useEffect(() => {
+    if (!aiOn && state.hookGeneratorOpen) dispatch({ type: 'CLOSE_HOOK_GENERATOR' });
+  }, [aiOn, state.hookGeneratorOpen, dispatch]);
+
+  // Until the AI state loads, which tab opens first isn't known yet
+  if (!ready) return <div className="right-panel" />;
 
   return (
     <div className="right-panel">

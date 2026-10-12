@@ -1,16 +1,19 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, Fragment } from 'react';
-import { act, click } from './support/render.js';
+import { act, click, flush } from './support/render.js';
 import { renderApp, aiSettings, HttpError } from './support/app.js';
 import { useAiState } from '../src/context/AiContext.jsx';
+import { useUI } from '../src/context/UIContext.jsx';
 import RightPanel from '../src/components/panel/RightPanel.jsx';
 import Toolbar from '../src/components/editor/Toolbar.jsx';
 import ChapterSummaryModal from '../src/components/overlays/ChapterSummaryModal.jsx';
 
 let aiState;
+let ui;
 function Probe() {
   aiState = useAiState();
+  ui = useUI();
   return null;
 }
 
@@ -91,5 +94,35 @@ test('the summary modal explains a missing API key', async () => {
   });
   await click(view.button('Generate'));
   assert.match(view.text(), /Please go to Settings to add your API key/);
+  await view.unmount();
+});
+
+test('the panel waits for the AI state instead of opening on Scenes first', async () => {
+  let answer;
+  const view = await renderApp(h(RightPanel, { workId: 'w1' }), {
+    routes: { ...routes, 'GET /settings': () => new Promise((resolve) => { answer = resolve; }) },
+  });
+  assert.equal(view.queryAll('.panel-tab').length, 0);
+  await act(async () => answer(aiSettings(true)));
+  await flush();
+  assert.equal(view.query('.panel-tab.active').textContent, 'Quill');
+  await view.unmount();
+});
+
+test('turning AI off closes the hook generator', async () => {
+  const view = await renderApp(h(Fragment, null, h(Probe), h(RightPanel, { workId: 'w1' })), { ai: true, routes });
+  await act(async () => ui.dispatch({ type: 'TOGGLE_HOOK_GENERATOR' }));
+  assert.equal(ui.state.hookGeneratorOpen, true);
+  await act(async () => aiState.setAiState(aiSettings(false)));
+  await act(async () => aiState.setAiState(aiSettings(true)));
+  assert.equal(ui.state.hookGeneratorOpen, false);
+  await view.unmount();
+});
+
+test('the panel still opens, without Quill, when settings fail to load', async () => {
+  const view = await renderApp(h(RightPanel, { workId: 'w1' }), {
+    routes: { ...routes, 'GET /settings': new HttpError(500, 'INTERNAL', 'down') },
+  });
+  assert.deepEqual(tabLabels(view), ['Scenes', 'Codex', 'Catch']);
   await view.unmount();
 });

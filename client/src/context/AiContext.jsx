@@ -14,6 +14,8 @@ function pick(settings) {
 export function AiProvider({ children }) {
   const { status } = useAuth();
   const [state, setState] = useState(null);
+  // True once the first read has finished, even if it failed
+  const [ready, setReady] = useState(false);
   // Bumped by setAiState, so a read that started before it can't undo it
   const version = useRef(0);
 
@@ -25,23 +27,28 @@ export function AiProvider({ children }) {
     } catch {
       // Keeps the last known state; before any load that is off
     }
+    setReady(true);
   }, []);
 
   useEffect(() => {
     if (status === 'authenticated') refresh();
-    else setState(null);
+    else {
+      setState(null);
+      setReady(false);
+    }
   }, [status, refresh]);
 
   // Settings passes its saved reply here so every room updates without a reload
   const setAiState = useCallback((settings) => {
     version.current += 1;
     setState(pick(settings));
+    setReady(true);
   }, []);
 
   const aiOn = Boolean(state?.aiEnabled && state?.aiAvailable);
 
   return (
-    <AiContext.Provider value={{ aiOn, ready: state !== null, refresh, setAiState }}>
+    <AiContext.Provider value={{ aiOn, ready, refresh, setAiState }}>
       {children}
     </AiContext.Provider>
   );
