@@ -56,6 +56,8 @@ export function maskSettings(settings) {
     };
     delete masked.providers[id].apiKey;
   }
+  masked.aiEnabled = isAiEnabled(settings);
+  masked.aiAvailable = isAiAvailable(settings);
   return masked;
 }
 
