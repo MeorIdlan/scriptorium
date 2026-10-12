@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getSettings, saveSettings, maskSettings } from '../services/settingsService.js';
+import { getSettings, saveSettings, maskSettings, validateAiToggle } from '../services/settingsService.js';
 import { listProviders } from '../services/llmService.js';
 import { httpError } from '../middleware/errorHandler.js';
 import * as anthropicProvider from '../services/providers/anthropic.js';
@@ -59,6 +59,10 @@ router.put('/', async (req, res, next) => {
       }
       partial.providers = mergedProviders;
     }
+
+    delete partial.aiAvailable;
+    const aiError = validateAiToggle(settings, partial);
+    if (aiError) return next(aiError);
 
     const updated = await saveSettings(req.user.id, partial);
     res.json(maskSettings(updated));

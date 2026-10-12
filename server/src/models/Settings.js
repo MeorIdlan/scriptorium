@@ -8,6 +8,8 @@ const settingsSchema = new mongoose.Schema(
     providers: { type: mongoose.Schema.Types.Mixed, default: {} },
     generation: { type: mongoose.Schema.Types.Mixed, default: {} },
     autoFeatures: { type: mongoose.Schema.Types.Mixed, default: {} },
+    // No default: unset means the writer hasn't chosen yet (see isAiEnabled)
+    aiEnabled: { type: Boolean },
     updatedAt: { type: String },
   },
   { toJSON: idTransform, versionKey: false }

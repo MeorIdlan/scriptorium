@@ -1,4 +1,4 @@
-import { getSettings } from './settingsService.js';
+import { getSettings, assertAiEnabled } from './settingsService.js';
 import * as anthropicProvider from './providers/anthropic.js';
 import * as openaiProvider from './providers/openai.js';
 import * as fakeProvider from './providers/fake.js';
@@ -17,21 +17,19 @@ export function listProviders() {
   return PROVIDERS;
 }
 
+// Local verification only: never reachable in development or production
+export function usesFakeLlm() {
+  return process.env.NODE_ENV === 'test' && process.env.LLM_PROVIDER_OVERRIDE === 'fake';
+}
+
 export async function complete({ system, prompt, maxTokensOverride, userId } = {}) {
-  // Local verification only: never reachable in development or production
-  if (process.env.NODE_ENV === 'test' && process.env.LLM_PROVIDER_OVERRIDE === 'fake') {
+  if (usesFakeLlm()) {
     return fakeProvider.complete({ system, prompt });
   }
   const settings = await getSettings(userId);
+  assertAiEnabled(settings);
   const providerId = settings.activeProvider;
   const providerConfig = settings.providers[providerId];
-
-  if (!providerConfig?.apiKey) {
-    const err = new Error('No API key configured for active provider');
-    err.status = 400;
-    err.code = 'NO_API_KEY';
-    throw err;
-  }
 
   const adapter = ADAPTERS[providerId];
   if (!adapter) {

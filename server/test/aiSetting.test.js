@@ -1,0 +1,83 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { isAiEnabled, isAiAvailable, maskSettings, validateAiToggle } from '../src/services/settingsService.js';
+
+const settings = ({ anthropicKey = '', openaiKey = '', active = 'anthropic', aiEnabled } = {}) => ({
+  activeProvider: active,
+  providers: {
+    anthropic: { apiKey: anthropicKey, model: 'm' },
+    openai: { apiKey: openaiKey, model: 'm' },
+  },
+  ...(aiEnabled === undefined ? {} : { aiEnabled }),
+});
+
+test('a writer with no key has AI off and unavailable', () => {
+  const s = settings();
+  assert.equal(isAiAvailable(s), false);
+  assert.equal(isAiEnabled(s), false);
+});
+
+test('a writer who never chose has AI on once a key is saved', () => {
+  assert.equal(isAiEnabled(settings({ anthropicKey: 'sk-1' })), true);
+});
+
+test('turning AI off sticks, even after a key is saved again', () => {
+  assert.equal(isAiEnabled(settings({ anthropicKey: 'sk-2', aiEnabled: false })), false);
+});
+
+test('AI turned on reads as off when the active provider has no key', () => {
+  const s = settings({ anthropicKey: 'sk-1', active: 'openai', aiEnabled: true });
+  assert.equal(isAiAvailable(s), false);
+  assert.equal(isAiEnabled(s), false);
+});
+
+test('a stored true with a key is on', () => {
+  assert.equal(isAiEnabled(settings({ openaiKey: 'sk-o', active: 'openai', aiEnabled: true })), true);
+});
+
+test('masked settings report the effective AI state and availability', () => {
+  const masked = maskSettings(settings({ anthropicKey: 'sk-ant-1234567890', aiEnabled: false }));
+  assert.equal(masked.aiEnabled, false);
+  assert.equal(masked.aiAvailable, true);
+  assert.equal(masked.providers.anthropic.apiKey, undefined);
+});
+
+test('an existing user with a key and no stored choice keeps AI on', () => {
+  // The shape stored before this change: no aiEnabled field at all
+  const stored = { activeProvider: 'anthropic', providers: { anthropic: { apiKey: 'sk-old', model: 'm' } } };
+  const masked = maskSettings(stored);
+  assert.equal(masked.aiEnabled, true);
+  assert.equal(masked.aiAvailable, true);
+});
+
+test('masked settings for a writer with no key report AI off and unavailable', () => {
+  const masked = maskSettings(settings({ aiEnabled: true }));
+  assert.equal(masked.aiEnabled, false);
+  assert.equal(masked.aiAvailable, false);
+});
+
+test('a save without aiEnabled is never refused', () => {
+  assert.equal(validateAiToggle(settings(), { generation: { maxTokens: 500 } }), null);
+});
+
+test('turning AI on with no key on the active provider is refused', () => {
+  const err = validateAiToggle(settings(), { aiEnabled: true });
+  assert.equal(err.status, 400);
+  assert.equal(err.code, 'NO_API_KEY');
+});
+
+test('turning AI on is refused when the same save switches to a provider with no key', () => {
+  const err = validateAiToggle(settings({ anthropicKey: 'sk-1' }), { activeProvider: 'openai', aiEnabled: true });
+  assert.equal(err.code, 'NO_API_KEY');
+});
+
+test('turning AI on or off with a key is allowed, including a key saved in the same request', () => {
+  assert.equal(validateAiToggle(settings({ anthropicKey: 'sk-1' }), { aiEnabled: false }), null);
+  const partial = { providers: { anthropic: { apiKey: 'sk-new', model: 'm' } }, aiEnabled: true };
+  assert.equal(validateAiToggle(settings(), partial), null);
+});
+
+test('a non-boolean aiEnabled is refused', () => {
+  const err = validateAiToggle(settings({ anthropicKey: 'sk-1' }), { aiEnabled: 'yes' });
+  assert.equal(err.code, 'VALIDATION_ERROR');
+});

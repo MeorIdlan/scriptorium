@@ -22,6 +22,7 @@ import mapRouter from './routes/map.js';
 import sessionsRouter from './routes/sessions.js';
 import exportRouter from './routes/export.js';
 import aiRouter from './routes/ai.js';
+import { requireAiEnabled } from './middleware/requireAiEnabled.js';
 import settingsRouter from './routes/settings.js';
 import adminRouter from './routes/admin.js';
 
@@ -50,7 +51,7 @@ app.use('/api/works/:workId/catches', auth, catchesRouter);
 app.use('/api/works/:workId/map', auth, mapRouter);
 app.use('/api/works/:workId/sessions', auth, sessionsRouter);
 app.use('/api/works/:workId/export', auth, exportRouter);
-app.use('/api/ai', auth, aiRouter);
+app.use('/api/ai', auth, requireAiEnabled(), aiRouter);
 app.use('/api/settings', auth, settingsRouter);
 app.use('/api/admin', auth, requireAdmin, adminRouter);
 

@@ -1,4 +1,5 @@
 import Settings from '../models/Settings.js';
+import { httpError } from '../middleware/errorHandler.js';
 
 const DEFAULT_SETTINGS = {
   activeProvider: 'anthropic',
@@ -28,6 +29,45 @@ export async function saveSettings(userId, partial) {
   return merged;
 }
 
+// AI can only run when the active provider has a key
+export function isAiAvailable(settings) {
+  return Boolean(settings.providers?.[settings.activeProvider]?.apiKey);
+}
+
+// aiEnabled is unset until the writer chooses, so the first saved key turns AI
+// on (and existing users with a key stay on); an explicit false always wins
+export function isAiEnabled(settings) {
+  return isAiAvailable(settings) && settings.aiEnabled !== false;
+}
+
+// Throws unless AI may run; a missing key keeps the NO_API_KEY code the
+// client already explains
+export function assertAiEnabled(settings) {
+  if (!isAiAvailable(settings)) {
+    throw httpError(400, 'NO_API_KEY', 'No API key configured for active provider');
+  }
+  if (!isAiEnabled(settings)) {
+    throw httpError(403, 'AI_DISABLED', 'AI features are turned off. Turn them on in Settings.');
+  }
+}
+
+// Checks an aiEnabled change against the settings as they will be after the
+// save (partial.providers is the already-merged provider map); null when fine
+export function validateAiToggle(current, partial) {
+  if (partial.aiEnabled === undefined) return null;
+  if (typeof partial.aiEnabled !== 'boolean') {
+    return httpError(400, 'VALIDATION_ERROR', 'aiEnabled must be true or false');
+  }
+  const next = {
+    activeProvider: partial.activeProvider ?? current.activeProvider,
+    providers: partial.providers ?? current.providers,
+  };
+  if (!isAiAvailable(next)) {
+    return httpError(400, 'NO_API_KEY', 'Save an API key to turn on AI features');
+  }
+  return null;
+}
+
 export function maskSettings(settings) {
   const masked = structuredClone(settings);
   for (const [id, provider] of Object.entries(masked.providers)) {
@@ -45,6 +85,8 @@ export function maskSettings(settings) {
     };
     delete masked.providers[id].apiKey;
   }
+  masked.aiEnabled = isAiEnabled(settings);
+  masked.aiAvailable = isAiAvailable(settings);
   return masked;
 }
 
