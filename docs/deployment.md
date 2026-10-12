@@ -117,7 +117,7 @@ upload logs `FAILED: no Spaces config`.
     scp ops/backup/mongo-dump.sh          root@<droplet>:/usr/local/sbin/scriptorium-mongo-dump
     scp ops/backup/mongo-restore-check.sh root@<droplet>:/usr/local/sbin/scriptorium-mongo-restore-check
     scp ops/backup/spaces-upload.sh       root@<droplet>:/usr/local/sbin/scriptorium-spaces-upload
-    scp ops/backup/scriptorium-backup.cron root@<droplet>:/etc/cron.d/scriptorium-backup
+    scp ops/backup/scriptorium-backup.cron root@<droplet>:/etc/cron.d/scriptorium-backup   # last, once the scripts it calls are there
 
     chmod 755 /usr/local/sbin/scriptorium-mongo-dump /usr/local/sbin/scriptorium-mongo-restore-check \
               /usr/local/sbin/scriptorium-spaces-upload
@@ -137,7 +137,7 @@ new archive per day and no more than about 7–8 of them.
 | How | `scriptorium-spaces-upload` (`ops/backup/spaces-upload.sh`) runs `s3cmd put` on the newest archive, or on one given as an argument. It never touches the local copy |
 | Retention | 30 days, enforced by a bucket lifecycle rule limited to `scriptorium/backups/` (`ops/backup/spaces-lifecycle.xml`), which also clears stalled multipart uploads there after 1 day. DO applies lifecycle rules about once a day |
 | Credentials | a limited (Read/Write/Delete) Spaces key for `cell1337-bucket` in `/etc/scriptorium-backup/s3cfg` on the droplet, root-only (`600`, folder `700`). Never in the repo |
-| Failures | `FAILED: …` in the backup log and exit 1; the local archive stays, and the next night uploads the next one |
+| Failures | `FAILED: …` in the backup log and exit 1; the local archive stays. Failed uploads aren't retried: the next night only uploads its own dump, so send a missed night by hand with `scriptorium-spaces-upload /var/backups/scriptorium/<file>` while it's still within the 7 local days |
 
 DO keys can be limited to a bucket but not to a folder. The dev chose the
 shared bucket knowing that this key can read and delete other apps' files in
@@ -177,7 +177,9 @@ Keep every key for the bucket as tightly held as this one.
 
    If it reports no lifecycle configuration, apply the file as is. If other
    rules exist, save them to a file, add the `<Rule>` from
-   `spaces-lifecycle.xml` next to them, and apply that merged file instead:
+   `spaces-lifecycle.xml` next to them (in the same format as theirs: if they
+   use `<Filter><Prefix>`, wrap this rule's `<Prefix>` the same way), and apply
+   that merged file instead:
 
        s3cmd -c /root/s3cfg-full setlifecycle spaces-lifecycle.xml s3://cell1337-bucket
        s3cmd -c /root/s3cfg-full getlifecycle s3://cell1337-bucket   # Days 30 on scriptorium/backups/, other rules intact
@@ -218,9 +220,8 @@ it for a [real restore](#real-restore). Skip the copy in step 1 there: the
 archive is already at `/root/restore-from.archive.gz`.
 
     s3cmd -c /etc/scriptorium-backup/s3cfg ls s3://cell1337-bucket/scriptorium/backups/
-    s3cmd -c /etc/scriptorium-backup/s3cfg get \
-      s3://cell1337-bucket/scriptorium/backups/<file> /root/restore-from.archive.gz
-    chmod 600 /root/restore-from.archive.gz
+    (umask 077; s3cmd -c /etc/scriptorium-backup/s3cfg get --force \
+      s3://cell1337-bucket/scriptorium/backups/<file> /root/restore-from.archive.gz)
     scriptorium-mongo-restore-check /root/restore-from.archive.gz   # must say PASS
 
 On a new droplet, bring up the shared Mongo stack and do step 3 of the
