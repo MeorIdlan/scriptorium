@@ -142,7 +142,7 @@ Existing features (FR-1 to FR-12) are already built. For MVP 1 each is accepted 
 - **External services:** Mailgun for code emails; AI provider APIs and their rate limits, billed to each writer's key.
 - **Game-mode art:** painted backdrops are sourced by the dev; a CSS fallback scene renders until they exist.
 - **Known technical limits:** EPUB builds must run one at a time and need a cover image (nodepub). Chapter text is sanitized HTML with scene markers; replacing the editor model (TipTap) is deferred to Later.
-- **Technical clean-up:** remove the flat-file storage leftovers (`clean-data.sh`, `server/data/`) in MVP 2.
+- **Technical clean-up:** the flat-file storage leftovers (`clean-data.sh`, `server/data/`) were removed in MVP 2 (2026-10-12).
 - **Process:** one developer (the dev); work follows the repo playbook's gates with TDD; no deadline or budget cap.
 
 ## 9. Release plan
