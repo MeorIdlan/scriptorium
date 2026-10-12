@@ -78,6 +78,7 @@ export default function ThreadManager({ workId, threads, chapters, onChanged }) 
             error={errors[thread.id]}
             onSave={(fields) => run(thread.id, () => api.put(`${base}/${thread.id}`, fields))}
             onDelete={() => run(thread.id, () => api.delete(`${base}/${thread.id}`))}
+            onCancel={() => setErrors((e) => ({ ...e, [thread.id]: null }))}
           />
         ))}
         {adding && (

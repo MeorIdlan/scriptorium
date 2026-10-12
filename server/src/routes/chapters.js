@@ -130,6 +130,7 @@ router.put('/:chapterId', async (req, res, next) => {
     delete setFields.workId;
     delete setFields.summary;
     delete setFields.scenes;
+    delete setFields.threadIds;
     if (req.body.contentHtml !== undefined) setFields.scenes = sceneSummaries(newHtml);
     if (chapter.status === 'outline' && words > 0 && req.body.status === undefined) {
       setFields.status = 'draft';

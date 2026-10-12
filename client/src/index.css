@@ -1647,7 +1647,7 @@ a:hover {
 .thread-status { border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; font-size: 0.75rem; padding: 2px 8px; cursor: pointer; }
 .thread-status--open { color: var(--gold); border-color: var(--gold-dim); }
 .thread-status--resolved { color: var(--success); }
-.thread-desc { text-align: left; background: none; border: none; color: var(--text-muted); font-size: 0.8rem; cursor: text; padding: 0 0 0 24px; }
+.thread-desc { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; background: none; border: none; color: var(--text-muted); font-size: 0.8rem; cursor: text; padding: 0 0 0 24px; }
 .thread-desc-input { margin-left: 24px; width: calc(100% - 24px); }
 .thread-palette { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-left: 24px; }
 .thread-palette-color { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; padding: 0; cursor: pointer; }

@@ -161,3 +161,19 @@ test('Escape on a new thread posts nothing even if the input blurs', async () =>
   assert.equal(view.writes().length, 0);
   await view.unmount();
 });
+
+test('Escape on a refused rename clears the row error without another request', async () => {
+  const view = await mount({
+    routes: { 'PUT /works/w1/threads/thr_1': new HttpError(409, 'DUPLICATE_NAME', 'A thread named "Debt" already exists') },
+  });
+  await click(view.query('.thread-name'));
+  const input = view.query('.thread-name-input');
+  await type(input, 'Debt');
+  await press(input, 'Enter');
+  assert.match(view.text(), /A thread named "Debt" already exists/);
+  await press(view.query('.thread-name-input'), 'Escape');
+  assert.equal(view.query('.thread-name-input'), null);
+  assert.doesNotMatch(view.text(), /already exists/);
+  assert.equal(view.writes().length, 1);
+  await view.unmount();
+});

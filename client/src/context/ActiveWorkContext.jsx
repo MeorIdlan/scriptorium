@@ -51,6 +51,7 @@ export function ActiveWorkProvider({ children }) {
 
   const loadWork = useCallback(async (workId) => {
     dispatch({ type: 'SET_LOADING', loading: true });
+    dispatch({ type: 'SET_THREADS', threads: [] });
     try {
       const [work, chapters] = await Promise.all([
         api.get(`/works/${workId}`),
@@ -114,7 +115,7 @@ export function ActiveWorkProvider({ children }) {
     }
   }, []);
 
-  const clearActiveWork =useCallback(() => {
+  const clearActiveWork = useCallback(() => {
     dispatch({ type: 'CLEAR' });
   }, []);
 

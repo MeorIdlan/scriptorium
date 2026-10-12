@@ -3,7 +3,7 @@ import { THREAD_PALETTE, threadNameError, threadDescriptionError, deleteMessage 
 
 // One plot thread. onSave(fields) resolves true when the server accepted it;
 // a refused edit stays open with what the writer typed.
-export default function ThreadRow({ thread, tagCount, error, onSave, onDelete }) {
+export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, onCancel }) {
   const [name, setName] = useState(null); // null = not editing
   const [desc, setDesc] = useState(null);
   const [picking, setPicking] = useState(false);
@@ -51,7 +51,10 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete })
   };
   const onNameKey = (e) => {
     if (e.key === 'Enter') saveName();
-    if (e.key === 'Escape') closeName();
+    if (e.key === 'Escape') {
+      closeName();
+      onCancel?.();
+    }
   };
 
   const descError = desc !== null ? threadDescriptionError(desc) : null;
@@ -136,7 +139,11 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete })
           rows={3}
           value={desc}
           onChange={(e) => setDesc(e.target.value)}
-          onKeyDown={(e) => e.key === 'Escape' && closeDesc()}
+          onKeyDown={(e) => {
+            if (e.key !== 'Escape') return;
+            closeDesc();
+            onCancel?.();
+          }}
           onBlur={saveDesc}
           autoFocus
         />

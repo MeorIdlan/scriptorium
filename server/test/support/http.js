@@ -6,6 +6,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server-core';
 import PlotThread from '../../src/models/PlotThread.js';
 import worksRouter from '../../src/routes/works.js';
 import threadsRouter from '../../src/routes/threads.js';
+import chaptersRouter from '../../src/routes/chapters.js';
 import { errorHandler } from '../../src/middleware/errorHandler.js';
 
 export async function startDb() {
@@ -31,6 +32,7 @@ export function buildApp() {
   });
   app.use('/api/works', worksRouter);
   app.use('/api/works/:workId/threads', threadsRouter);
+  app.use('/api/works/:workId/chapters', chaptersRouter);
   app.use(errorHandler);
   return app;
 }
