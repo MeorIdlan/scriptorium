@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useAI } from '../../hooks/useAI.js';
+import { useAiState } from '../../context/AiContext.jsx';
 import ContextUsed from '../panel/ContextUsed.jsx';
 
 export default function CodexSuggestPanel({ workId, entityType, entity }) {
   const { loading, error, call } = useAI();
   const [suggestions, setSuggestions] = useState(null);
   const [context, setContext] = useState(null);
+  const { aiOn } = useAiState();
 
   async function handleSuggest() {
     setSuggestions(null);
@@ -20,6 +22,8 @@ export default function CodexSuggestPanel({ workId, entityType, entity }) {
   function handleDismiss() {
     setSuggestions(null);
   }
+
+  if (!aiOn) return null;
 
   return (
     <div className="codex-suggest-panel">
