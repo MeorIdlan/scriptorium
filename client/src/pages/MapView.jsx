@@ -11,7 +11,7 @@ import { povOptions } from '../utils/sceneMap.js';
 
 export default function MapView() {
   const { workId } = useParams();
-  const { state, loadWork, refreshMap, refreshThreads } = useActiveWork();
+  const { state, loadWork, refreshMap, refreshThreads, refreshChapters } = useActiveWork();
   const { state: uiState } = useUI();
   const [pov, setPov] = useState('');
 
@@ -77,6 +77,7 @@ export default function MapView() {
           threads={state.threads}
           chapters={state.chapters}
           onChanged={() => refreshThreads(workId)}
+          onDeleted={() => refreshChapters(workId)}
         />
       </div>
 
