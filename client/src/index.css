@@ -3510,3 +3510,15 @@ a:hover {
 @media (max-width: 640px) {
   .polish-review-toolbar { padding: 0.6rem 1rem; }
 }
+
+/* Plot-thread tags in the Scenes tab */
+.chapter-threads { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.chapter-threads-title { margin: 0; font-family: Georgia, serif; color: var(--gold); font-size: 0.9rem; font-weight: normal; }
+.thread-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.thread-chip { border: 1px solid var(--thread-color, var(--border)); border-radius: 999px; background: transparent; color: var(--text-muted); font-size: 0.78rem; padding: 2px 10px; cursor: pointer; }
+.thread-chip.on { background: var(--thread-color, var(--gold)); color: #0e0e16; }
+.thread-chip.resolved:not(.on) { opacity: 0.55; text-decoration: line-through; }
+.thread-chip:disabled { cursor: default; opacity: 0.6; }
+.thread-markers { display: inline-flex; gap: 4px; align-items: center; }
+.thread-marker { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.scene-card-threads { display: flex; flex-direction: column; gap: 4px; font-size: 0.75rem; color: var(--text-muted); }
