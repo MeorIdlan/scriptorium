@@ -13,6 +13,7 @@ const snapshotSchema = new mongoose.Schema(
     milestoneId: { type: String, default: null },
     content: { type: String, default: '' },
     contentHtml: { type: String, default: '' },
+    threadIds: { type: [String], default: undefined }, // chapter tags; absent on snapshots from before tagging
     wordCount: { type: Number, default: 0 },
     createdAt: { type: String, required: true },
   },

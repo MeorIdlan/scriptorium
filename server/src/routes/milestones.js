@@ -10,6 +10,8 @@ import { validateName } from '../services/snapshotNames.js';
 import { newMilestoneId, newSnapshotId, snapshotFields } from '../services/snapshotData.js';
 import { restoreFromSnapshot } from '../services/snapshotService.js';
 import { sceneSummaries } from '../services/sceneMarkers.js';
+import { filterHtmlThreads, knownThreadIds } from '../services/threadTags.js';
+import { knownThreadSet } from '../services/threadScope.js';
 import { milestoneRows } from '../services/milestoneCompare.js';
 
 const router = Router({ mergeParams: true });
@@ -125,7 +127,9 @@ router.post('/:id/chapters/:chapterId/restore', async (req, res, next) => {
       Chapter.findOne({ workId }).sort({ order: -1 }).select('order').lean(),
       Chapter.countDocuments({ workId }),
     ]);
+    const known = await knownThreadSet(workId);
     const content = snapshot.content || '';
+    const contentHtml = filterHtmlThreads(snapshot.contentHtml || '', known);
     const chapter = await Chapter.create({
       _id: chapterId,
       workId,
@@ -133,8 +137,9 @@ router.post('/:id/chapters/:chapterId/restore', async (req, res, next) => {
       title: entry.title,
       order: last ? last.order + 1 : 0,
       content,
-      contentHtml: snapshot.contentHtml || '',
-      scenes: sceneSummaries(snapshot.contentHtml || ''),
+      contentHtml,
+      threadIds: Array.isArray(snapshot.threadIds) ? knownThreadIds(snapshot.threadIds, known) : [],
+      scenes: sceneSummaries(contentHtml),
       wordCount: countWords(content),
       status: 'draft',
       notes: '',

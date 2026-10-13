@@ -14,6 +14,7 @@ export function snapshotFields(chapter) {
     content: chapter.content || '',
     contentHtml: chapter.contentHtml || '',
     wordCount: chapter.wordCount || 0,
+    threadIds: [...(chapter.threadIds || [])],
   };
 }
 

@@ -9,14 +9,14 @@ test('ids have their prefix and are unique', () => {
   assert.equal(ids.size, 200);
 });
 
-test('snapshotFields copies the chapter text', () => {
-  const chapter = { _id: 'ch_1', workId: 'w_1', title: 'One', content: 'Hi there.', contentHtml: '<div>Hi there.</div>', wordCount: 2 };
+test('snapshotFields copies the chapter text and tags', () => {
+  const chapter = { _id: 'ch_1', workId: 'w_1', title: 'One', content: 'Hi there.', contentHtml: '<div>Hi there.</div>', wordCount: 2, threadIds: ['thr_a'] };
   assert.deepEqual(snapshotFields(chapter), {
     workId: 'w_1', chapterId: 'ch_1', chapterTitle: 'One',
-    content: 'Hi there.', contentHtml: '<div>Hi there.</div>', wordCount: 2,
+    content: 'Hi there.', contentHtml: '<div>Hi there.</div>', wordCount: 2, threadIds: ['thr_a'],
   });
   assert.deepEqual(snapshotFields({ _id: 'c', workId: 'w', title: 'T' }), {
-    workId: 'w', chapterId: 'c', chapterTitle: 'T', content: '', contentHtml: '', wordCount: 0,
+    workId: 'w', chapterId: 'c', chapterTitle: 'T', content: '', contentHtml: '', wordCount: 0, threadIds: [],
   });
 });
 
