@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUI } from '../../context/UIContext.jsx';
 import useHiddenLanes from '../../hooks/useHiddenLanes.js';
 import { sceneLabel } from '../../utils/scenes.js';
-import { touches, laneGaps } from '../../utils/threadLanes.js';
+import { touches, laneGaps, openAtEnd } from '../../utils/threadLanes.js';
 
 const chapterNumber = (chapter, index) => chapter.number ?? index + 1;
 
@@ -74,6 +74,29 @@ function Lane({ thread, chapters, hidden, setShown, openChapter, openScene }) {
   );
 }
 
+function OpenAtEnd({ items, chapters }) {
+  return (
+    <div className="thread-open-end">
+      <h4 className="thread-open-end-title">Open at the end</h4>
+      {items.length === 0 ? (
+        <p className="thread-lanes-empty">None. Every open thread reaches the last chapter.</p>
+      ) : (
+        <ul className="thread-open-end-list">
+          {items.map(({ thread, lastChapter }) => (
+            <li key={thread.id} className="thread-open-end-item" data-thread-id={thread.id}>
+              <span className="thread-swatch" style={{ background: thread.color }} aria-hidden="true" />
+              <span className="thread-lane-name">{thread.name}</span>
+              <span className="thread-open-end-last">
+                {lastChapter === null ? 'never touched' : `last touched in Ch. ${chapterNumber(chapters[lastChapter], lastChapter)}`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function ThreadLanes({ workId, threads = [], chapters = [] }) {
   const navigate = useNavigate();
   const { dispatch: uiDispatch } = useUI();
@@ -104,6 +127,9 @@ export default function ThreadLanes({ workId, threads = [], chapters = [] }) {
             />
           ))}
         </ul>
+      )}
+      {threads.length > 0 && (
+        <OpenAtEnd items={openAtEnd(threads.filter((t) => !isHidden(t.id)), chapters)} chapters={chapters} />
       )}
     </section>
   );

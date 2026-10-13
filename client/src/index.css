@@ -1674,6 +1674,11 @@ a:hover {
   border-left: 1px dashed #e8a030;
   border-right: 1px dashed #e8a030;
 }
+.thread-open-end { margin-top: 12px; }
+.thread-open-end-title { margin: 0 0 6px; font-size: 0.85rem; font-weight: normal; color: var(--text-muted); }
+.thread-open-end-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.thread-open-end-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+.thread-open-end-last { color: var(--text-muted); font-size: 0.8rem; }
 .thread-lane-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--bg-card); padding: 0; cursor: pointer; }
 .thread-lane-dot--chapter { border-radius: 3px; width: 14px; height: 10px; }
 .thread-lane-dot:hover, .thread-lane-dot:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }

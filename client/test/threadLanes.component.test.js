@@ -198,3 +198,56 @@ test('lanes still show and hide when storage is blocked', async () => {
     await view.unmount();
   });
 });
+
+// --- open at the end ---
+
+const endItems = (view) => view.queryAll('.thread-open-end-item');
+
+test('lists the open threads that are not touched in the last chapter', async () => {
+  const { store } = memoryStore();
+  await withStorage(store, async () => {
+    const view = await mount();
+    assert.equal(endItems(view).length, 1);
+    assert.match(endItems(view)[0].textContent, /The missing heir/);
+    assert.match(endItems(view)[0].textContent, /last touched in Ch\. 9/);
+    await view.unmount();
+  });
+});
+
+test('says so when a thread was never touched', async () => {
+  const { store } = memoryStore();
+  await withStorage(store, async () => {
+    const lonely = { id: 'thr_3', name: 'The curse', color: '#7F77DD', status: 'open', order: 2 };
+    const view = await mount({ threads: [lonely] });
+    assert.match(endItems(view)[0].textContent, /never touched/);
+    await view.unmount();
+  });
+});
+
+test('says none when every open thread reaches the last chapter', async () => {
+  const { store } = memoryStore();
+  await withStorage(store, async () => {
+    const reaching = chapters.map((c, i) => (i === 9 ? { ...c, threadIds: ['thr_1'] } : c));
+    const view = await mount({ chs: reaching });
+    assert.equal(endItems(view).length, 0);
+    assert.match(view.query('.thread-open-end').textContent, /None/);
+    await view.unmount();
+  });
+});
+
+test('leaves a hidden lane out of the open-at-the-end list', async () => {
+  const { store } = memoryStore();
+  await withStorage(store, async () => {
+    const view = await mount();
+    await toggle(showBox(view, 'thr_1'), false);
+    assert.equal(endItems(view).length, 0);
+    assert.match(view.query('.thread-open-end').textContent, /None/);
+    await view.unmount();
+  });
+});
+
+test('shows no open-at-the-end section when there are no threads', async () => {
+  const view = await mount({ threads: [] });
+  assert.equal(view.query('.thread-open-end'), null);
+  await view.unmount();
+});
