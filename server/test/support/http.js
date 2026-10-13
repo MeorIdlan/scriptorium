@@ -9,6 +9,7 @@ import threadsRouter from '../../src/routes/threads.js';
 import chaptersRouter from '../../src/routes/chapters.js';
 import snapshotsRouter from '../../src/routes/snapshots.js';
 import milestonesRouter from '../../src/routes/milestones.js';
+import progressRouter from '../../src/routes/progress.js';
 import { errorHandler } from '../../src/middleware/errorHandler.js';
 
 export async function startDb() {
@@ -32,6 +33,7 @@ export function buildApp() {
     req.user = { id: req.get('x-test-user') || 'user_a' };
     next();
   });
+  app.use('/api/progress', progressRouter);
   app.use('/api/works', worksRouter);
   app.use('/api/works/:workId/threads', threadsRouter);
   app.use('/api/works/:workId/chapters/:chapterId/snapshots', snapshotsRouter);

@@ -1,4 +1,5 @@
 import DailyProgress from '../models/DailyProgress.js';
+import Settings from '../models/Settings.js';
 import { dayKey } from './wordCountService.js';
 
 const FALLBACK_ZONE = 'UTC';
@@ -26,4 +27,24 @@ export async function addDailyWords(userId, date, words) {
 export async function getDailyWords(userId, date) {
   const doc = await DailyProgress.findById(`${userId}_${date}`).lean();
   return doc?.words ?? 0;
+}
+
+const MAX_GOAL = 100000;
+
+export function isValidGoal(value) {
+  return value === null || (Number.isInteger(value) && value >= 1 && value <= MAX_GOAL);
+}
+
+export async function getDailyGoal(userId) {
+  const settings = await Settings.findById(userId).lean();
+  return settings?.dailyWordGoal ?? null;
+}
+
+export async function setDailyGoal(userId, goal) {
+  await Settings.updateOne(
+    { _id: userId },
+    { $set: { dailyWordGoal: goal, updatedAt: new Date().toISOString() } },
+    { upsert: true }
+  );
+  return goal;
 }
