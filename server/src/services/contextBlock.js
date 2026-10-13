@@ -2,6 +2,8 @@ const ENTRY_MAX = 400;
 const CODEX_BUDGET = 8000;
 const CATCH_MAX = 300;
 export const MAX_CONTEXT_CATCHES = 10;
+const THREAD_MAX = 300;
+export const MAX_CONTEXT_THREADS = 8;
 const WORD_CHAR = '[\\p{L}\\p{M}\\p{N}_]';
 
 const HEADER =
@@ -172,12 +174,28 @@ function catchesSection(catches) {
   };
 }
 
-export function formatContextBlock({ story, summaries, mentions, rules, mapBeat, scene, sceneList, catches }) {
+// Threads the writer tagged on this scene (or chapter), so suggestions stay on thread
+function threadsSection(threads) {
+  const kept = (threads || [])
+    .filter((t) => t && typeof t === 'object' && nonBlank(t.name))
+    .slice(0, MAX_CONTEXT_THREADS);
+  const lines = kept.map((t) => {
+    const head = `${oneLine(t.name)} (${t.status === 'resolved' ? 'resolved' : 'open'})`;
+    return `- ${clip(nonBlank(t.description) ? `${head}: ${oneLine(t.description)}` : head, THREAD_MAX)}`;
+  });
+  return {
+    text: lines.length ? `## Plot threads in play\n${lines.join('\n')}` : '',
+    names: kept.map((t) => oneLine(t.name)),
+  };
+}
+
+export function formatContextBlock({ story, summaries, mentions, rules, mapBeat, scene, sceneList, catches, threads }) {
   const codex = codexSection(mentions, rules);
   const thisScene = sceneSection(scene);
+  const plotThreads = threadsSection(threads);
   const scenes = sceneListSection(sceneList);
   const notes = catchesSection(catches);
-  const sections = [storySection(story), summariesSection(summaries), codex.text, mapSection(mapBeat), thisScene, scenes.text, notes.text].filter(Boolean);
+  const sections = [storySection(story), summariesSection(summaries), codex.text, mapSection(mapBeat), thisScene, plotThreads.text, scenes.text, notes.text].filter(Boolean);
   const text = sections.length ? `<story_context>\n${HEADER}\n\n${sections.join('\n\n')}\n</story_context>` : '';
   return {
     text,
@@ -186,5 +204,6 @@ export function formatContextBlock({ story, summaries, mentions, rules, mapBeat,
     scene: Boolean(thisScene),
     sceneList: scenes.count,
     catches: notes.count,
+    threads: plotThreads.names,
   };
 }
