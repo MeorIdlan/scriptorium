@@ -8,6 +8,9 @@ import {
   deleteMessage,
   threadNameError,
   threadDescriptionError,
+  tagList,
+  toggleTag,
+  setChapterThreads,
 } from '../src/utils/threads.js';
 
 function editor(html) {
@@ -70,4 +73,31 @@ test('client field checks match the server limits', () => {
   assert.equal(threadNameError(' Heir '), null);
   assert.equal(threadDescriptionError('x'.repeat(1001)), 'Description must be at most 1000 characters');
   assert.equal(threadDescriptionError(''), null);
+});
+
+test('tagList accepts arrays only and keeps valid ids', () => {
+  assert.deepEqual(tagList(['thr_1', 'bad id', 'thr_1', 'thr_2']), ['thr_1', 'thr_2']);
+  for (const bad of [undefined, null, 'thr_1', { 0: 'thr_1' }, 7]) assert.deepEqual(tagList(bad), []);
+});
+
+test('toggleTag adds a missing id and removes a present one', () => {
+  assert.deepEqual(toggleTag(['thr_1'], 'thr_2'), ['thr_1', 'thr_2']);
+  assert.deepEqual(toggleTag(['thr_1', 'thr_2'], 'thr_1'), ['thr_2']);
+  assert.deepEqual(toggleTag(undefined, 'thr_1'), ['thr_1']);
+});
+
+test('markerHtml and applyCard survive a threadIds that is not an array', () => {
+  assert.doesNotMatch(markerHtml({ id: 'scn_a', threadIds: 'thr_1' }), /data-threads/);
+  assert.doesNotMatch(markerHtml({ id: 'scn_a', threadIds: { length: 1 } }), /data-threads/);
+  const root = editor('<hr data-scene="scn_a" data-threads="thr_1" data-status="draft"><div>A.</div>');
+  const marker = root.querySelector('hr');
+  assert.doesNotThrow(() => applyCard(marker, { status: 'draft', threadIds: 'thr_2' }));
+  assert.equal(marker.hasAttribute('data-threads'), false);
+});
+
+test('setChapterThreads puts the tag list on the chapter', async () => {
+  const calls = [];
+  const api = { put: async (path, body) => (calls.push([path, body]), { id: 'c1' }) };
+  await setChapterThreads(api, 'w1', 'c1', ['thr_1']);
+  assert.deepEqual(calls, [['/works/w1/chapters/c1/threads', { threadIds: ['thr_1'] }]]);
 });

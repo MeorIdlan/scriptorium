@@ -46,3 +46,17 @@ export function deleteMessage(name, count) {
   if (count === 1) return `${ask} It's tagged on 1 chapter or scene; the tag will be removed.`;
   return `${ask} It's tagged on ${count} chapters and scenes; the tags will be removed.`;
 }
+
+// Only arrays carry tags; anything else is no tags
+export function tagList(value) {
+  return Array.isArray(value) ? parseThreadIds(value.join(' ')) : [];
+}
+
+export function toggleTag(ids, id) {
+  const list = tagList(ids);
+  return list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+}
+
+export function setChapterThreads(api, workId, chapterId, threadIds) {
+  return api.put(`/works/${workId}/chapters/${chapterId}/threads`, { threadIds });
+}
