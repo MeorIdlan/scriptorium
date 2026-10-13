@@ -12,6 +12,22 @@ function gapTitle(gap, chapters) {
   return `Untouched for ${gap.length} chapter${gap.length === 1 ? '' : 's'} (Ch. ${from} to Ch. ${to})`;
 }
 
+const COLUMN_PX = 18;
+const LABEL_PX = 160;
+
+function Ruler({ chapters }) {
+  return (
+    <div className="thread-lane-ruler" aria-hidden="true">
+      <span />
+      <div className="thread-lane-ruler-track" style={{ gridTemplateColumns: `repeat(${chapters.length}, minmax(0, 1fr))` }}>
+        {chapters.map((chapter, i) => (
+          <span key={chapter.id} className="thread-lane-ruler-num">{chapterNumber(chapter, i)}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Lane({ thread, chapters, hidden, setShown, openChapter, openScene }) {
   const marks = touches(thread, chapters);
   const gaps = laneGaps(thread, chapters);
@@ -114,19 +130,24 @@ export default function ThreadLanes({ workId, threads = [], chapters = [] }) {
       {threads.length === 0 ? (
         <p className="thread-lanes-empty">No plot threads yet. Add one below, then tag scenes and chapters with it.</p>
       ) : (
-        <ul className="thread-lane-list">
-          {threads.map((thread) => (
-            <Lane
-              key={thread.id}
-              thread={thread}
-              chapters={chapters}
-              hidden={isHidden(thread.id)}
-              setShown={setShown}
-              openChapter={openChapter}
-              openScene={openScene}
-            />
-          ))}
-        </ul>
+        <div className="thread-lane-scroll">
+          <div className="thread-lane-grid" style={{ minWidth: `${LABEL_PX + chapters.length * COLUMN_PX}px` }}>
+            <Ruler chapters={chapters} />
+            <ul className="thread-lane-list">
+              {threads.map((thread) => (
+                <Lane
+                  key={thread.id}
+                  thread={thread}
+                  chapters={chapters}
+                  hidden={isHidden(thread.id)}
+                  setShown={setShown}
+                  openChapter={openChapter}
+                  openScene={openScene}
+                />
+              ))}
+            </ul>
+          </div>
+        </div>
       )}
       {threads.length > 0 && (
         <OpenAtEnd items={openAtEnd(threads.filter((t) => !isHidden(t.id)), chapters)} chapters={chapters} />

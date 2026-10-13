@@ -35,10 +35,13 @@ export function findGaps(touchedFlags, threshold) {
   return gaps;
 }
 
-// Resolved threads are finished, so they are never "dropped"
+// Resolved threads are finished, so they are never "dropped". An open thread
+// that no chapter touches is one full-length gap, however short the book is.
 export function laneGaps(thread, chapters) {
   if (thread.status === 'resolved') return [];
-  return findGaps(touches(thread, chapters).map((t) => t.touched), gapThreshold((chapters || []).length));
+  const flags = touches(thread, chapters).map((t) => t.touched);
+  if (flags.length > 0 && !flags.includes(true)) return [{ start: 0, end: flags.length - 1, length: flags.length }];
+  return findGaps(flags, gapThreshold(flags.length));
 }
 
 // Open threads that are not touched in the final chapter, with the index of the

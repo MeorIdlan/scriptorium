@@ -76,3 +76,14 @@ test('openAtEnd leaves out threads touched in the final chapter and resolved one
   assert.deepEqual(openAtEnd([open], []), []);
   assert.deepEqual(openAtEnd(undefined, book), []);
 });
+
+test('laneGaps flags a never-touched open thread even when the book is shorter than the threshold', () => {
+  assert.deepEqual(laneGaps(open, [{ id: 'c1' }]), [{ start: 0, end: 0, length: 1 }]);
+  assert.deepEqual(laneGaps(open, [{ id: 'c1' }, { id: 'c2' }]), [{ start: 0, end: 1, length: 2 }]);
+  assert.deepEqual(laneGaps(done, [{ id: 'c1' }, { id: 'c2' }]), []);
+  assert.deepEqual(laneGaps(open, []), []);
+});
+
+test('laneGaps does not flag a short book where the thread is touched', () => {
+  assert.deepEqual(laneGaps(open, [{ id: 'c1', threadIds: ['thr_a'] }, { id: 'c2' }]), []);
+});

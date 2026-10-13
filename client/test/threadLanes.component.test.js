@@ -251,3 +251,28 @@ test('shows no open-at-the-end section when there are no threads', async () => {
   assert.equal(view.query('.thread-open-end'), null);
   await view.unmount();
 });
+
+// --- chapter ruler and scrolling ---
+
+test('a ruler above the lanes numbers every chapter in the same columns', async () => {
+  const view = await mount();
+  const ruler = view.query('.thread-lane-ruler');
+  assert.ok(ruler, 'ruler is shown');
+  assert.deepEqual([...ruler.querySelectorAll('.thread-lane-ruler-num')].map((n) => n.textContent), chapters.map((c) => String(c.number)));
+  assert.match(view.query('.thread-lane-ruler-track').getAttribute('style'), /repeat\(10,/);
+  await view.unmount();
+});
+
+test('the lanes scroll sideways instead of squeezing the marks in a long book', async () => {
+  const view = await mount();
+  const grid = view.query('.thread-lane-grid');
+  assert.match(grid.getAttribute('style'), /min-width:\s*\d+px/);
+  assert.ok(view.query('.thread-lane-scroll .thread-lane-grid'));
+  await view.unmount();
+});
+
+test('there is no ruler when no thread exists', async () => {
+  const view = await mount({ threads: [] });
+  assert.equal(view.query('.thread-lane-ruler'), null);
+  await view.unmount();
+});
