@@ -5,6 +5,7 @@ import ApiKeyField from '../components/settings/ApiKeyField.jsx';
 import ModelSelect from '../components/settings/ModelSelect.jsx';
 import ParamSliders from '../components/settings/ParamSliders.jsx';
 import PasskeyManager from '../components/settings/PasskeyManager.jsx';
+import DailyGoalField from '../components/settings/DailyGoalField.jsx';
 import { aiSwitchState } from '../utils/aiSwitch.js';
 import { useAiState } from '../context/AiContext.jsx';
 
@@ -299,6 +300,8 @@ export default function Settings() {
             onChange={setActiveModel}
           />
         </section>
+
+        <DailyGoalField />
 
         {/* Hidden while AI is off; the provider section stays so it can be turned back on */}
         {aiOn && (
