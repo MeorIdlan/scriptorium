@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseThreadIds, knownThreadIds, stripThreadFromHtml, MAX_TAGS } from '../src/services/threadTags.js';
+import { parseThreadIds, knownThreadIds, stripThreadFromHtml, checkTagList, filterHtmlThreads, MAX_TAGS } from '../src/services/threadTags.js';
 import { sanitizeChapterHtml } from '../src/services/htmlService.js';
 import { parseScenes, sceneSummaries } from '../src/services/sceneMarkers.js';
 
@@ -64,4 +64,26 @@ test('scenes expose their thread ids', () => {
     '<hr data-scene="scn_b" data-status="draft" /><div>B.</div>';
   assert.deepEqual(parseScenes(html).map((s) => s.threadIds), [['thr_1', 'thr_2'], []]);
   assert.deepEqual(sceneSummaries(html).map((s) => s.threadIds), [['thr_1', 'thr_2'], []]);
+});
+
+test('checkTagList accepts a list of valid ids and dedupes it', () => {
+  assert.deepEqual(checkTagList(['thr_a', 'thr_b', 'thr_a']), { ok: true, ids: ['thr_a', 'thr_b'] });
+  assert.deepEqual(checkTagList([]), { ok: true, ids: [] });
+});
+
+test('checkTagList refuses anything else', () => {
+  for (const bad of [undefined, null, 'thr_a', {}, [1], [{ a: 1 }], ['thr_a', 'bad id'], ['javascript:x']]) {
+    assert.equal(checkTagList(bad).ok, false, JSON.stringify(bad));
+  }
+  const many = Array.from({ length: 51 }, (_, i) => `thr_${i}`);
+  assert.equal(checkTagList(many).ok, false);
+  assert.equal(checkTagList(many.slice(0, 50)).ok, true);
+});
+
+test('filterHtmlThreads keeps only known ids on markers and nothing else changes', () => {
+  const html = '<hr data-scene="scn_1" data-threads="thr_a thr_gone thr_b" data-status="draft"><div>One thr_gone.</div><hr data-scene="scn_2" data-threads="thr_gone" data-status="draft"><div>Two.</div>';
+  const out = filterHtmlThreads(html, new Set(['thr_a', 'thr_b']));
+  assert.equal(out, '<hr data-scene="scn_1" data-threads="thr_a thr_b" data-status="draft"><div>One thr_gone.</div><hr data-scene="scn_2" data-status="draft"><div>Two.</div>');
+  assert.equal(filterHtmlThreads('<div>No markers.</div>', new Set()), '<div>No markers.</div>');
+  assert.equal(filterHtmlThreads('', new Set()), '');
 });
