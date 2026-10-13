@@ -6,6 +6,7 @@ import TensionCurve from '../components/map/TensionCurve.jsx';
 import ChapterBlocks from '../components/map/ChapterBlocks.jsx';
 import BeatRow from '../components/map/BeatRow.jsx';
 import ChapterDetail from '../components/map/ChapterDetail.jsx';
+import ThreadLanes from '../components/map/ThreadLanes.jsx';
 import ThreadManager from '../components/map/ThreadManager.jsx';
 import { povOptions } from '../utils/sceneMap.js';
 
@@ -72,6 +73,7 @@ export default function MapView() {
       </div>
 
       <div className="map-threads-section">
+        <ThreadLanes workId={workId} threads={state.threads} chapters={chapters} />
         <ThreadManager
           workId={workId}
           threads={state.threads}
