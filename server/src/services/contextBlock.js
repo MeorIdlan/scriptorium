@@ -179,9 +179,13 @@ function threadsSection(threads) {
   const kept = (threads || [])
     .filter((t) => t && typeof t === 'object' && nonBlank(t.name))
     .slice(0, MAX_CONTEXT_THREADS);
+  // The status is never clipped: only the name and description give way
   const lines = kept.map((t) => {
-    const head = `${oneLine(t.name)} (${t.status === 'resolved' ? 'resolved' : 'open'})`;
-    return `- ${clip(nonBlank(t.description) ? `${head}: ${oneLine(t.description)}` : head, THREAD_MAX)}`;
+    const status = ` (${t.status === 'resolved' ? 'resolved' : 'open'})`;
+    const name = clip(oneLine(t.name), THREAD_MAX - status.length);
+    const room = THREAD_MAX - name.length - status.length - 2;
+    const description = nonBlank(t.description) && room > 1 ? `: ${clip(oneLine(t.description), room)}` : '';
+    return `- ${name}${status}${description}`;
   });
   return {
     text: lines.length ? `## Plot threads in play\n${lines.join('\n')}` : '',

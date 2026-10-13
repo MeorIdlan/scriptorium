@@ -24,9 +24,9 @@ async function openCatchesFor(workId, chapterId) {
 // Threads for the given tag ids, in tag order; ids that aren't this work's threads are ignored.
 // AI calls must never fail because of threads
 async function threadsFor(workId, ids) {
-  const wanted = [...new Set(ids)];
-  if (!wanted.length) return [];
   try {
+    const wanted = [...new Set(Array.isArray(ids) ? ids.filter((id) => typeof id === 'string') : [])];
+    if (!wanted.length) return [];
     const rows = await PlotThread.find({ workId, _id: { $in: wanted } })
       .select('name description status')
       .lean();
@@ -84,7 +84,7 @@ export async function buildContext({ work, chapterId, sceneId, sourceText = '', 
   let tagIds = [];
   if (needs.threads) {
     const openScene = sceneId ? chapterScenes.find((s) => s && s.id === sceneId) : null;
-    tagIds = openScene?.threadIds?.length ? openScene.threadIds : current?.threadIds || [];
+    tagIds = Array.isArray(openScene?.threadIds) && openScene.threadIds.length ? openScene.threadIds : current?.threadIds;
   }
   const threads = needs.threads ? await threadsFor(workId, tagIds) : null;
 

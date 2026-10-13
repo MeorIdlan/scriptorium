@@ -99,3 +99,15 @@ test('a failing thread lookup does not fail the AI call', async () => {
     console.error = errors;
   }
 });
+
+test('malformed scene tags never fail the AI call', async () => {
+  await Chapter.updateOne({ _id: 'ch1' }, { scenes: [{ id: 's1', title: 'Well', threadIds: { length: 1 } }] });
+  const { manifest } = await ctx({ needs: { threads: true, story: true } });
+  assert.deepEqual(manifest.threads, ['The heir', 'The feud']); // falls back to the chapter's tags
+});
+
+test('non-string tag ids are ignored', async () => {
+  await Chapter.updateOne({ _id: 'ch1' }, { scenes: [{ id: 's1', title: 'Well', threadIds: [null, 7, 'thr_1'] }] });
+  const { manifest } = await ctx();
+  assert.deepEqual(manifest.threads, ['The letter']);
+});

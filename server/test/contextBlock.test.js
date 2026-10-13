@@ -236,3 +236,23 @@ test('plot threads skip nameless entries and add no section when none are left',
   assert.ok(!none.text.includes('Plot threads'));
   assert.deepEqual(none.threads, []);
 });
+
+test('a long thread name keeps its status and the line stays within 300 characters', () => {
+  const out = formatContextBlock({
+    threads: [
+      { name: 'N'.repeat(400), description: 'desc', status: 'resolved' },
+      { name: 'Short', description: 'd'.repeat(400), status: 'resolved' },
+    ],
+  });
+  const lines = out.text.split('\n').filter((l) => l.startsWith('- '));
+  assert.ok(lines[0].includes('(resolved)'));
+  assert.ok(lines[0].length <= 2 + 300);
+  assert.ok(lines[1].startsWith('- Short (resolved): d'));
+  assert.ok(lines[1].length <= 2 + 300);
+});
+
+test('newlines in a thread name or description cannot start a heading or extra bullet', () => {
+  const out = formatContextBlock({ threads: [{ name: 'A\n## Evil', description: 'x\n- y\n## Z', status: 'open' }] });
+  const section = out.text.split('## Plot threads in play\n')[1].split('\n</story_context>')[0];
+  assert.equal(section.split('\n').length, 1);
+});
