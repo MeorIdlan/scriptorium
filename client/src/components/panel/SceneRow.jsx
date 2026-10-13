@@ -1,15 +1,17 @@
 import { useState } from 'react';
+import { ThreadChips, ThreadMarkers } from './ThreadChips.jsx';
+import { toggleTag, tagList } from '../../utils/threads.js';
 import { SCENE_STATUSES, STATUS_LABELS, SCENE_LIMITS, sceneFieldError, sceneLabel } from '../../utils/scenes.js';
 
 const FIELDS = ['title', 'pov', 'location', 'summary'];
 
-export default function SceneRow({ scene, current, characters, places, onJump, onSave, onRemove, children, dragProps, dragging, dropTarget, busy, error }) {
+export default function SceneRow({ scene, threads = [], current, characters, places, onJump, onSave, onRemove, children, dragProps, dragging, dropTarget, busy, error }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
   const [confirming, setConfirming] = useState(false);
 
   const startEdit = () => {
-    setDraft({ title: scene.title, pov: scene.pov, location: scene.location, status: scene.status, summary: scene.summary });
+    setDraft({ title: scene.title, pov: scene.pov, location: scene.location, status: scene.status, summary: scene.summary, threadIds: tagList(scene.threadIds) });
     setEditing(true);
   };
   const errors = draft ? Object.fromEntries(FIELDS.map((f) => [f, sceneFieldError(f, draft[f])])) : {};
@@ -37,6 +39,7 @@ export default function SceneRow({ scene, current, characters, places, onJump, o
             {meta && <span className="scene-row-meta">{meta}</span>}
             <span className="scene-row-line">
               <span className={`scene-status scene-status--${scene.status}`}>{STATUS_LABELS[scene.status]}</span>
+              <ThreadMarkers threads={threads} ids={scene.threadIds} />
               <span className="scene-row-words">{scene.wordCount.toLocaleString('en-US')} words</span>
             </span>
             {scene.summary && <span className="scene-row-summary">{scene.summary.split('\n')[0]}</span>}
@@ -90,6 +93,12 @@ export default function SceneRow({ scene, current, characters, places, onJump, o
               ))}
             </select>
           </label>
+          {threads.length > 0 && (
+            <div className="scene-card-threads">
+              <span className="scene-card-threads-label">Threads</span>
+              <ThreadChips threads={threads} selected={draft.threadIds} onToggle={(id) => setDraft({ ...draft, threadIds: toggleTag(draft.threadIds, id) })} label="Scene threads" />
+            </div>
+          )}
           <label>
             Summary
             <textarea className="form-textarea" rows={3} value={draft.summary} onChange={(e) => setDraft({ ...draft, summary: e.target.value })} />

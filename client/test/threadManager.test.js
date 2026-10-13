@@ -12,12 +12,17 @@ const chapters = [
 
 function mount({ threads = [heir], routes = {} } = {}) {
   let changed = 0;
+  let deleted = 0;
   const onChanged = async () => {
     changed += 1;
   };
-  return renderApp(h(ThreadManager, { workId: 'w1', threads, chapters, onChanged }), { routes }).then((view) => ({
+  const onDeleted = async () => {
+    deleted += 1;
+  };
+  return renderApp(h(ThreadManager, { workId: 'w1', threads, chapters, onChanged, onDeleted }), { routes }).then((view) => ({
     ...view,
     changed: () => changed,
+    deleted: () => deleted,
     writes: () => view.fetch.calls.filter((c) => c.path.startsWith('/works/w1/threads')),
   }));
 }
@@ -175,5 +180,20 @@ test('Escape on a refused rename clears the row error without another request', 
   assert.equal(view.query('.thread-name-input'), null);
   assert.doesNotMatch(view.text(), /already exists/);
   assert.equal(view.writes().length, 1);
+  await view.unmount();
+});
+
+test('tells the page after a delete so chapter tags can be reloaded', async () => {
+  const view = await mount();
+  await click(view.button('Delete'));
+  await click(view.button('Delete thread'));
+  assert.equal(view.deleted(), 1);
+  await view.unmount();
+});
+
+test('does not call onDeleted for other writes', async () => {
+  const view = await mount();
+  await click(view.query('.thread-status'));
+  assert.equal(view.deleted(), 0);
   await view.unmount();
 });

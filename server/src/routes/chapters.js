@@ -12,6 +12,8 @@ import Snapshot from '../models/Snapshot.js';
 import CatchModel from '../models/Catch.js';
 import { autoSnapshotDue, takeAutoSnapshot } from '../services/snapshotService.js';
 import { sceneSummaries, chapterText, chapterHtml, moveScene } from '../services/sceneMarkers.js';
+import { checkTagList, knownThreadIds, filterHtmlThreads } from '../services/threadTags.js';
+import { knownThreadSet } from '../services/threadScope.js';
 
 const router = Router({ mergeParams: true });
 router.use(loadWork);
@@ -121,7 +123,9 @@ router.put('/:chapterId', async (req, res, next) => {
     const newContent = req.body.content !== undefined ? req.body.content : chapter.content;
     const words = countWords(newContent);
     const newHtml =
-      req.body.contentHtml !== undefined ? sanitizeChapterHtml(req.body.contentHtml) : chapter.contentHtml;
+      req.body.contentHtml !== undefined
+        ? filterHtmlThreads(sanitizeChapterHtml(req.body.contentHtml), await knownThreadSet(workId))
+        : chapter.contentHtml;
     const contentChanged =
       (chapter.content || '') !== newContent || (chapter.contentHtml || '') !== (newHtml || '');
 
@@ -169,8 +173,28 @@ function chapterResponse(doc) {
   return json;
 }
 
-async function writeMovedChapter(chapter, html, now) {
-  const clean = sanitizeChapterHtml(html);
+// PUT /api/works/:workId/chapters/:chapterId/threads { threadIds }
+// The autosave PUT ignores threadIds so a stale editor can't overwrite tags; this is their write path
+router.put('/:chapterId/threads', async (req, res, next) => {
+  try {
+    const { workId, chapterId } = req.params;
+    const checked = checkTagList(req.body?.threadIds);
+    if (!checked.ok) return next(httpError(400, 'INVALID_FIELD', checked.message));
+    const threadIds = knownThreadIds(checked.ids, await knownThreadSet(workId));
+    const updated = await Chapter.findOneAndUpdate(
+      { _id: chapterId, workId },
+      { $set: { threadIds } },
+      { new: true, timestamps: false }
+    );
+    if (!updated) return next(httpError(404, 'NOT_FOUND', 'Chapter not found'));
+    res.json(chapterResponse(updated));
+  } catch (err) {
+    next(err);
+  }
+});
+
+async function writeMovedChapter(chapter, html, now, known) {
+  const clean = filterHtmlThreads(sanitizeChapterHtml(html), known);
   const content = chapterText(clean);
   const wordCount = countWords(content);
   const set = { contentHtml: clean, content, wordCount, scenes: sceneSummaries(clean), updatedAt: now };
@@ -206,6 +230,7 @@ router.post('/:chapterId/scenes/move', async (req, res, next) => {
     if (result.error === 'INVALID_INDEX') return invalid('toIndex', 'toIndex is past the end of the chapter');
     if (result.error === 'NO_CHANGE') return res.json({ chapters: [] });
 
+    const known = await knownThreadSet(workId);
     const now = new Date().toISOString();
     const changed = sameChapter ? [source] : [target, source];
     // Never move without a way back
@@ -214,11 +239,11 @@ router.post('/:chapterId/scenes/move', async (req, res, next) => {
     }
 
     // Destination first: a failure in between duplicates the scene, never loses it
-    const updatedTarget = await writeMovedChapter(target, result.dstHtml, now);
+    const updatedTarget = await writeMovedChapter(target, result.dstHtml, now, known);
     let updatedSource = updatedTarget;
     if (!sameChapter) {
       try {
-        updatedSource = await writeMovedChapter(source, result.srcHtml, now);
+        updatedSource = await writeMovedChapter(source, result.srcHtml, now, known);
       } catch (err) {
         console.error('Scene move source write failed:', err);
         return next(

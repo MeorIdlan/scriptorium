@@ -4,6 +4,8 @@ import { countWords, recalculate } from './wordCountService.js';
 import { thinSnapshots } from './snapshotRetention.js';
 import { newSnapshotId, snapshotFields } from './snapshotData.js';
 import { sceneSummaries } from './sceneMarkers.js';
+import { filterHtmlThreads, knownThreadIds } from './threadTags.js';
+import { knownThreadSet } from './threadScope.js';
 
 // Autosave runs every few seconds, so keep at most one automatic snapshot per interval
 export const SNAPSHOT_INTERVAL_MS = 10 * 60 * 1000;
@@ -35,20 +37,13 @@ export async function takeAutoSnapshot(chapter, now, { note = '' } = {}) {
 export async function restoreFromSnapshot(chapter, snapshot) {
   const now = new Date().toISOString();
   await takeAutoSnapshot(chapter, now, { note: 'Before restore' });
+  const known = await knownThreadSet(chapter.workId);
   const content = snapshot.content || '';
-  const updated = await Chapter.findOneAndUpdate(
-    { _id: chapter._id, workId: chapter.workId },
-    {
-      $set: {
-        content,
-        contentHtml: snapshot.contentHtml || '',
-        scenes: sceneSummaries(snapshot.contentHtml || ''),
-        wordCount: countWords(content),
-        updatedAt: now,
-      },
-    },
-    { new: true }
-  );
+  const contentHtml = filterHtmlThreads(snapshot.contentHtml || '', known);
+  const set = { content, contentHtml, scenes: sceneSummaries(contentHtml), wordCount: countWords(content), updatedAt: now };
+  // Snapshots from before tagging have no chapter tags; the live ones stay
+  if (Array.isArray(snapshot.threadIds)) set.threadIds = knownThreadIds(snapshot.threadIds, known);
+  const updated = await Chapter.findOneAndUpdate({ _id: chapter._id, workId: chapter.workId }, { $set: set }, { new: true });
   await recalculate(chapter.workId);
   return updated;
 }

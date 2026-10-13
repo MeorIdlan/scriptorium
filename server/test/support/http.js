@@ -7,6 +7,8 @@ import PlotThread from '../../src/models/PlotThread.js';
 import worksRouter from '../../src/routes/works.js';
 import threadsRouter from '../../src/routes/threads.js';
 import chaptersRouter from '../../src/routes/chapters.js';
+import snapshotsRouter from '../../src/routes/snapshots.js';
+import milestonesRouter from '../../src/routes/milestones.js';
 import { errorHandler } from '../../src/middleware/errorHandler.js';
 
 export async function startDb() {
@@ -32,6 +34,8 @@ export function buildApp() {
   });
   app.use('/api/works', worksRouter);
   app.use('/api/works/:workId/threads', threadsRouter);
+  app.use('/api/works/:workId/chapters/:chapterId/snapshots', snapshotsRouter);
+  app.use('/api/works/:workId/milestones', milestonesRouter);
   app.use('/api/works/:workId/chapters', chaptersRouter);
   app.use(errorHandler);
   return app;

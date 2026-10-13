@@ -8,13 +8,15 @@ import { flushOpenChapter } from '../../utils/versionHistory.js';
 import { chapterLabel } from '../../utils/catchGroups.js';
 import { moveSceneRequest, destinationScenes, dropIndex } from '../../utils/sceneMoves.js';
 import SceneRow from './SceneRow.jsx';
+import { ChapterThreads } from './ThreadChips.jsx';
+import { setChapterThreads, toggleTag, tagList } from '../../utils/threads.js';
 
 const editorRoot = () => document.querySelector('.editor');
 const names = (list) => (list || []).map((e) => e?.name).filter((n) => typeof n === 'string' && n.trim());
 
 export default function ScenesTab({ workId }) {
   const { state: editorState, replaceContent } = useEditor();
-  const { state: workState, refreshCodex, refreshChapters } = useActiveWork();
+  const { state: workState, refreshCodex, refreshChapters, refreshThreads } = useActiveWork();
   const [scenes, setScenes] = useState([]);
   const [current, setCurrent] = useState(-1);
   const [errors, setErrors] = useState({});
@@ -23,11 +25,18 @@ export default function ScenesTab({ workId }) {
   const [notice, setNotice] = useState('');
   const [dragFrom, setDragFrom] = useState(null);
   const [dragOver, setDragOver] = useState(null);
+  const [tagging, setTagging] = useState(false);
+  const [tagError, setTagError] = useState('');
 
   // POV and location suggestions come from the Codex, loaded on demand
   useEffect(() => {
     if (!workState.codex && workId) refreshCodex(workId);
   }, [workState.codex, workId, refreshCodex]);
+
+  // Chip names and colours come from the work's threads, loaded on demand
+  useEffect(() => {
+    if (workId) refreshThreads(workId);
+  }, [workId, refreshThreads]);
 
   // The editor DOM is the source; refresh shortly after typing stops
   useEffect(() => {
@@ -85,12 +94,33 @@ export default function ScenesTab({ workId }) {
     }
   }
 
+  const threads = workState.threads || [];
+  const chapter = (workState.chapters || []).find((c) => c.id === editorState.chapterId);
+  const chapterTags = tagList(chapter?.threadIds);
+
+  async function toggleChapterThread(threadId) {
+    setTagging(true);
+    setTagError('');
+    try {
+      await setChapterThreads(api, workId, editorState.chapterId, toggleTag(chapterTags, threadId));
+      await refreshChapters(workId);
+    } catch (err) {
+      setTagError(err.message || 'The tag could not be saved.');
+    } finally {
+      setTagging(false);
+    }
+  }
+  const chapterThreads = (
+    <ChapterThreads threads={threads} selected={chapterTags} onToggle={toggleChapterThread} busy={tagging} error={tagError} />
+  );
+
   if (!editorState.chapterId) return <p className="scenes-empty">Open a chapter to see its scenes.</p>;
 
   const hasMarkers = scenes.some((s) => s.id);
   if (!hasMarkers) {
     return (
       <div className="scenes-tab">
+        {chapterThreads}
         <ul className="scene-list">
           <li className="scene-row">
             <span className="scene-row-title">Whole chapter</span>
@@ -107,6 +137,7 @@ export default function ScenesTab({ workId }) {
 
   return (
     <div className="scenes-tab">
+      {chapterThreads}
       {notice && <p className="scenes-notice">{notice}</p>}
       <ul className="scene-list">
         {scenes.map((scene) => {
@@ -115,6 +146,7 @@ export default function ScenesTab({ workId }) {
             <SceneRow
               key={key}
               scene={scene}
+              threads={threads}
               current={scene.index === current}
               characters={characters}
               places={places}

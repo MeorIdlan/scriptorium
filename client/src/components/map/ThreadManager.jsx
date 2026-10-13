@@ -4,7 +4,7 @@ import ThreadRow from './ThreadRow.jsx';
 import { threadNameError, threadTagCount } from '../../utils/threads.js';
 
 // The work's plot threads, on the Map. Every write reloads the list via onChanged.
-export default function ThreadManager({ workId, threads, chapters, onChanged }) {
+export default function ThreadManager({ workId, threads, chapters, onChanged, onDeleted }) {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [errors, setErrors] = useState({});
@@ -77,7 +77,9 @@ export default function ThreadManager({ workId, threads, chapters, onChanged }) 
             tagCount={threadTagCount(chapters, thread.id)}
             error={errors[thread.id]}
             onSave={(fields) => run(thread.id, () => api.put(`${base}/${thread.id}`, fields))}
-            onDelete={() => run(thread.id, () => api.delete(`${base}/${thread.id}`))}
+            onDelete={async () => {
+              if (await run(thread.id, () => api.delete(`${base}/${thread.id}`))) await onDeleted?.();
+            }}
             onCancel={() => setErrors((e) => ({ ...e, [thread.id]: null }))}
           />
         ))}

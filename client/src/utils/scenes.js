@@ -2,7 +2,7 @@
 // <hr data-scene …> whose attributes hold the scene's card.
 import { getBlocks, blockEndPoint, topLevelNode, rememberedCaret } from './editorBlocks.js';
 import { countWords } from './wordCount.js';
-import { parseThreadIds } from './threads.js';
+import { parseThreadIds, tagList } from './threads.js';
 
 export const SCENE_STATUSES = ['todo', 'draft', 'revise', 'done'];
 export const STATUS_LABELS = { todo: 'To do', draft: 'Draft', revise: 'Revise', done: 'Done' };
@@ -82,7 +82,7 @@ export function markerHtml({ id, status = 'draft', ...fields }) {
     const value = (fields[field] || '').trim();
     if (value) attrs.push(`${attr}="${escapeAttr(value)}"`);
   }
-  const threads = parseThreadIds((fields.threadIds || []).join(' '));
+  const threads = tagList(fields.threadIds);
   if (threads.length) attrs.push(`data-threads="${escapeAttr(threads.join(' '))}"`);
   attrs.push(`data-status="${SCENE_STATUSES.includes(status) ? status : 'draft'}"`);
   attrs.push('contenteditable="false"');
@@ -97,7 +97,7 @@ export function applyCard(marker, fields) {
   }
   // Card edits don't carry tags; only change them when asked to
   if ('threadIds' in fields) {
-    const threads = parseThreadIds((fields.threadIds || []).join(' '));
+    const threads = tagList(fields.threadIds);
     if (threads.length) marker.setAttribute('data-threads', threads.join(' '));
     else marker.removeAttribute('data-threads');
   }

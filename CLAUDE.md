@@ -66,7 +66,7 @@ scriptorium/
 │       ├── services/           # workService, settingsService, llmService, consistencyService, exportService, wordCountService,
 │       │                       #   authService, authSessionService, otpService, webauthnService, emailService, auditService, devAuthService,
 │       │                       #   snapshotService, snapshotMigration, textDiff (version history), catchFields, sceneMarkers (scenes inside chapter HTML),
-│       │                       #   threadFields, threadTags, threadCleanup (plot threads; scene tags are data-threads on scene markers)
+│       │                       #   threadFields, threadTags, threadScope, threadCleanup (plot threads; scene tags are data-threads on scene markers, chapter tags are Chapter.threadIds written by PUT /chapters/:id/threads)
 │       ├── services/providers/ # anthropic.js, openai.js
 │       ├── utils/authCookie.js
 │       └── routes/             # auth, admin, works, chapters, snapshots, milestones, codex, catches, map, threads, sessions, ai, settings, export
