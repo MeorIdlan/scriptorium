@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { useLocation } from 'react-router-dom';
 import { renderApp } from './support/app.js';
-import { click } from './support/render.js';
+import { click, toggle } from './support/render.js';
 import { useUI } from '../src/context/UIContext.jsx';
 import ThreadLanes from '../src/components/map/ThreadLanes.jsx';
 
@@ -100,4 +100,101 @@ test('each dot says which chapter and scene it is', async () => {
   const dots = [...lane(view, 'thr_1').querySelectorAll('.thread-lane-dot')].map((d) => d.getAttribute('title'));
   assert.deepEqual(dots, ['Ch. 1: Chapter 1', 'Ch. 2: Chapter 2, The letter', 'Ch. 9: Chapter 9, Reunion']);
   await view.unmount();
+});
+
+// --- show / hide lanes ---
+
+const KEY = 'scriptorium.hiddenLanes.w1';
+
+// Swaps globalThis.localStorage for the test, whatever the runtime provides
+function withStorage(store, fn) {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, ...store });
+  const restore = () => {
+    if (original) Object.defineProperty(globalThis, 'localStorage', original);
+    else delete globalThis.localStorage;
+  };
+  return Promise.resolve(fn()).finally(restore);
+}
+
+function memoryStore(initial = {}) {
+  const data = new Map(Object.entries(initial));
+  const value = {
+    getItem: (k) => (data.has(k) ? data.get(k) : null),
+    setItem: (k, v) => data.set(k, String(v)),
+    removeItem: (k) => data.delete(k),
+  };
+  return { store: { value, writable: true }, data };
+}
+
+const showBox = (view, id) => lane(view, id).querySelector('input[type="checkbox"]');
+
+test('every lane starts shown, with a checkbox to hide it', async () => {
+  const { store } = memoryStore();
+  await withStorage(store, async () => {
+    const view = await mount();
+    assert.equal(showBox(view, 'thr_1').getAttribute('aria-label'), 'Show The missing heir');
+    assert.equal(showBox(view, 'thr_1').checked, true);
+    assert.equal(showBox(view, 'thr_2').checked, true);
+    await view.unmount();
+  });
+});
+
+test('unchecking a lane hides its marks but keeps its label and checkbox', async () => {
+  const { store } = memoryStore();
+  await withStorage(store, async () => {
+    const view = await mount();
+    await toggle(showBox(view, 'thr_1'), false);
+    assert.equal(lane(view, 'thr_1').querySelectorAll('.thread-lane-dot').length, 0);
+    assert.equal(lane(view, 'thr_1').querySelectorAll('.thread-lane-gap').length, 0);
+    assert.match(lane(view, 'thr_1').textContent, /The missing heir/);
+    assert.equal(showBox(view, 'thr_1').checked, false);
+    assert.equal(lane(view, 'thr_2').querySelectorAll('.thread-lane-dot').length, 1);
+    await toggle(showBox(view, 'thr_1'), true);
+    assert.equal(lane(view, 'thr_1').querySelectorAll('.thread-lane-dot').length, 3);
+    await view.unmount();
+  });
+});
+
+test('the hidden lanes are remembered per work', async () => {
+  const { store, data } = memoryStore();
+  await withStorage(store, async () => {
+    const first = await mount();
+    await toggle(showBox(first, 'thr_1'), false);
+    assert.equal(data.get(KEY), JSON.stringify(['thr_1']));
+    await first.unmount();
+
+    const again = await mount();
+    assert.equal(showBox(again, 'thr_1').checked, false);
+    assert.equal(lane(again, 'thr_1').querySelectorAll('.thread-lane-dot').length, 0);
+    await again.unmount();
+  });
+});
+
+test('another work keeps its own lanes', async () => {
+  const { store } = memoryStore({ 'scriptorium.hiddenLanes.w2': JSON.stringify(['thr_1']) });
+  await withStorage(store, async () => {
+    const view = await mount();
+    assert.equal(showBox(view, 'thr_1').checked, true);
+    await view.unmount();
+  });
+});
+
+test('a damaged saved value is ignored', async () => {
+  const { store } = memoryStore({ [KEY]: '{not json' });
+  await withStorage(store, async () => {
+    const view = await mount();
+    assert.equal(showBox(view, 'thr_1').checked, true);
+    await view.unmount();
+  });
+});
+
+test('lanes still show and hide when storage is blocked', async () => {
+  await withStorage({ get() { throw new Error('denied'); } }, async () => {
+    const view = await mount();
+    assert.equal(showBox(view, 'thr_1').checked, true);
+    await toggle(showBox(view, 'thr_1'), false);
+    assert.equal(lane(view, 'thr_1').querySelectorAll('.thread-lane-dot').length, 0);
+    await view.unmount();
+  });
 });

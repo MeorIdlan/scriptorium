@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useUI } from '../../context/UIContext.jsx';
+import useHiddenLanes from '../../hooks/useHiddenLanes.js';
 import { sceneLabel } from '../../utils/scenes.js';
 import { touches, laneGaps } from '../../utils/threadLanes.js';
 
@@ -11,20 +12,26 @@ function gapTitle(gap, chapters) {
   return `Untouched for ${gap.length} chapter${gap.length === 1 ? '' : 's'} (Ch. ${from} to Ch. ${to})`;
 }
 
-function Lane({ thread, chapters, openChapter, openScene }) {
+function Lane({ thread, chapters, hidden, setShown, openChapter, openScene }) {
   const marks = touches(thread, chapters);
   const gaps = laneGaps(thread, chapters);
 
   return (
     <li
-      className={`thread-lane thread-lane--${thread.status}`}
+      className={`thread-lane thread-lane--${thread.status}${hidden ? ' thread-lane--hidden' : ''}`}
       data-thread-id={thread.id}
     >
       <span className="thread-lane-label" title={thread.name}>
+        <input
+          type="checkbox"
+          checked={!hidden}
+          aria-label={`Show ${thread.name}`}
+          onChange={(e) => setShown(thread.id, e.target.checked)}
+        />
         <span className="thread-swatch" style={{ background: thread.color }} aria-hidden="true" />
         <span className="thread-lane-name">{thread.name}</span>
       </span>
-      <div className="thread-lane-track" style={{ gridTemplateColumns: `repeat(${chapters.length}, minmax(0, 1fr))` }}>
+      {!hidden && <div className="thread-lane-track" style={{ gridTemplateColumns: `repeat(${chapters.length}, minmax(0, 1fr))` }}>
         {gaps.map((gap) => (
           <div
             key={gap.start}
@@ -62,7 +69,7 @@ function Lane({ thread, chapters, openChapter, openScene }) {
             </div>
           );
         })}
-      </div>
+      </div>}
     </li>
   );
 }
@@ -70,6 +77,7 @@ function Lane({ thread, chapters, openChapter, openScene }) {
 export default function ThreadLanes({ workId, threads = [], chapters = [] }) {
   const navigate = useNavigate();
   const { dispatch: uiDispatch } = useUI();
+  const { isHidden, setShown } = useHiddenLanes(workId);
 
   const openChapter = (chapter) => navigate(`/work/${workId}/chapter/${chapter.id}`);
   const openScene = (chapter, sceneIndex) => {
@@ -89,6 +97,8 @@ export default function ThreadLanes({ workId, threads = [], chapters = [] }) {
               key={thread.id}
               thread={thread}
               chapters={chapters}
+              hidden={isHidden(thread.id)}
+              setShown={setShown}
               openChapter={openChapter}
               openScene={openScene}
             />
