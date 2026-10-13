@@ -1655,6 +1655,27 @@ a:hover {
 .thread-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-muted); }
 .thread-confirm p { margin: 0; flex-basis: 100%; }
 
+.thread-lanes { margin-bottom: 1.25rem; }
+.thread-lanes-title { margin: 0 0 10px; font-family: Georgia, serif; color: var(--gold); font-size: 1rem; font-weight: normal; }
+.thread-lanes-empty { margin: 0; color: var(--text-muted); font-size: 0.85rem; }
+.thread-lane-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.thread-lane { display: grid; grid-template-columns: 150px minmax(0, 1fr); align-items: center; gap: 10px; }
+.thread-lane--resolved { opacity: 0.55; }
+.thread-lane-label { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.thread-lane-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: Georgia, serif; font-size: 0.85rem; color: var(--text); }
+.thread-lane-track { position: relative; display: grid; grid-auto-rows: 26px; align-items: center; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.thread-lane-cell { grid-row: 1; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 3px; z-index: 1; }
+.thread-lane-gap {
+  grid-row: 1;
+  align-self: stretch;
+  background: repeating-linear-gradient(135deg, rgba(232, 160, 48, 0.28) 0 4px, transparent 4px 8px);
+  border-left: 1px dashed #e8a030;
+  border-right: 1px dashed #e8a030;
+}
+.thread-lane-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--bg-card); padding: 0; cursor: pointer; }
+.thread-lane-dot--chapter { border-radius: 3px; width: 14px; height: 10px; }
+.thread-lane-dot:hover, .thread-lane-dot:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+
 .map-detail-section {
   background: var(--bg-card);
   border: 1px solid var(--border);
