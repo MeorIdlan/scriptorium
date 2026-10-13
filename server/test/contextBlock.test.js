@@ -7,6 +7,7 @@ import {
   formatContextBlock,
   MAX_CONTEXT_CATCHES,
   MAX_SCENE_LINES,
+  MAX_CONTEXT_THREADS,
 } from '../src/services/contextBlock.js';
 
 test('normalizeAliases accepts arrays and comma/semicolon strings', () => {
@@ -198,4 +199,60 @@ test('formatContextBlock omits the scene list for a chapter without markers', ()
   const out = formatContextBlock({ sceneList: [] });
   assert.equal(out.sceneList, 0);
   assert.equal(out.text, '');
+});
+
+test('formatContextBlock renders plot threads with status after this scene, before the scene list', () => {
+  const out = formatContextBlock({
+    scene: { id: 'a', title: 'The well', pov: '', location: '', status: 'draft', summary: '' },
+    sceneList: [{ id: 'a', title: 'The well', pov: '', summary: '' }],
+    threads: [
+      { name: 'The letter', description: 'Who wrote it?\n  Still unknown.', status: 'open' },
+      { name: 'The feud', description: '', status: 'resolved' },
+    ],
+  });
+  assert.ok(out.text.includes('## Plot threads in play\n- The letter (open): Who wrote it? Still unknown.\n- The feud (resolved)'));
+  assert.ok(out.text.indexOf('## This scene') < out.text.indexOf('## Plot threads in play'));
+  assert.ok(out.text.indexOf('## Plot threads in play') < out.text.indexOf('## Scenes in this chapter'));
+  assert.deepEqual(out.threads, ['The letter', 'The feud']);
+});
+
+test('plot threads are one line each, clipped to 300 characters, at most 8', () => {
+  assert.equal(MAX_CONTEXT_THREADS, 8);
+  const many = Array.from({ length: 10 }, (_, i) => ({ name: `T${i}`, description: '', status: 'open' }));
+  many[0] = { name: 'Long', description: 'x'.repeat(500), status: 'open' };
+  const out = formatContextBlock({ threads: many });
+  const lines = out.text.split('\n').filter((l) => l.startsWith('- '));
+  assert.equal(lines.length, 8);
+  assert.equal(lines[0].length, 2 + 300);
+  assert.ok(lines[0].endsWith('…'));
+  assert.equal(out.threads.length, 8);
+});
+
+test('plot threads skip nameless entries and add no section when none are left', () => {
+  const out = formatContextBlock({ threads: [null, { name: '  ', description: 'x', status: 'open' }, 'text'] });
+  assert.equal(out.text, '');
+  assert.deepEqual(out.threads, []);
+  const none = formatContextBlock({ story: { title: 'T' } });
+  assert.ok(!none.text.includes('Plot threads'));
+  assert.deepEqual(none.threads, []);
+});
+
+test('a long thread name keeps its status and the line stays within 300 characters', () => {
+  const out = formatContextBlock({
+    threads: [
+      { name: 'N'.repeat(400), description: 'desc', status: 'resolved' },
+      { name: 'Short', description: 'd'.repeat(400), status: 'resolved' },
+    ],
+  });
+  const lines = out.text.split('\n').filter((l) => l.startsWith('- '));
+  assert.ok(lines[0].includes('(resolved)'));
+  assert.ok(lines[0].length <= 2 + 300);
+  assert.ok(lines[1].startsWith('- Short (resolved): d'));
+  assert.ok(lines[1].length <= 2 + 300);
+});
+
+test('newlines in a thread name or description cannot start a heading or extra bullet', () => {
+  const out = formatContextBlock({ threads: [{ name: 'A\n## Evil', description: 'x\n- y\n## Z', status: 'open' }] });
+  const section = out.text.split('## Plot threads in play\n')[1].split('\n</story_context>')[0];
+  assert.equal(section.split('\n').length, 1);
 });

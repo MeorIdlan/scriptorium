@@ -3,6 +3,7 @@ import Codex from '../models/Codex.js';
 import MapModel from '../models/Map.js';
 import { ensureSummaries } from './summaryService.js';
 import CatchModel from '../models/Catch.js';
+import PlotThread from '../models/PlotThread.js';
 import { findMentions, formatContextBlock, MAX_CONTEXT_CATCHES } from './contextBlock.js';
 
 // AI calls must never fail because of catches
@@ -20,13 +21,30 @@ async function openCatchesFor(workId, chapterId) {
   }
 }
 
+// Threads for the given tag ids, in tag order; ids that aren't this work's threads are ignored.
+// AI calls must never fail because of threads
+async function threadsFor(workId, ids) {
+  try {
+    const wanted = [...new Set(Array.isArray(ids) ? ids.filter((id) => typeof id === 'string') : [])];
+    if (!wanted.length) return [];
+    const rows = await PlotThread.find({ workId, _id: { $in: wanted } })
+      .select('name description status')
+      .lean();
+    const byId = new Map(rows.map((r) => [r._id, r]));
+    return wanted.map((id) => byId.get(id)).filter(Boolean);
+  } catch (err) {
+    console.error('Loading plot threads for context failed:', err);
+    return [];
+  }
+}
+
 export async function buildContext({ work, chapterId, sceneId, sourceText = '', needs = {} }) {
   const workId = work._id;
-  const needChapters = Boolean(needs.summaries || needs.mapBeat || needs.scene || needs.sceneList);
+  const needChapters = Boolean(needs.summaries || needs.mapBeat || needs.scene || needs.sceneList || needs.threads);
 
   const [chapters, codex, map, catches] = await Promise.all([
     needChapters
-      ? Chapter.find({ workId }).select('number title order content summary scenes').sort({ order: 1 }).lean()
+      ? Chapter.find({ workId }).select('number title order content summary scenes threadIds').sort({ order: 1 }).lean()
       : [],
     needs.codex ? Codex.findOne({ workId }).lean() : null,
     needs.mapBeat ? MapModel.findOne({ workId }).lean() : null,
@@ -62,6 +80,14 @@ export async function buildContext({ work, chapterId, sceneId, sourceText = '', 
   const scene = needs.scene && sceneId ? chapterScenes.find((s) => s && s.id === sceneId) || null : null;
   const sceneList = needs.sceneList ? chapterScenes : null;
 
+  // The open scene's tags, or the chapter's when the scene has none (or none is open)
+  let tagIds = [];
+  if (needs.threads) {
+    const openScene = sceneId ? chapterScenes.find((s) => s && s.id === sceneId) : null;
+    tagIds = Array.isArray(openScene?.threadIds) && openScene.threadIds.length ? openScene.threadIds : current?.threadIds;
+  }
+  const threads = needs.threads ? await threadsFor(workId, tagIds) : null;
+
   const story = needs.story
     ? {
         title: work.title,
@@ -73,7 +99,7 @@ export async function buildContext({ work, chapterId, sceneId, sourceText = '', 
       }
     : null;
 
-  const { text, codexNames, rules, scene: sceneSent, sceneList: sceneLines, catches: catchCount } = formatContextBlock({
+  const { text, codexNames, rules, scene: sceneSent, sceneList: sceneLines, catches: catchCount, threads: threadNames } = formatContextBlock({
     story,
     summaries,
     mentions: needs.codex ? findMentions(codex, sourceText) : null,
@@ -82,6 +108,7 @@ export async function buildContext({ work, chapterId, sceneId, sourceText = '', 
     scene,
     sceneList,
     catches,
+    threads,
   });
 
   if (!text) return { text: '', manifest: null };
@@ -99,6 +126,7 @@ export async function buildContext({ work, chapterId, sceneId, sourceText = '', 
       scene: sceneSent,
       sceneList: sceneLines,
       catches: catchCount,
+      threads: threadNames,
     },
   };
 }

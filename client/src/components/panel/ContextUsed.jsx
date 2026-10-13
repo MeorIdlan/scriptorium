@@ -17,8 +17,9 @@ export default function ContextUsed({ context }) {
   if (context.scene) parts.push("this scene's card");
   if (context.sceneList) parts.push(plural(context.sceneList, 'scene card', 'scene cards'));
   if (context.catches) parts.push(plural(context.catches, "writer's note", "writer's notes"));
+  if (context.threads?.length) parts.push(plural(context.threads.length, 'plot thread', 'plot threads'));
 
-  const hasDetails = context.codex?.length > 0 || context.act || context.beat;
+  const hasDetails = context.codex?.length > 0 || context.act || context.beat || context.threads?.length > 0;
 
   return (
     <div className="context-used">
@@ -42,6 +43,7 @@ export default function ContextUsed({ context }) {
           {(context.act || context.beat) && (
             <p>Map: {[context.act, context.beat].filter(Boolean).join(' · ')}</p>
           )}
+          {context.threads?.length > 0 && <p>Threads: {context.threads.join(', ')}</p>}
         </div>
       )}
     </div>
