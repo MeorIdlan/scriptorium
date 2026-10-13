@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../utils/api.js';
 import { useEditor } from '../../context/EditorContext.jsx';
+import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { countWords, formatNumber } from '../../utils/wordCount.js';
 import { CURRENT, versionLabel, groupByDay, orderPair, flushOpenChapter } from '../../utils/versionHistory.js';
 import VersionDiff from './VersionDiff.jsx';
@@ -11,6 +12,7 @@ const fullTime = (iso) => new Date(iso).toLocaleString([], { dateStyle: 'medium'
 
 export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
   const { state: editorState, replaceContent } = useEditor();
+  const { refreshChapters } = useActiveWork();
   const base = `/works/${workId}/chapters/${chapterId}/snapshots`;
   const [versions, setVersions] = useState(null);
   const [selectedId, setSelectedId] = useState(CURRENT);
@@ -89,6 +91,8 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
       await flushOpenChapter(api, workId, editorState, chapterId);
       const chapter = await api.post(`${base}/${selectedId}/restore`);
       replaceContent(chapter.content || '', chapter.contentHtml || '');
+      // A restore can change the chapter's thread tags, which the Scenes tab reads from the chapter list
+      await refreshChapters(workId);
       onDismiss();
     });
 
