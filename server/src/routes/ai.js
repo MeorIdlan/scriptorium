@@ -50,7 +50,7 @@ router.post('/hooks', loadWorkFromBody({ optional: true }), async (req, res, nex
     const scene = typeof req.body.content === 'string' ? req.body.content.trim() : '';
     const context = await contextFor(
       req,
-      { story: true, codex: true, summaries: 'before', mapBeat: true, scene: true, catches: true },
+      { story: true, codex: true, summaries: 'before', mapBeat: true, scene: true, catches: true, threads: true },
       scene
     );
 
@@ -107,7 +107,7 @@ router.post('/rekindler', loadWorkFromBody(), async (req, res, next) => {
       .sort({ updatedAt: -1 });
     const lastContent = chapter?.content || '';
     req.body.chapterId = chapter?._id;
-    const context = await contextFor(req, { story: true, summaries: 'before', mapBeat: true, sceneList: true, catches: true });
+    const context = await contextFor(req, { story: true, summaries: 'before', mapBeat: true, sceneList: true, catches: true, threads: true });
 
     const prompt = `The writer is returning to their work. Help them re-enter the story with a brief rekindler.
 
@@ -359,7 +359,7 @@ ${content.slice(0, 6000)}`,
 
     const context = await contextFor(
       req,
-      { story: true, codex: true, summaries: 'before', mapBeat: true, sceneList: true, catches: true },
+      { story: true, codex: true, summaries: 'before', mapBeat: true, sceneList: true, catches: true, threads: true },
       content
     );
 
