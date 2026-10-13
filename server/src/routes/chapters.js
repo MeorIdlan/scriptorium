@@ -2,7 +2,8 @@ import { Router } from 'express';
 import Chapter from '../models/Chapter.js';
 import Work from '../models/Work.js';
 import { httpError } from '../middleware/errorHandler.js';
-import { countWords, recalculate } from '../services/wordCountService.js';
+import { countWords, recalculate, gainFor } from '../services/wordCountService.js';
+import { addDailyWords, dayKeyForRequest } from '../services/progressService.js';
 import { scan } from '../services/consistencyService.js';
 import { sanitizeChapterHtml } from '../services/htmlService.js';
 import { loadWork } from '../middleware/loadWork.js';
@@ -141,7 +142,9 @@ router.put('/:chapterId', async (req, res, next) => {
     }
 
     const snapshotNeeded = contentChanged && chapter.content && (await autoSnapshotDue(chapterId, now));
-    const updated = await Chapter.findOneAndUpdate({ _id: chapterId, workId }, { $set: setFields }, { new: true });
+    // new: false returns the pre-update document, so the daily gain is measured in this same atomic write
+    const before = await Chapter.findOneAndUpdate({ _id: chapterId, workId }, { $set: setFields }, { new: false });
+    const updated = await Chapter.findById(chapterId);
 
     // `chapter` is the pre-save document, so this keeps the text being replaced.
     // A failed snapshot must not fail the save.
@@ -160,6 +163,13 @@ router.put('/:chapterId', async (req, res, next) => {
     }
 
     await recalculate(workId);
+
+    // A failed progress write is logged and never fails the save
+    try {
+      await addDailyWords(req.user.id, dayKeyForRequest(req), gainFor(before?.wordCount ?? 0, words));
+    } catch (progressErr) {
+      console.error('Daily progress error:', progressErr);
+    }
 
     res.json(updated);
   } catch (err) {
