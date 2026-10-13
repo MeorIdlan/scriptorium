@@ -12,6 +12,8 @@ import Snapshot from '../models/Snapshot.js';
 import CatchModel from '../models/Catch.js';
 import { autoSnapshotDue, takeAutoSnapshot } from '../services/snapshotService.js';
 import { sceneSummaries, chapterText, chapterHtml, moveScene } from '../services/sceneMarkers.js';
+import { checkTagList, knownThreadIds } from '../services/threadTags.js';
+import { knownThreadSet } from '../services/threadScope.js';
 
 const router = Router({ mergeParams: true });
 router.use(loadWork);
@@ -168,6 +170,26 @@ function chapterResponse(doc) {
   json.summaryStatus = summaryStatus(json);
   return json;
 }
+
+// PUT /api/works/:workId/chapters/:chapterId/threads { threadIds }
+// The autosave PUT ignores threadIds so a stale editor can't overwrite tags; this is their write path
+router.put('/:chapterId/threads', async (req, res, next) => {
+  try {
+    const { workId, chapterId } = req.params;
+    const checked = checkTagList(req.body?.threadIds);
+    if (!checked.ok) return next(httpError(400, 'INVALID_FIELD', checked.message));
+    const threadIds = knownThreadIds(checked.ids, await knownThreadSet(workId));
+    const updated = await Chapter.findOneAndUpdate(
+      { _id: chapterId, workId },
+      { $set: { threadIds } },
+      { new: true, timestamps: false }
+    );
+    if (!updated) return next(httpError(404, 'NOT_FOUND', 'Chapter not found'));
+    res.json(chapterResponse(updated));
+  } catch (err) {
+    next(err);
+  }
+});
 
 async function writeMovedChapter(chapter, html, now) {
   const clean = sanitizeChapterHtml(html);
