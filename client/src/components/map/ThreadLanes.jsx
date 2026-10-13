@@ -79,7 +79,7 @@ function OpenAtEnd({ items, chapters }) {
     <div className="thread-open-end">
       <h4 className="thread-open-end-title">Open at the end</h4>
       {items.length === 0 ? (
-        <p className="thread-lanes-empty">None. Every open thread reaches the last chapter.</p>
+        <p className="thread-lanes-empty">None among the lanes shown.</p>
       ) : (
         <ul className="thread-open-end-list">
           {items.map(({ thread, lastChapter }) => (
