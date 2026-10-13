@@ -16,3 +16,18 @@ export async function recalculate(workId) {
   await Work.findByIdAndUpdate(workId, { wordCount: total, updatedAt: now });
   return total;
 }
+
+// Words added by a save. Decreases are ignored, so deleting or moving text never lowers the day (A4).
+export function gainFor(oldWords, newWords) {
+  return Math.max(0, newWords - oldWords);
+}
+
+// The calendar date for `date` in an IANA timezone, as YYYY-MM-DD. Throws RangeError for an unknown zone.
+export function dayKey(date, timeZone) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
