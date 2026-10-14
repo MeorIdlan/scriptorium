@@ -41,8 +41,14 @@ export async function* jsonArray(rows, stats) {
   yield ']';
 }
 
+// Mongoose cursors have no return(), so leaving the loop early (client gone,
+// error) would leave the server-side cursor open: close it on every exit path
 async function* mapped(rows, fn) {
-  for await (const row of rows) yield fn(row);
+  try {
+    for await (const row of rows) yield fn(row);
+  } finally {
+    await rows.close?.();
+  }
 }
 
 function arrayEntry(path, kind, rows) {
@@ -78,11 +84,15 @@ export async function* workEntries(workId) {
   );
 
   const chapterFiles = Chapter.find({ workId }).sort({ order: 1 }).select('content contentHtml').lean().cursor();
-  for await (const ch of chapterFiles) {
-    const chapterId = String(ch._id);
-    const html = chapterHtml(ch);
-    yield textEntry(`chapters/${chapterId}.html`, 'chapter-html', chapterId, html);
-    yield textEntry(`chapters/${chapterId}.md`, 'chapter-markdown', chapterId, chapterMarkdown(html));
+  try {
+    for await (const ch of chapterFiles) {
+      const chapterId = String(ch._id);
+      const html = chapterHtml(ch);
+      yield textEntry(`chapters/${chapterId}.html`, 'chapter-html', chapterId, html);
+      yield textEntry(`chapters/${chapterId}.md`, 'chapter-markdown', chapterId, chapterMarkdown(html));
+    }
+  } finally {
+    await chapterFiles.close?.();
   }
 
   const codex = await Codex.findOne({ workId }).lean();
