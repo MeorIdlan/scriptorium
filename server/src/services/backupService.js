@@ -156,15 +156,36 @@ function appendEntry(archive, entry, source) {
 
 export async function writeWorkBackup(work, output, { entries = workEntries } = {}) {
   const archive = new ZipArchive({ zlib: { level: 6 } });
+  let finished = false;
+
+  // Rejects if the archive fails or the client goes away, so no await can hang.
+  // archiver 8 emits no 'abort' event, so the output's 'close' is the disconnect signal.
+  const failed = new Promise((_, reject) => {
+    archive.on('error', reject);
+    output.once('close', () => {
+      if (!finished) reject(new Error('backup aborted: client disconnected'));
+    });
+  });
+  failed.catch(() => {});
+
   archive.pipe(output);
-
   const items = [];
-  for await (const entry of entries(String(work._id))) {
-    const source = Readable.from(entry.chunks, { objectMode: false });
-    items.push(await appendEntry(archive, entry, source));
+  let source = null;
+  try {
+    for await (const entry of entries(String(work._id))) {
+      source = Readable.from(entry.chunks, { objectMode: false });
+      const appended = appendEntry(archive, entry, source);
+      appended.catch(() => {});
+      items.push(await Promise.race([appended, failed]));
+      source = null;
+    }
+    archive.append(JSON.stringify(buildManifest({ work, items }), null, 2), { name: 'manifest.json' });
+    await Promise.race([archive.finalize(), failed]);
+    finished = true;
+    return items;
+  } catch (err) {
+    source?.destroy();
+    archive.abort();
+    throw err;
   }
-
-  archive.append(JSON.stringify(buildManifest({ work, items }), null, 2), { name: 'manifest.json' });
-  await archive.finalize();
-  return items;
 }
