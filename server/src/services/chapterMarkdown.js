@@ -9,10 +9,14 @@ function escapeText(text) {
     .replace(/^(\s*\d+)\./gm, '$1\\.');
 }
 
+// A line break at the end of a block or mark has nothing to write, nor do spaces after it
+const TRAILING_BREAKS = /(\\\n\s*)+$/;
+
 // Keep the spaces outside the marks, or the emphasis won't render
 function emphasis(mark, text) {
-  const [, lead, body, trail] = text.match(/^(\s*)([\s\S]*?)(\s*)$/);
-  return body ? `${lead}${mark}${body}${mark}${trail}` : text;
+  const clean = text.replace(TRAILING_BREAKS, '');
+  const [, lead, body, trail] = clean.match(/^(\s*)([\s\S]*?)(\s*)$/);
+  return body ? `${lead}${mark}${body}${mark}${trail}` : clean;
 }
 
 function inline(nodes) {
@@ -30,7 +34,7 @@ function inline(nodes) {
 
 // A paragraph holding only line breaks (an empty editor line) has nothing to write
 function paragraph(text) {
-  const trimmed = text.replace(/(\\\n)+$/, '').trim();
+  const trimmed = text.replace(TRAILING_BREAKS, '').trim();
   return trimmed.replace(/\\\n/g, '').trim() ? [trimmed] : [];
 }
 
@@ -51,7 +55,7 @@ function blocks(nodes) {
     if (node.type !== 'tag') return [];
     if (node.name === 'hr') return [SCENE_BREAK];
     if (/^h[1-3]$/.test(node.name)) {
-      const text = inline(node.children).trim();
+      const text = inline(node.children).replace(TRAILING_BREAKS, '').trim();
       return text ? [`${'#'.repeat(Number(node.name[1]))} ${text}`] : [];
     }
     if (node.name === 'blockquote') return [quote(blocks(node.children))];

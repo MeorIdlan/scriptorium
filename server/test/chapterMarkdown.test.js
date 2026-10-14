@@ -46,3 +46,19 @@ test('a paragraph holding only a line break is skipped, and a trailing break is 
 test('empty input gives an empty string', () => {
   assert.equal(chapterMarkdown(''), '');
 });
+
+test('a trailing line break in a heading is dropped', () => {
+  assert.equal(chapterMarkdown('<h1>Title<br></h1>'), '# Title\n');
+});
+
+test('a trailing line break inside emphasis does not break the marks', () => {
+  assert.equal(chapterMarkdown('<p><b>text<br></b></p>'), '**text**\n');
+});
+
+test('a trailing line break followed by a space is dropped', () => {
+  assert.equal(chapterMarkdown('<p>Kept<br> </p>'), 'Kept\n');
+});
+
+test('emphasis keeps the space that sits outside its marks', () => {
+  assert.equal(chapterMarkdown('<p><b>bold </b>text</p>'), '**bold** text\n');
+});
