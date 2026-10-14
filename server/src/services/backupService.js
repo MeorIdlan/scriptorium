@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { Transform } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
+import { ZipArchive } from 'archiver';
 import Work from '../models/Work.js';
 import Chapter from '../models/Chapter.js';
 import Codex from '../models/Codex.js';
@@ -29,7 +30,7 @@ async function* textChunks(text) {
 }
 
 // Streams a JSON array one record at a time, so no full list is held in memory
-async function* jsonArray(rows, stats) {
+export async function* jsonArray(rows, stats) {
   yield '[';
   let first = true;
   for await (const row of rows) {
@@ -140,4 +141,30 @@ export function buildManifest({ work, items, exportedAt = new Date().toISOString
     work: { id: String(work._id), title: work.title },
     items,
   };
+}
+
+// Appends one entry, hashing it as it's written; resolves with its item record
+function appendEntry(archive, entry, source) {
+  return new Promise((resolve, reject) => {
+    const measure = measuring((stats) => resolve(itemRecord(entry, stats)));
+    source.on('error', reject);
+    measure.on('error', reject);
+    source.pipe(measure);
+    archive.append(measure, { name: entry.path });
+  });
+}
+
+export async function writeWorkBackup(work, output, { entries = workEntries } = {}) {
+  const archive = new ZipArchive({ zlib: { level: 6 } });
+  archive.pipe(output);
+
+  const items = [];
+  for await (const entry of entries(String(work._id))) {
+    const source = Readable.from(entry.chunks, { objectMode: false });
+    items.push(await appendEntry(archive, entry, source));
+  }
+
+  archive.append(JSON.stringify(buildManifest({ work, items }), null, 2), { name: 'manifest.json' });
+  await archive.finalize();
+  return items;
 }
