@@ -1,8 +1,9 @@
-import { test, before, after, beforeEach } from 'node:test';
+import { test, before, after, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
 import request from 'supertest';
 import { createHash } from 'node:crypto';
+import http from 'node:http';
 import { startDb, clearDb } from './support/http.js';
 import { unzip } from './support/zip.js';
 import backupRouter from '../src/routes/backup.js';
@@ -188,4 +189,60 @@ test('a title with quotes, slashes and non-Latin letters gives a safe filename (
   const encoded = decodeURIComponent(disposition.match(/filename\*=UTF-8''([^;]+)/)[1]);
   assert.match(plain, /^[\x20-\x7e]*$/, 'plain filename is ASCII');
   assert.match(encoded, /^He-said-hi-漢字-backup-\d{4}-\d{2}-\d{2}\.zip$/);
+});
+
+test('a failure after bytes were sent never gives the client a clean, complete response', async () => {
+  await seedFullWork();
+  const failures = mock.method(console, 'error', () => {});
+  // A Mongoose-cursor-shaped fake: one record, then the connection drops
+  const brokenCursor = {
+    async close() {},
+    [Symbol.asyncIterator]() {
+      let reads = 0;
+      return {
+        async next() {
+          if (reads++ === 0) return { done: false, value: { _id: 'snap1', content: 'x' } };
+          throw new Error('mongo went away');
+        },
+      };
+    },
+  };
+  const query = { sort: () => query, lean: () => query, cursor: () => brokenCursor };
+  mock.method(Snapshot, 'find', () => query);
+
+  const server = app.listen(0);
+  let timer;
+  try {
+    await new Promise((resolve) => server.once('listening', resolve));
+    const outcome = new Promise((resolve) => {
+      const state = { status: null, bytes: 0, ended: false, error: null };
+      const req = http.request(
+        { port: server.address().port, method: 'POST', path: '/api/works/work_a/backup', headers: { 'x-test-user': 'user_a' } },
+        (res) => {
+          state.status = res.statusCode;
+          res.on('data', (chunk) => (state.bytes += chunk.length));
+          res.on('end', () => (state.ended = true));
+          res.on('error', (err) => (state.error = err));
+          res.on('close', () => resolve({ ...state, complete: res.complete }));
+        }
+      );
+      req.on('error', (err) => resolve({ ...state, error: err, complete: false }));
+      req.end();
+    });
+    const guard = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('timed out: the response never finished or failed')), 2000);
+    });
+    const result = await Promise.race([outcome, guard]);
+
+    assert.equal(result.status, 200, 'the download had already started');
+    assert.ok(result.bytes > 0, 'some bytes were sent before the failure');
+    assert.equal(result.complete, false, 'the response was cut short, not completed');
+    assert.equal(result.ended, false, 'the response did not end cleanly');
+    assert.equal(failures.mock.callCount(), 1, 'the failure was logged once');
+  } finally {
+    clearTimeout(timer);
+    mock.restoreAll();
+    server.closeAllConnections?.();
+    await new Promise((resolve) => server.close(resolve));
+  }
 });
