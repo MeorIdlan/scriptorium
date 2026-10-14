@@ -22,8 +22,14 @@ router.post('/', async (req, res, next) => {
   try {
     await writeWorkBackup(req.work, res);
   } catch (err) {
-    // Nothing sent yet: the normal error response. Otherwise the zip is cut short
-    if (!res.headersSent) return next(err);
+    // Nothing sent yet: drop the download headers so the JSON error isn't labelled as a zip
+    if (!res.headersSent) {
+      res.removeHeader('Content-Type');
+      res.removeHeader('Content-Disposition');
+      res.removeHeader('X-Accel-Buffering');
+      return next(err);
+    }
+    // Otherwise the zip is cut short. The output error listener in backupService.js makes destroy(err) safe
     console.error('backup failed mid-stream', err);
     res.destroy(err);
   }

@@ -112,6 +112,16 @@ test('the archive matches the work and every entry is listed with its hash (A1, 
   assert.equal(files.get('chapters/ch1.md').toString(), 'Hello **there**\n');
   assert.equal(JSON.parse(files.get('snapshots.json')).length, 1);
 
+  assert.equal(JSON.parse(files.get('codex.json')).characters[0].name, 'Ada');
+  const threads = JSON.parse(files.get('threads.json'));
+  assert.equal(threads.find((t) => t.id === 't1').name, 'Heir');
+  assert.ok(JSON.parse(files.get('catches.json')).some((c) => c.id === 'c1'));
+  const chapters = JSON.parse(files.get('chapters.json'));
+  assert.ok(chapters.find((c) => c.id === 'ch1').threadIds.includes('t1'));
+  assert.equal(JSON.parse(files.get('map.json')).framework, 'three-act');
+  assert.ok(JSON.parse(files.get('milestones.json')).some((m) => m.id === 'ms1'));
+  assert.ok(JSON.parse(files.get('scenes.json')).some((s) => s.chapterId === 'ch1'));
+
   const manifest = JSON.parse(files.get('manifest.json'));
   assert.equal(manifest.formatVersion, 1);
   assert.equal(manifest.items.length, files.size - 1);
@@ -126,6 +136,7 @@ test('another writer gets 404 for this work (A3)', async () => {
   await seedFullWork();
   const res = await download('work_a', 'user_b');
   assert.equal(res.status, 404);
+  assert.doesNotMatch(res.headers['content-type'] || '', /application\/zip/);
 });
 
 test('no AI key or provider settings appear anywhere in the archive (A3)', async () => {
@@ -137,6 +148,24 @@ test('no AI key or provider settings appear anywhere in the archive (A3)', async
     assert.equal(text.includes('sk-secret-123'), false, `${name} has no key`);
     assert.equal(text.includes('providers'), false, `${name} has no provider settings`);
   }
+});
+
+test('a failure before the first byte is a JSON error, not a zip download', async () => {
+  await seedFullWork();
+  const original = Work.findById;
+  Work.findById = () => {
+    throw new Error('boom');
+  };
+  let res;
+  try {
+    res = await download('work_a');
+  } finally {
+    Work.findById = original;
+  }
+  assert.equal(res.status, 500);
+  assert.match(res.headers['content-type'], /application\/json/);
+  assert.equal(res.headers['content-disposition'], undefined);
+  assert.equal(res.headers['x-accel-buffering'], undefined);
 });
 
 test('an empty work still produces a valid archive with a complete manifest (review focus 2)', async () => {

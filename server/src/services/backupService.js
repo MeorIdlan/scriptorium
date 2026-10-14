@@ -189,6 +189,8 @@ export async function writeWorkBackup(work, output, { entries = workEntries } = 
     return items;
   } catch (err) {
     source?.destroy();
+    // abort() ends the piped output; on failure the caller decides how the response ends
+    archive.unpipe(output);
     archive.abort();
     throw err;
   }
