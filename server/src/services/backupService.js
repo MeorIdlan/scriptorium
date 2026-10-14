@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { Transform } from 'node:stream';
 import Work from '../models/Work.js';
 import Chapter from '../models/Chapter.js';
 import Codex from '../models/Codex.js';
@@ -99,4 +101,43 @@ export async function* workEntries(workId) {
     'snapshots',
     mapped(Snapshot.find({ workId }).sort({ createdAt: 1 }).lean().cursor(), toRecord)
   );
+}
+
+export const FORMAT = 'scriptorium-work-backup';
+export const FORMAT_VERSION = 1;
+
+// Passes bytes through unchanged, counting and hashing them; onEnd gets the totals
+export function measuring(onEnd) {
+  const hash = createHash('sha256');
+  let bytes = 0;
+  const stream = new Transform({
+    transform(chunk, _encoding, callback) {
+      hash.update(chunk);
+      bytes += chunk.length;
+      callback(null, chunk);
+    },
+  });
+  stream.on('end', () => onEnd({ bytes, sha256: hash.digest('hex') }));
+  return stream;
+}
+
+export function itemRecord(entry, { bytes, sha256 }) {
+  return {
+    path: entry.path,
+    kind: entry.kind,
+    ...(entry.chapterId ? { chapterId: entry.chapterId } : {}),
+    count: entry.stats.count,
+    bytes,
+    sha256,
+  };
+}
+
+export function buildManifest({ work, items, exportedAt = new Date().toISOString() }) {
+  return {
+    format: FORMAT,
+    formatVersion: FORMAT_VERSION,
+    exportedAt,
+    work: { id: String(work._id), title: work.title },
+    items,
+  };
 }
