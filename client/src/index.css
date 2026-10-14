@@ -1027,6 +1027,22 @@ a:hover {
   flex-shrink: 0;
 }
 .word-counter-total { color: var(--text-dim); }
+.word-counter-daily { color: var(--gold, #c9a96e); }
+.word-counter-bar {
+  display: inline-block;
+  width: 4rem;
+  height: 3px;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.word-counter-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--gold, #c9a96e);
+}
 
 /* ============================================================
    Right Panel

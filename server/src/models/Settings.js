@@ -10,6 +10,8 @@ const settingsSchema = new mongoose.Schema(
     autoFeatures: { type: mongoose.Schema.Types.Mixed, default: {} },
     // No default: unset means the writer hasn't chosen yet (see isAiEnabled)
     aiEnabled: { type: Boolean },
+    // No default: unset means no daily goal (see progressService)
+    dailyWordGoal: { type: Number },
     updatedAt: { type: String },
   },
   { toJSON: idTransform, versionKey: false }

@@ -1,3 +1,5 @@
+import { browserTimeZone } from './dailyProgress.js';
+
 const BASE = '/api'; // Vite proxy handles /api → backend
 
 // Gateway timeouts come back from nginx/Cloudflare as HTML, not our JSON
@@ -20,7 +22,7 @@ function apiError(res, err) {
 
 export async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Timezone': browserTimeZone() },
     credentials: 'include',
     ...options,
     body: options.body ? JSON.stringify(options.body) : undefined,

@@ -25,6 +25,7 @@ import exportRouter from './routes/export.js';
 import aiRouter from './routes/ai.js';
 import { requireAiEnabled } from './middleware/requireAiEnabled.js';
 import settingsRouter from './routes/settings.js';
+import progressRouter from './routes/progress.js';
 import adminRouter from './routes/admin.js';
 
 const app = express();
@@ -54,6 +55,7 @@ app.use('/api/works/:workId/threads', auth, threadsRouter);
 app.use('/api/works/:workId/sessions', auth, sessionsRouter);
 app.use('/api/works/:workId/export', auth, exportRouter);
 app.use('/api/ai', auth, requireAiEnabled(), aiRouter);
+app.use('/api/progress', auth, progressRouter);
 app.use('/api/settings', auth, settingsRouter);
 app.use('/api/admin', auth, requireAdmin, adminRouter);
 
