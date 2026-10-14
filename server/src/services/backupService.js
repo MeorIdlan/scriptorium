@@ -155,6 +155,8 @@ function appendEntry(archive, entry, source) {
 }
 
 export async function writeWorkBackup(work, output, { entries = workEntries } = {}) {
+  // The client may already be gone: its 'close' has fired and would never be heard
+  if (output.destroyed || output.closed) throw new Error('backup aborted: client disconnected');
   const archive = new ZipArchive({ zlib: { level: 6 } });
   let finished = false;
 
@@ -168,6 +170,8 @@ export async function writeWorkBackup(work, output, { entries = workEntries } = 
   });
   failed.catch(() => {});
 
+  // An output error must not become an uncaught exception; its 'close' drives the rejection
+  output.on('error', () => {});
   archive.pipe(output);
   const items = [];
   let source = null;

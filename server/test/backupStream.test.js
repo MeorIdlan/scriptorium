@@ -66,3 +66,50 @@ test('a read error mid-archive rejects instead of hanging', async () => {
   };
   await assert.rejects(writeWorkBackup({ _id: 'work_a', title: 'A' }, output, { entries }), /mongo went away/);
 });
+
+// Fails the test instead of hanging it if the promise never settles
+function withTimeout(promise, ms = 2000) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('timed out: writeWorkBackup hung')), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+test('an output destroyed before the call rejects promptly and reads nothing', async () => {
+  const events = [];
+  const state = { closed: false };
+  const output = new PassThrough();
+  output.destroy();
+  await new Promise((resolve) => output.once('close', resolve));
+
+  await assert.rejects(
+    withTimeout(writeWorkBackup({ _id: 'work_a', title: 'A' }, output, { entries: entriesFrom(events, state) })),
+    /client disconnected/
+  );
+  assert.deepEqual(events, [], 'no row was read');
+});
+
+test('an output error mid-archive rejects without an uncaught exception', async () => {
+  const events = [];
+  const state = { closed: false };
+  const output = new PassThrough();
+  output.resume();
+  const firstWrite = new Promise((resolve) => output.once('data', resolve));
+
+  const uncaught = [];
+  const onUncaught = (err) => uncaught.push(err);
+  process.on('uncaughtException', onUncaught);
+  try {
+    const run = writeWorkBackup({ _id: 'work_a', title: 'A' }, output, { entries: entriesFrom(events, state) });
+    await firstWrite;
+    output.destroy(new Error('socket reset'));
+
+    await assert.rejects(withTimeout(run));
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(uncaught, [], 'no uncaught exception');
+    assert.equal(state.closed, true, 'the Mongo cursor was closed');
+  } finally {
+    process.off('uncaughtException', onUncaught);
+  }
+});
