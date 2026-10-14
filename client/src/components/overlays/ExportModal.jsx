@@ -8,6 +8,18 @@ const FORMATS = [
   { id: 'docx', label: 'DOCX' },
 ];
 
+// Trigger the browser's save for a fetched file
+function saveFile(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function ExportModal() {
   const { state, dispatch } = useUI();
   const [format, setFormat] = useState('pdf');
@@ -15,6 +27,8 @@ export default function ExportModal() {
   const [includeOutline, setIncludeOutline] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
+  const [backingUp, setBackingUp] = useState(false);
+  const [backupError, setBackupError] = useState(null);
 
   if (!state.exportModalOpen) return null;
 
@@ -23,6 +37,7 @@ export default function ExportModal() {
   function handleClose() {
     dispatch({ type: 'CLOSE_EXPORT' });
     setError(null);
+    setBackupError(null);
   }
 
   async function handleExport() {
@@ -36,21 +51,27 @@ export default function ExportModal() {
         `export.${format}`
       );
 
-      // Trigger browser download
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      saveFile(blob, filename);
 
       handleClose();
     } catch (err) {
       setError(err.message);
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function handleBackup() {
+    if (!workId) return;
+    setBackingUp(true);
+    setBackupError(null);
+    try {
+      const { blob, filename } = await api.download(`/works/${workId}/backup`, {}, 'backup.zip');
+      saveFile(blob, filename);
+    } catch (err) {
+      setBackupError(err.message);
+    } finally {
+      setBackingUp(false);
     }
   }
 
@@ -101,6 +122,23 @@ export default function ExportModal() {
                 Include outline chapters
               </label>
             </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Full backup</label>
+            <p className="form-hint">
+              A complete copy of this work: chapters as HTML and Markdown, history, milestones,
+              plot threads, Codex and Map. It is not a manuscript.
+            </p>
+            <button
+              className="btn btn-ghost"
+              data-testid="backup-button"
+              onClick={handleBackup}
+              disabled={backingUp}
+            >
+              {backingUp ? 'Preparing backup…' : 'Full backup (.zip)'}
+            </button>
+            {backupError && <p className="form-error">{backupError}</p>}
           </div>
 
           {error && <p className="form-error">{error}</p>}
