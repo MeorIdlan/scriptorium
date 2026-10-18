@@ -94,6 +94,14 @@ export async function buildManuscriptDOCX({ title, chapters, details, wordCount 
   return Packer.toBuffer(doc);
 }
 
+// The title starts halfway down the page (7920 twips). What is left after the top margin
+// and the single-spaced lines above it is the space before. The first line always
+// exists (it carries the word count), so an empty contact block still counts as one.
+function titleSpaceBefore(contactBlock) {
+  const contactLines = Math.max(1, contactBlock ? contactBlock.split('\n').length : 0);
+  return Math.max(240, 7920 - 1440 - 240 * contactLines);
+}
+
 // Contact block top-left, single-spaced, with the word count on its first line;
 // the capitalised title sits about halfway down.
 function manuscriptTitlePage(title, details, wordCount) {
@@ -107,7 +115,7 @@ function manuscriptTitlePage(title, details, wordCount) {
     ...rest.map((line) => new Paragraph({ spacing: { line: 240 }, children: [new TextRun(line)] })),
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { before: 4320 },
+      spacing: { before: titleSpaceBefore(details.contactBlock) },
       children: [new TextRun(title.toUpperCase())],
     }),
     new Paragraph({}),

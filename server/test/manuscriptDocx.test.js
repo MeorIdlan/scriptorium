@@ -120,7 +120,20 @@ test('title page carries the contact block, the word count, the capitalised titl
   assert.match(first, /w:val="right" w:pos="9360"/);
   assert.doesNotMatch(first, /<w:pageBreakBefore\/>/);
   assert.match(first, /w:line="240"/);
-  assert.match(paragraphStarting(doc, 'THE GLASS ORCHARD'), /w:before="4320"/);
+  assert.match(paragraphStarting(doc, 'THE GLASS ORCHARD'), /w:before="5760"/);
+});
+
+test('the title starts halfway down the page whatever the contact block length', async () => {
+  const ten = Array.from({ length: 10 }, (_, i) => `line ${i}`).join('\n');
+  const cases = [
+    ['', 6240], // no contact lines: the word-count line still takes one
+    ['Jane Writer\n12 Some Street\njane@example.com', 5760],
+    [ten, 4080],
+  ];
+  for (const [contactBlock, before] of cases) {
+    const doc = text(await build({ details: { ...BASE.details, contactBlock } }), 'word/document.xml');
+    assert.match(paragraphStarting(doc, 'THE GLASS ORCHARD'), new RegExp(`w:before="${before}"`), `contact block "${contactBlock.slice(0, 20)}"`);
+  }
 });
 
 test('END is centred and is the last paragraph of text', async () => {
