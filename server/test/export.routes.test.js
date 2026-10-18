@@ -113,6 +113,10 @@ test('reading layout output is unchanged when layout is absent or reading (A1)',
   const pdf = await exportAs({ format: 'pdf' });
   assert.equal(pdf.status, 200);
   assert.match(pdf.headers['content-type'], /application\/pdf/);
+  // Font dictionaries are not compressed, so the base font names show in the raw bytes
+  const pdfText = pdf.body.toString('latin1');
+  assert.ok(pdfText.includes('/BaseFont /Helvetica'), 'reading PDF uses Helvetica');
+  assert.ok(!pdfText.includes('/BaseFont /Times-Roman'), 'reading PDF is not the manuscript layout');
 });
 
 test('manuscript DOCX has the title page and the rounded word count of the exported chapters', async () => {
@@ -136,11 +140,14 @@ test('manuscript DOCX saves the details, and the next prefill returns them', asy
   });
 });
 
-test('manuscript PDF returns a PDF', async () => {
+test('manuscript PDF returns a manuscript-layout PDF', async () => {
   const res = await exportAs({ format: 'pdf', layout: 'manuscript', manuscript: FULL });
   assert.equal(res.status, 200);
   assert.match(res.headers['content-type'], /application\/pdf/);
   assert.equal(res.body.subarray(0, 5).toString(), '%PDF-');
+  const pdfText = res.body.toString('latin1');
+  assert.ok(pdfText.includes('/BaseFont /Times-Roman'), 'manuscript PDF uses Times-Roman');
+  assert.ok(!pdfText.includes('/Helvetica'), 'manuscript PDF does not use the reading Helvetica');
 });
 
 test('workOnly true overrides this work only; another work keeps the writer defaults', async () => {
