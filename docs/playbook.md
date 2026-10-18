@@ -42,7 +42,7 @@ The plan covers the card: each task names the subtasks it delivers (`→ S2`), e
 **Pass:** dev explicitly approves the plan. Then add an `Implementation` checklist to the card, one item per plan task with its subtask links, and comment the plan path and task count. Plan changes later need the dev's approval and a matching checklist update.
 
 ### 5. Implementation
-Ask the dev for the execution method and recommend one: **subagents** (`subagent-driven-development`) for 3+ mostly independent tasks; **inline** (`executing-plans`) for bounded work, short plans, or tightly coupled tasks.
+Ask the dev for the execution method and recommend one: **subagents** (`subagent-driven-development`) for 3+ mostly independent tasks; **inline** (`executing-plans`) for bounded work, short plans, or tightly coupled tasks. Both modes follow `docs/agent-workflow.md` (agent roles, dispatch rules, review).
 While building: TDD per task; logical commits in the workspace; tick an `Implementation` item only once its task is verified, and tick a subtask as soon as all the items linked to it are ticked; bugs go through `systematic-debugging`. Comment on the card every few tasks (`Tasks 3/8, subtasks 2/4 done; next: …`), on blockers (`Blocked: <what>, need <decision>`) and on scope changes (dev approves first). Record gotchas in the notes as they're found.
 **Pass:** dev chose the method; all plan tasks done and ticked; every subtask ticked or descoped with the dev's OK.
 
