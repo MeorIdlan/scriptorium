@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { exportWork } from '../services/exportService.js';
 import { httpError } from '../middleware/errorHandler.js';
 import { loadWork } from '../middleware/loadWork.js';
+import { getManuscriptDetails, saveManuscriptDetails } from '../services/manuscriptDetails.js';
+import Work from '../models/Work.js';
 
 const router = Router({ mergeParams: true });
 router.use(loadWork);
@@ -18,19 +20,50 @@ const EXTENSIONS = {
   docx: 'docx',
 };
 
+const LAYOUTS = ['reading', 'manuscript'];
+
+// GET /api/works/:workId/export/manuscript
+router.get('/manuscript', async (req, res, next) => {
+  try {
+    res.json(await getManuscriptDetails(req.work, req.user.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/works/:workId/export
 router.post('/', async (req, res, next) => {
   try {
     const { workId } = req.params;
-    const { format = 'pdf', includeNotes, includeOutline } = req.body;
+    const { format = 'pdf', includeNotes, includeOutline, layout = 'reading', manuscript } = req.body;
 
     if (!MIME_TYPES[format]) {
       return next(httpError(400, 'UNSUPPORTED_FORMAT', `Unsupported format: ${format}. Use pdf, epub, or docx.`));
+    }
+    if (!LAYOUTS.includes(layout)) {
+      return next(httpError(400, 'UNSUPPORTED_LAYOUT', `Unsupported layout: ${layout}. Use reading or manuscript.`));
+    }
+    if (layout === 'manuscript' && format === 'epub') {
+      return next(httpError(400, 'UNSUPPORTED_LAYOUT', 'The manuscript layout is available for pdf and docx only.'));
+    }
+
+    // Everything is validated before the first save, so a refused request writes nothing
+    let details;
+    if (layout === 'manuscript') {
+      if (manuscript !== undefined && (manuscript === null || typeof manuscript !== 'object' || Array.isArray(manuscript))) {
+        return next(httpError(400, 'VALIDATION_ERROR', 'manuscript must be an object'));
+      }
+      await saveManuscriptDetails(req.work, req.user.id, manuscript);
+      // req.work was loaded before the save, so read the work again for the saved details
+      const work = await Work.findById(workId);
+      details = await getManuscriptDetails(work, req.user.id);
     }
 
     const buffer = await exportWork(workId, format, {
       includeNotes: Boolean(includeNotes),
       includeOutline: Boolean(includeOutline),
+      layout,
+      manuscript: details,
     });
 
     const filename = `${exportBasename(req.work.title)}.${EXTENSIONS[format]}`;
