@@ -1,16 +1,10 @@
 import { Router } from 'express';
 import { loadWork } from '../middleware/loadWork.js';
 import { writeWorkBackup } from '../services/backupService.js';
-import { exportBasename } from './export.js';
+import { contentDisposition, exportBasename } from './export.js';
 
 const router = Router({ mergeParams: true });
 router.use(loadWork);
-
-// Same header scheme as the export route: ASCII fallback plus RFC 5987 filename*
-function contentDisposition(filename) {
-  const plain = filename.replace(/[^\x20-\x7e]|"/g, '_');
-  return `attachment; filename="${plain}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
-}
 
 // POST /api/works/:workId/backup
 router.post('/', async (req, res, next) => {

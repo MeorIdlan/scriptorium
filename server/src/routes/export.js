@@ -68,16 +68,19 @@ router.post('/', async (req, res, next) => {
 
     const filename = `${exportBasename(req.work.title)}.${EXTENSIONS[format]}`;
     res.setHeader('Content-Type', MIME_TYPES[format]);
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${filename.replace(/[^\x20-\x7e]|"/g, '_')}"; filename*=UTF-8''${encodeURIComponent(filename)}`
-    );
+    res.setHeader('Content-Disposition', contentDisposition(filename));
     res.setHeader('Content-Length', buffer.length);
     res.send(buffer);
   } catch (err) {
     next(err);
   }
 });
+
+// Attachment header: ASCII fallback plus RFC 5987 filename*
+export function contentDisposition(filename) {
+  const plain = filename.replace(/[^\x20-\x7e]|"/g, '_');
+  return `attachment; filename="${plain}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
+}
 
 // Work title as a filename: keep letters/numbers (any script), collapse the rest
 export function exportBasename(title) {
