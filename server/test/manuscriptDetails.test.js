@@ -139,6 +139,18 @@ test('a headerTitle equal to the work title, or empty, leaves headerTitle unset'
   assert.equal((await Work.findById('work_a').lean()).manuscript.headerTitle, undefined);
 });
 
+test('a header title equal to a work title longer than 200 characters is saved as unset', async () => {
+  const longTitle = 'T'.repeat(250);
+  await Work.updateOne({ _id: 'work_a' }, { title: longTitle });
+
+  await saveManuscriptDetails(await work(), 'user_a', {
+    ...writerDefaults,
+    headerTitle: longTitle,
+    workOnly: false,
+  });
+  assert.equal((await Work.findById('work_a').lean()).manuscript?.headerTitle, undefined);
+});
+
 test('invalid details are refused and nothing is written', async () => {
   await saveManuscriptDetails(await work(), 'user_a', { ...writerDefaults, workOnly: false });
   const before = {

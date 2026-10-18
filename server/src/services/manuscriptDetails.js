@@ -26,6 +26,13 @@ function text(value, field, max) {
   return trimmed;
 }
 
+// A header title equal to the work title means "use the work title", which is cleared
+// below, so it is never refused for length (the prefill sends the work title back as is)
+function headerTitleText(value, workTitle) {
+  if (typeof value === 'string' && value.trim() === (workTitle || '').trim()) return value.trim();
+  return text(value, 'headerTitle', MAX_NAME);
+}
+
 function contactText(value) {
   const trimmed = text(value, 'contactBlock', MAX_CONTACT);
   if (trimmed !== undefined && trimmed.split('\n').length > MAX_CONTACT_LINES) {
@@ -54,7 +61,7 @@ export async function saveManuscriptDetails(work, userId, input) {
 
   const authorName = text(input.authorName, 'authorName', MAX_NAME);
   const surname = text(input.surname, 'surname', MAX_NAME);
-  const headerTitle = text(input.headerTitle, 'headerTitle', MAX_NAME);
+  const headerTitle = headerTitleText(input.headerTitle, current.title);
   const contactBlock = contactText(input.contactBlock);
   const { font } = input;
   if (font !== undefined && !FONTS.includes(font)) throw invalid('font must be serif or mono');
