@@ -32,7 +32,10 @@ subagent mode, and it never fixes review findings itself.
   (general-purpose)` and `model:` header lines.
 - Every implementer dispatch also carries:
   - the card URL, so commits end with `Trello: <card url>`
-  - the `Co-Authored-By:` line from your own commit-attribution instructions
+  - an instruction to end commits with a `Co-Authored-By:` line naming the
+    implementer's own model (for example Claude Haiku 5.5), plus the
+    `Claude-Session:` line from your own commit-attribution instructions.
+    The trailer names the model that wrote the code, not the orchestrator.
 - Keep SDD's other dispatch rules: brief and report as files, never the whole
   plan, no history pasted in, one implementer at a time, batch small edits
   that are all the same kind.
