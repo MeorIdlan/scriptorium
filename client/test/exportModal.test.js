@@ -207,6 +207,34 @@ test('a failed saved-details fetch shows the error and keeps Export disabled', a
   await view.unmount();
 });
 
+test('switching back to Reading clears a failed saved-details error', async () => {
+  const view = await renderApp(h(Driver), {
+    routes: { 'GET /works/work_a/export/manuscript': () => new HttpError(500, 'SERVER_ERROR', 'Could not load details') },
+  });
+  await flush();
+  await click(view.query('[data-testid="layout-manuscript"]'));
+  assert.equal(Boolean(view.query('.form-error')), true);
+  await click(view.query('[data-testid="layout-reading"]'));
+  assert.equal(Boolean(view.query('.form-error')), false);
+  await view.unmount();
+});
+
+test('closing and reopening the modal starts on Reading with no manuscript fields', async () => {
+  const view = await renderApp(h(Fragment, null, h(Driver), h(Reopen)), {
+    routes: { 'GET /works/work_a/export/manuscript': PREFILL },
+  });
+  await flush();
+  await click(view.query('[data-testid="layout-manuscript"]'));
+  assert.equal(Boolean(view.query('[data-testid="ms-author"]')), true);
+  await click(view.button('Cancel'));
+  await click(view.query('[data-testid="reopen"]'));
+  assert.equal(view.query('[data-testid="layout-reading"]').classList.contains('active'), true);
+  assert.equal(view.query('[data-testid="layout-manuscript"]').classList.contains('active'), false);
+  assert.equal(Boolean(view.query('[data-testid="ms-author"]')), false);
+  assert.equal(Boolean(view.query('[data-testid="ms-contact"]')), false);
+  await view.unmount();
+});
+
 test('picking Manuscript again retries a failed fetch and enables Export once it loads', async () => {
   let replies = 0;
   const view = await renderApp(h(Driver), {

@@ -95,6 +95,7 @@ export default function ExportModal() {
   function pickLayout(id) {
     setLayout(id);
     if (id === 'manuscript') loadPrefill();
+    else setError(null); // a failed prefill is not an error for the reading layout
   }
 
   function setField(key, value) {
