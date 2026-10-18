@@ -139,7 +139,7 @@ test('a writer with no works gets a manifest-only archive', async () => {
   assert.deepEqual(JSON.parse(files.get('manifest.json').toString()).works, []);
 });
 
-test('no AI key or provider settings appear in the archive (A3)', async () => {
+test('no AI key or provider settings appear in the archive', async () => {
   await seedAccount();
   await Settings.create({ _id: 'user_a', providers: { anthropic: { apiKey: 'sk-test-SECRET' } } });
   const res = await download();

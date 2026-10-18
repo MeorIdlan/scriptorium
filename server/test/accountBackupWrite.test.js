@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { PassThrough } from 'node:stream';
+import { ZipArchive } from 'archiver';
 import { writeAccountBackup } from '../src/services/backupService.js';
 import { unzip } from './support/zip.js';
 
@@ -109,8 +110,18 @@ test('bytes reach the output before the last work is read (A3 automated)', async
   assert.equal(files.has('works/Three-w3.zip'), true);
 });
 
-test('a failing work rejects and no later work is read', async () => {
+test('a failing work rejects, aborts the archive and reads no later work', async (t) => {
   const { out } = bufferOutput();
+  // The outer archive is the one piped into the output; the inner per-work archive is not
+  let outer = null;
+  let unpipedFrom = null;
+  out.on('pipe', (src) => {
+    outer = src;
+  });
+  out.on('unpipe', (src) => {
+    unpipedFrom = src;
+  });
+  const abort = t.mock.method(ZipArchive.prototype, 'abort');
   let pulledThree = false;
   async function* works() {
     yield THREE_WORKS[0];
@@ -124,6 +135,13 @@ test('a failing work rejects and no later work is read', async () => {
   };
   await assert.rejects(writeAccountBackup(works(), out, { entries }), /database went away/);
   assert.equal(pulledThree, false);
+  assert.notEqual(outer, null, 'the outer archive was piped into the output');
+  assert.equal(outer !== null && unpipedFrom === outer, true, 'the outer archive is unpiped from the output');
+  assert.equal(
+    abort.mock.calls.some((call) => call.this === outer),
+    true,
+    'the outer archive is aborted'
+  );
 });
 
 test('a client disconnect stops further works', async () => {
