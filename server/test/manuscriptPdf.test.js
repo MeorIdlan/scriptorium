@@ -150,6 +150,18 @@ test('running header on every page after the title page, each with its own page 
   });
 });
 
+test('a long running header stays on one line above the body and keeps its page number', async () => {
+  const headerTitle = 'Word '.repeat(38).trim(); // 189 characters
+  const pdf = await build({ details: { ...BASE.details, headerTitle }, chapters: [LONG] });
+  pdf.pages.slice(1).forEach((page, i) => {
+    const headers = page.runs.filter((run) => run.y < 72);
+    assert.equal(headers.length, 1, `page ${i + 2} has ${headers.length} header lines`);
+    assert.ok(headers[0].text.startsWith('Ward / '), headers[0].text);
+    assert.ok(headers[0].text.endsWith(` / ${i + 2}`), headers[0].text);
+    assert.ok(headers[0].x >= 71.5, `header x ${headers[0].x}`);
+  });
+});
+
 test('END is the last text, one blank line after the last paragraph', async () => {
   const pdf = await build();
   const runs = pdf.pages.at(-1).runs.filter((run) => !isHeader(run));

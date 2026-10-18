@@ -241,16 +241,19 @@ function blankLinePDF(doc, step) {
 }
 
 // Running header on every page after the title page, drawn last so the page count is
-// known. Each page is written with its bottom margin lifted, so a header never paginates.
+// known. It is always one line, right-aligned to the margin: a title too wide for the
+// text width is cut with an ellipsis, so the surname and page number stay whole.
 function manuscriptHeadersPDF(doc, details) {
   const { count } = doc.bufferedPageRange();
   for (let i = 1; i < count; i++) {
     doc.switchToPage(i);
-    const { margins } = doc.page;
-    const bottom = margins.bottom;
-    margins.bottom = 0;
-    const text = headerText({ surname: details.surname, headerTitle: details.headerTitle }, i + 1);
-    doc.text(text, PDF_MARGIN, PDF_HEADER_Y, { width: PDF_TEXT_WIDTH, align: 'right', lineGap: 0 });
-    margins.bottom = bottom;
+    let title = details.headerTitle;
+    let text = headerText({ surname: details.surname, headerTitle: title }, i + 1);
+    while (doc.widthOfString(text) > PDF_TEXT_WIDTH && title.length > 0) {
+      title = title.slice(0, -1);
+      text = headerText({ surname: details.surname, headerTitle: `${title.trimEnd()}…` }, i + 1);
+    }
+    const x = PDF_MARGIN + PDF_TEXT_WIDTH - doc.widthOfString(text);
+    doc.text(text, x, PDF_HEADER_Y, { lineBreak: false, lineGap: 0 });
   }
 }
