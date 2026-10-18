@@ -1,7 +1,8 @@
 import yauzl from 'yauzl';
 
-// Read every entry of a zip buffer back into a Map of name -> Buffer
-export function unzip(buffer) {
+// Read every entry of a zip buffer back into a Map of name -> Buffer.
+// With { withMeta: true }, each value is { data, compressionMethod } instead.
+export function unzip(buffer, { withMeta = false } = {}) {
   return new Promise((resolve, reject) => {
     yauzl.fromBuffer(buffer, { lazyEntries: true }, (err, zip) => {
       if (err) return reject(err);
@@ -12,7 +13,8 @@ export function unzip(buffer) {
           const chunks = [];
           stream.on('data', (c) => chunks.push(c));
           stream.on('end', () => {
-            files.set(entry.fileName, Buffer.concat(chunks));
+            const data = Buffer.concat(chunks);
+            files.set(entry.fileName, withMeta ? { data, compressionMethod: entry.compressionMethod } : data);
             zip.readEntry();
           });
         });
