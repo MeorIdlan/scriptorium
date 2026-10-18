@@ -9,9 +9,10 @@ import Chapter from '../models/Chapter.js';
 import MapModel from '../models/Map.js';
 import User from '../models/User.js';
 import { exportScenes } from './sceneMarkers.js';
+import { buildManuscriptDOCX, buildManuscriptPDF } from './manuscriptExport.js';
 
 export async function exportWork(workId, format, options = {}) {
-  const { includeNotes = false, includeOutline = false } = options;
+  const { includeNotes = false, includeOutline = false, layout = 'reading', manuscript } = options;
   const work = await Work.findById(workId);
   if (!work) {
     throw Object.assign(new Error('Work not found'), { status: 404, code: 'NOT_FOUND' });
@@ -23,15 +24,16 @@ export async function exportWork(workId, format, options = {}) {
     Chapter.find({ workId }).sort({ order: 1 }).lean(),
     MapModel.findOne({ workId }).lean(),
   ]);
-  const chapters = chapterDocs
-    // Outline chapters: still marked outline with no prose written
-    .filter((ch) => includeOutline || !(ch.status === 'outline' && !ch.wordCount))
-    .map((ch) => ({
-      title: ch.title || 'Untitled',
-      scenes: exportScenes(ch),
-      // The Map's notes field is the one the UI edits
-      notes: includeNotes ? (map?.chapters?.[ch._id]?.notes || ch.notes || '').trim() : '',
-    }));
+  // Outline chapters: still marked outline with no prose written
+  const exported = chapterDocs.filter((ch) => includeOutline || !(ch.status === 'outline' && !ch.wordCount));
+  if (layout === 'manuscript') return exportManuscript(meta, exported, format, manuscript);
+
+  const chapters = exported.map((ch) => ({
+    title: ch.title || 'Untitled',
+    scenes: exportScenes(ch),
+    // The Map's notes field is the one the UI edits
+    notes: includeNotes ? (map?.chapters?.[ch._id]?.notes || ch.notes || '').trim() : '',
+  }));
 
   switch (format) {
     case 'pdf':
@@ -44,6 +46,28 @@ export async function exportWork(workId, format, options = {}) {
       throw Object.assign(new Error(`Unsupported format: ${format}`), {
         status: 400,
         code: 'UNSUPPORTED_FORMAT',
+      });
+  }
+}
+
+// Manuscript layout: chapter notes are never printed, so they are not passed on
+function exportManuscript(meta, chapterDocs, format, details) {
+  const input = {
+    title: meta.title || 'Untitled',
+    chapters: chapterDocs.map((ch) => ({ title: ch.title || 'Untitled', scenes: exportScenes(ch) })),
+    details,
+    wordCount: chapterDocs.reduce((sum, ch) => sum + (ch.wordCount || 0), 0),
+  };
+
+  switch (format) {
+    case 'pdf':
+      return buildManuscriptPDF(input);
+    case 'docx':
+      return buildManuscriptDOCX(input);
+    default:
+      throw Object.assign(new Error(`The manuscript layout is not available for ${format}`), {
+        status: 400,
+        code: 'UNSUPPORTED_LAYOUT',
       });
   }
 }

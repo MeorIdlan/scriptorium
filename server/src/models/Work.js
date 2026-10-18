@@ -17,6 +17,8 @@ const workSchema = new mongoose.Schema(
     currentDraft: { type: Number, default: 1 },
     coverColor: { type: String, default: '' },
     logline: { type: String, default: '' },
+    // No default: absent means no per-work manuscript details (see manuscriptDetails)
+    manuscript: { type: mongoose.Schema.Types.Mixed },
     lastTouched: { type: String },
     createdAt: { type: String },
     updatedAt: { type: String },
