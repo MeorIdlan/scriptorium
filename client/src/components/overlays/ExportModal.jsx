@@ -71,6 +71,7 @@ export default function ExportModal() {
   async function loadPrefill() {
     if (prefill !== 'idle' || !workId) return;
     const current = session.current;
+    setError(null);
     setPrefill('loading');
     try {
       const saved = await api.get(`/works/${workId}/export/manuscript`);
@@ -312,7 +313,7 @@ export default function ExportModal() {
           <button
             className="btn btn-primary"
             onClick={handleExport}
-            disabled={exporting || (manuscriptOn && (prefill === 'loading' || !manuscript.authorName.trim()))}
+            disabled={exporting || (manuscriptOn && (prefill !== 'ready' || !manuscript.authorName.trim()))}
           >
             {exporting ? 'Exporting…' : `Export ${format.toUpperCase()}`}
           </button>

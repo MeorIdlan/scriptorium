@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, Fragment, useEffect } from 'react';
-import { renderApp } from './support/app.js';
+import { renderApp, HttpError } from './support/app.js';
 import { flush, click, type } from './support/render.js';
 import { useUI } from '../src/context/UIContext.jsx';
 import ExportModal from '../src/components/overlays/ExportModal.jsx';
@@ -192,5 +192,38 @@ test('a saved-details reply that lands after Cancel is not kept for the next ope
   await click(view.query('[data-testid="layout-manuscript"]'));
   assert.equal(manuscriptFetches(view).length, 2);
   assert.equal(view.query('[data-testid="ms-author"]').value, 'Second Pick');
+  await view.unmount();
+});
+
+test('a failed saved-details fetch shows the error and keeps Export disabled', async () => {
+  const view = await renderApp(h(Driver), {
+    routes: { 'GET /works/work_a/export/manuscript': () => new HttpError(500, 'SERVER_ERROR', 'Could not load details') },
+  });
+  await flush();
+  await click(view.query('[data-testid="layout-manuscript"]'));
+  assert.match(view.query('.form-error').textContent, /Could not load details/);
+  await type(view.query('[data-testid="ms-author"]'), 'Grace Hopper');
+  assert.equal(view.button('Export PDF').hasAttribute('disabled'), true);
+  await view.unmount();
+});
+
+test('picking Manuscript again retries a failed fetch and enables Export once it loads', async () => {
+  let replies = 0;
+  const view = await renderApp(h(Driver), {
+    routes: {
+      'GET /works/work_a/export/manuscript': () => {
+        replies += 1;
+        return replies === 1 ? new HttpError(500, 'SERVER_ERROR', 'Could not load details') : PREFILL;
+      },
+    },
+  });
+  await flush();
+  await click(view.query('[data-testid="layout-manuscript"]'));
+  assert.equal(view.button('Export PDF').hasAttribute('disabled'), true);
+  await click(view.query('[data-testid="layout-manuscript"]'));
+  assert.equal(manuscriptFetches(view).length, 2);
+  assert.equal(view.query('[data-testid="ms-author"]').value, 'Ada Writer');
+  assert.equal(Boolean(view.query('.form-error')), false);
+  assert.equal(view.button('Export PDF').hasAttribute('disabled'), false);
   await view.unmount();
 });
