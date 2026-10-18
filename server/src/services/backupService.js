@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { Readable, Transform } from 'node:stream';
+import { PassThrough, Readable, Transform } from 'node:stream';
 import { ZipArchive } from 'archiver';
 import Work from '../models/Work.js';
 import Chapter from '../models/Chapter.js';
@@ -11,6 +11,7 @@ import Milestone from '../models/Milestone.js';
 import Snapshot from '../models/Snapshot.js';
 import { chapterHtml } from './sceneMarkers.js';
 import { chapterMarkdown } from './chapterMarkdown.js';
+import { exportBasename } from '../routes/export.js';
 
 // Same shape the API returns: `id` in place of `_id`, no `__v`
 export function toRecord(doc) {
@@ -200,6 +201,69 @@ export async function writeWorkBackup(work, output, { entries = workEntries } = 
   } catch (err) {
     source?.destroy();
     // abort() ends the piped output; on failure the caller decides how the response ends
+    archive.unpipe(output);
+    archive.abort();
+    throw err;
+  }
+}
+
+export const ACCOUNT_FORMAT = 'scriptorium-account-backup';
+export const ACCOUNT_FORMAT_VERSION = 1;
+
+export function accountEntryPath(work) {
+  return `works/${exportBasename(work.title)}-${String(work._id)}.zip`;
+}
+
+// Streams an account archive: one stored inner zip per work, then account manifest.json.
+// Each inner zip is written by writeWorkBackup into a PassThrough that feeds the outer archive,
+// so works are read one at a time and only the current one is in memory.
+export async function writeAccountBackup(works, output, { entries } = {}) {
+  if (output.destroyed || output.closed) throw new Error('backup aborted: client disconnected');
+  const archive = new ZipArchive({ zlib: { level: 6 } });
+  let finished = false;
+  let inner = null;
+
+  // Same rules as writeWorkBackup: an archive error or the client leaving rejects every await
+  const failed = new Promise((_, reject) => {
+    archive.on('error', reject);
+    output.once('close', () => {
+      if (!finished) reject(new Error('backup aborted: client disconnected'));
+    });
+  });
+  failed.catch(() => {});
+
+  output.on('error', () => {});
+  archive.pipe(output);
+  const items = [];
+  try {
+    for await (const work of works) {
+      if (output.destroyed || output.closed) throw new Error('backup aborted: client disconnected');
+      inner = new PassThrough();
+      const path = accountEntryPath(work);
+      const zipped = new Promise((resolve, reject) => {
+        const measure = measuring(resolve);
+        measure.on('error', reject);
+        inner.pipe(measure);
+        archive.append(measure, { name: path, store: true });
+      });
+      const written = writeWorkBackup(work, inner, { entries });
+      written.catch(() => {});
+      const [, stats] = await Promise.race([Promise.all([written, zipped]), failed]);
+      items.push({ path, workId: String(work._id), title: work.title, ...stats });
+      inner = null;
+    }
+    const manifest = {
+      format: ACCOUNT_FORMAT,
+      formatVersion: ACCOUNT_FORMAT_VERSION,
+      exportedAt: new Date().toISOString(),
+      works: items,
+    };
+    archive.append(JSON.stringify(manifest, null, 2), { name: 'manifest.json' });
+    await Promise.race([archive.finalize(), failed]);
+    finished = true;
+    return items;
+  } catch (err) {
+    inner?.destroy();
     archive.unpipe(output);
     archive.abort();
     throw err;
