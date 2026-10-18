@@ -12,6 +12,8 @@ const settingsSchema = new mongoose.Schema(
     aiEnabled: { type: Boolean },
     // No default: unset means no daily goal (see progressService)
     dailyWordGoal: { type: Number },
+    // No default: unset means no writer defaults yet (see manuscriptDetails)
+    manuscript: { type: mongoose.Schema.Types.Mixed },
     updatedAt: { type: String },
   },
   { toJSON: idTransform, versionKey: false }
