@@ -980,7 +980,7 @@ a:hover {
 
 .editor:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--border-focus);
+  box-shadow: 0 0 0 1px var(--border-focus);
 }
 
 .editor--loading {
@@ -1417,7 +1417,6 @@ a:hover {
   flex-direction: column;
   gap: 3px;
 }
-.scene-row-main:focus-visible { outline: 1px solid var(--border-focus); outline-offset: 2px; }
 .scene-row-title { color: var(--text); font-family: Georgia, serif; font-size: 0.95rem; }
 .scene-row-meta, .scene-row-words { color: var(--text-muted); font-size: 0.78rem; }
 .scene-row-line { display: flex; gap: 8px; align-items: center; }

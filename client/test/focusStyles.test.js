@@ -33,3 +33,16 @@ test('no focus outline is removed without a replacement', () => {
     .map((block) => block.selector);
   assert.deepEqual(offenders, [], `rules remove the focus outline without a var(--border-focus) replacement: ${offenders.join(', ')}`);
 });
+
+test('the editor marks focus with a 1px ring, not the 2px global one', () => {
+  const rule = blocks.find((block) => block.selector === '.editor:focus-visible');
+  assert.ok(rule, '.editor:focus-visible rule is missing from index.css');
+  assert.match(rule.body, /(?:^|;)\s*outline:\s*none\s*(?:;|$)/, 'the editor keeps outline: none');
+  assert.match(rule.body, /(?:^|;)\s*box-shadow:\s*0 0 0 1px var\(--border-focus\)\s*(?:;|$)/,
+    'the editor ring is a 1px box-shadow in var(--border-focus)');
+});
+
+test('scene rows take the global focus ring instead of their own 1px outline', () => {
+  const override = blocks.find((block) => block.selector.includes('.scene-row-main:focus-visible'));
+  assert.equal(override, undefined, '.scene-row-main:focus-visible overrides the global ring; delete it');
+});
