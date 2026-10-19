@@ -22,6 +22,26 @@ export default function ScenesTab({ workId }) {
   const [errors, setErrors] = useState({});
   const listRef = useRef([]);
   const [busy, setBusy] = useState(false);
+  // A move up or down disables its own button while it runs, and the row then sits
+  // one place over: focus goes to that row's button once the move has finished
+  const moveList = useRef(null);
+  const pendingMove = useRef(null); // { key, toIndex, label } while a move is in flight
+  useEffect(() => {
+    const pending = pendingMove.current;
+    if (!pending || busy) return;
+    const list = moveList.current;
+    const row = list?.querySelector(`[data-scene-key="${pending.key}"]`);
+    // Wait until the list shows the scene in its new place; until then its buttons are the old ones
+    if (!row || [...list.children].indexOf(row) !== pending.toIndex) return;
+    pendingMove.current = null;
+    const enabled = (label) => {
+      const btn = row?.querySelector(`[aria-label="${label}"]`);
+      return btn && !btn.disabled ? btn : null;
+    };
+    const other = pending.label === 'Move up' ? 'Move down' : 'Move up';
+    const next = enabled(pending.label) || enabled(other);
+    if (next && (!document.activeElement || document.activeElement === document.body)) next.focus();
+  });
   const [notice, setNotice] = useState('');
   const [dragFrom, setDragFrom] = useState(null);
   const [dragOver, setDragOver] = useState(null);
@@ -88,6 +108,7 @@ export default function ScenesTab({ workId }) {
       if (chapters?.length) setNotice('Moved. History has the version from before the move.');
       setErrors((e) => ({ ...e, [key]: '' }));
     } catch (err) {
+      pendingMove.current = null;
       setErrors((e) => ({ ...e, [key]: err.message || 'The scene could not be moved.' }));
     } finally {
       setBusy(false);
@@ -139,12 +160,13 @@ export default function ScenesTab({ workId }) {
     <div className="scenes-tab">
       {chapterThreads}
       {notice && <p className="scenes-notice">{notice}</p>}
-      <ul className="scene-list">
+      <ul className="scene-list" ref={moveList}>
         {scenes.map((scene) => {
           const key = scene.id || 'opening';
           return (
             <SceneRow
               key={key}
+              rowKey={key}
               scene={scene}
               threads={threads}
               current={scene.index === current}
@@ -183,9 +205,9 @@ export default function ScenesTab({ workId }) {
               }}
             >
               <button className="btn btn-ghost btn-sm" aria-label="Move up" title="Move up" disabled={busy || scene.index === 0}
-                onClick={() => move(scene, editorState.chapterId, scene.index - 1)}>↑</button>
+                onClick={() => { pendingMove.current = { key, toIndex: scene.index - 1, label: 'Move up' }; move(scene, editorState.chapterId, scene.index - 1); }}>↑</button>
               <button className="btn btn-ghost btn-sm" aria-label="Move down" title="Move down" disabled={busy || scene.index === scenes.length - 1}
-                onClick={() => move(scene, editorState.chapterId, scene.index + 1)}>↓</button>
+                onClick={() => { pendingMove.current = { key, toIndex: scene.index + 1, label: 'Move down' }; move(scene, editorState.chapterId, scene.index + 1); }}>↓</button>
               <MoveTo
                 scene={scene}
                 scenes={scenes}
@@ -206,6 +228,14 @@ function MoveTo({ scene, scenes, chapters, openChapterId, disabled, onMove }) {
   const [open, setOpen] = useState(false);
   const [chapterId, setChapterId] = useState(openChapterId);
   const [toIndex, setToIndex] = useState('');
+  // Cancel unmounts the form with focus in it: hand focus back to the button that opens it
+  const openBtn = useRef(null);
+  const restoreFocus = useRef(false);
+  useEffect(() => {
+    if (open || !restoreFocus.current) return;
+    restoreFocus.current = false;
+    openBtn.current?.focus();
+  }, [open]);
   const same = chapterId === openChapterId;
   const dest = same
     ? scenes.map((s) => ({ title: s.title, index: s.index }))
@@ -213,14 +243,14 @@ function MoveTo({ scene, scenes, chapters, openChapterId, disabled, onMove }) {
   const options = positionOptions(dest, same ? { index: scene.index } : null);
   if (!open) {
     return (
-      <button className="btn btn-ghost btn-sm" disabled={disabled} onClick={() => setOpen(true)}>
+      <button ref={openBtn} className="btn btn-ghost btn-sm" disabled={disabled} onClick={() => setOpen(true)}>
         Move to…
       </button>
     );
   }
   return (
     <div className="scene-move-form">
-      <select className="form-select" value={chapterId} aria-label="Chapter"
+      <select className="form-select" value={chapterId} aria-label="Chapter" autoFocus
         onChange={(e) => { setChapterId(e.target.value); setToIndex(''); }}>
         {chapters.map((c) => <option key={c.id} value={c.id}>{chapterLabel(c)}</option>)}
       </select>
@@ -228,7 +258,7 @@ function MoveTo({ scene, scenes, chapters, openChapterId, disabled, onMove }) {
         <option value="" disabled>Choose a position</option>
         {options.map((o) => <option key={o.toIndex} value={o.toIndex}>{o.label}</option>)}
       </select>
-      <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>Cancel</button>
+      <button className="btn btn-ghost btn-sm" onClick={() => { restoreFocus.current = true; setOpen(false); }}>Cancel</button>
       <button className="btn btn-primary btn-sm" disabled={disabled || toIndex === ''}
         onClick={() => { setOpen(false); onMove(chapterId, Number(toIndex)); }}>Move</button>
     </div>
