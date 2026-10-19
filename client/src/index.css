@@ -781,6 +781,7 @@ a:hover {
   padding: 0 0.25rem;
 }
 .backup-reminder-dismiss:hover { color: var(--text); }
+.backup-reminder .form-error { flex-basis: 100%; margin: 0; }
 
 /* ============================================================
    Main Room
