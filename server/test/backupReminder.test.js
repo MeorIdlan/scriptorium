@@ -12,7 +12,7 @@ import {
 const now = new Date('2026-10-20T12:00:00Z');
 const daysAgo = (n) => new Date(now.getTime() - n * DAY_MS).toISOString();
 
-// A work created 30 days ago and edited long after, unless a case overrides it
+// A work created 30 days ago and never edited since, unless a case overrides it
 const work = (fields) => ({
   createdAt: daysAgo(30),
   updatedAt: daysAgo(30),
@@ -111,6 +111,42 @@ test('a dismissed reminder comes back seven days later if there are still change
     now
   );
   assert.equal(state.due, true);
+});
+
+test('a dismiss older than the last backup runs the clock from the backup', () => {
+  const recentBackup = backupReminderState(
+    work({
+      lastBackupAt: daysAgo(3),
+      contentChangedAt: daysAgo(1),
+      reminderState: { dismissedAt: daysAgo(10) },
+    }),
+    now
+  );
+  assert.equal(recentBackup.due, false);
+
+  const oldBackup = backupReminderState(
+    work({
+      lastBackupAt: daysAgo(8),
+      contentChangedAt: daysAgo(1),
+      reminderState: { dismissedAt: daysAgo(10) },
+    }),
+    now
+  );
+  assert.equal(oldBackup.due, true);
+});
+
+test('never backed up and dismissed runs the clock from the dismiss', () => {
+  const recentDismiss = backupReminderState(
+    work({ contentChangedAt: daysAgo(1), reminderState: { dismissedAt: daysAgo(2) } }),
+    now
+  );
+  assert.equal(recentDismiss.due, false);
+
+  const oldDismiss = backupReminderState(
+    work({ contentChangedAt: daysAgo(1), reminderState: { dismissedAt: daysAgo(7) } }),
+    now
+  );
+  assert.equal(oldDismiss.due, true);
 });
 
 test('no reminder when the last change is already covered by a backup', () => {
