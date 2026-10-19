@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useUI } from '../../context/UIContext.jsx';
 import { api } from '../../utils/api.js';
+import { saveFile } from '../../utils/saveFile.js';
 
 const FORMATS = [
   { id: 'pdf', label: 'PDF' },
@@ -21,18 +22,6 @@ const EMPTY_MANUSCRIPT = {
   font: 'serif',
   workOnly: false,
 };
-
-// Trigger the browser's save for a fetched file
-function saveFile(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
 
 export default function ExportModal() {
   const { state, dispatch } = useUI();

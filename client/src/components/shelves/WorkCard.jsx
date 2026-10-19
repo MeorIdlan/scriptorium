@@ -4,6 +4,7 @@ import { api } from '../../utils/api.js';
 import { formatNumber } from '../../utils/wordCount.js';
 import { useWorks } from '../../context/WorksContext.jsx';
 import { useUI } from '../../context/UIContext.jsx';
+import BackupReminder from '../backup/BackupReminder.jsx';
 
 const TARGET_WORD_COUNT = 90000;
 
@@ -152,6 +153,12 @@ export default function WorkCard({ work, onDelete, onExport }) {
           )}
         </div>
       </div>
+
+      <BackupReminder
+        work={work}
+        variant="card"
+        onChange={(backupReminder) => updateWork(work.id, { backupReminder })}
+      />
     </div>
   );
 }
