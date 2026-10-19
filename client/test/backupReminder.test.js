@@ -6,6 +6,7 @@ import { renderApp, HttpError } from './support/app.js';
 import { flush, click } from './support/render.js';
 import Shelves from '../src/pages/Shelves.jsx';
 import BackupReminder from '../src/components/backup/BackupReminder.jsx';
+import MainRoom from '../src/pages/MainRoom.jsx';
 
 const DUE_12 = { due: true, lastBackupAt: '2026-10-07T09:00:00.000Z', daysSinceBackup: 12 };
 
@@ -214,5 +215,59 @@ test('the banner variant shows the banner copy and buttons', async () => {
   assert.ok(view.button('Back up now'));
   assert.ok(view.button('Remind me later'));
   assert.ok(view.button('Dismiss'));
+  await view.unmount();
+});
+
+// The Main Room's editor writes innerText, which linkedom only has as a getter
+Object.defineProperty(Object.getPrototypeOf(document.createElement('div')), 'innerText', {
+  configurable: true,
+  get() {
+    return this.textContent;
+  },
+  set(text) {
+    this.textContent = text;
+  },
+});
+
+// Main Room with one work from GET /works/w1
+const DUE_9 = { due: true, lastBackupAt: '2026-10-10T09:00:00.000Z', daysSinceBackup: 9 };
+
+async function renderMainRoom(reminder, routes = {}) {
+  return renderApp(h(MainRoom), {
+    path: '/work/w1',
+    route: '/work/:workId',
+    routes: {
+      'GET /works/w1': { id: 'w1', title: 'The Long Night', wordCount: 0, status: 'active', backupReminder: reminder },
+      'GET /works/w1/chapters': [],
+      'GET /works/w1/catches': [],
+      'GET /progress/today': { words: 0, goal: null },
+      ...routes,
+    },
+  });
+}
+
+test('the Main Room shows "<Title> hasn\'t been backed up in 9 days" for a due work', async () => {
+  const view = await renderMainRoom(DUE_9);
+  assert.match(view.query('.backup-reminder--banner').textContent, /The Long Night hasn't been backed up in 9 days/);
+  await view.unmount();
+});
+
+test('the Main Room shows no banner when the work isn\'t due', async () => {
+  const view = await renderMainRoom({ due: false, lastBackupAt: null, daysSinceBackup: null });
+  assert.equal(view.query('[data-testid="backup-reminder"]'), null);
+  await view.unmount();
+});
+
+test('Remind me later hides the banner', async () => {
+  const view = await renderMainRoom(DUE_9, {
+    'POST /works/w1/backup-reminder': () => ({
+      backupReminder: { due: false, lastBackupAt: DUE_9.lastBackupAt, daysSinceBackup: 9 },
+    }),
+  });
+  await click(view.button('Remind me later'));
+  await flush();
+  const post = view.fetch.calls.find((c) => c.path === '/works/w1/backup-reminder');
+  assert.deepEqual(post.body, { action: 'snooze' });
+  assert.equal(view.query('[data-testid="backup-reminder"]'), null);
   await view.unmount();
 });
