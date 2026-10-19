@@ -59,6 +59,8 @@ export default function ThreadManager({ workId, threads, chapters, onChanged, on
   };
   const onNewKey = (e) => {
     if (e.key === 'Enter') {
+      // Claim the key, or this same Enter would click the New thread button focus returns to
+      e.preventDefault();
       // An invalid name keeps the field open, so there is nothing to return to yet
       returnFocus(newError ? null : newButton);
       create(true);

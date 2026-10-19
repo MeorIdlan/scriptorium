@@ -26,6 +26,18 @@ const fieldButton = (view, label) => view.queryAll('button.inline-field-value')
 
 const focused = (el) => document.activeElement === el;
 
+// Presses a key and returns the event, so a test can read defaultPrevented
+async function keyDownEvent(el, key) {
+  let event;
+  await act(async () => {
+    event = new window.Event('keydown', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'key', { value: key });
+    el.dispatchEvent(event);
+  });
+  await flush();
+  return event;
+}
+
 // Chooses an option the way a change does: the selected option, then a change event
 async function choose(select, value) {
   await act(async () => {
@@ -111,5 +123,14 @@ test('Esc on the category select returns focus to its value button', async () =>
   await click(fieldButton(view, 'Category'));
   await press(view.query('select.inline-field-select'), 'Escape');
   assert.equal(focused(fieldButton(view, 'Category')), true);
+  await view.unmount();
+});
+
+test('Enter claims its keypress, so the value button it returns to is not clicked and reopened', async () => {
+  const view = await openCodex();
+  await click(view.button('Mara'));
+  await click(fieldButton(view, 'Name'));
+  const event = await keyDownEvent(view.query('input.inline-field-input'), 'Enter');
+  assert.equal(event.defaultPrevented, true);
   await view.unmount();
 });

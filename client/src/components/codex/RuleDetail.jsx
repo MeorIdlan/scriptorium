@@ -20,6 +20,8 @@ function InlineSelect({ label, value, options, onSave }) {
 
   function handleKey(e) {
     if (e.key === 'Enter') {
+      // Claim the key: the value button returns focus to would otherwise be clicked by this same Enter
+      e.preventDefault();
       returnFocus(valueBtn);
       handleSave();
     }
@@ -119,6 +121,8 @@ function InlineField({ label, value, onSave }) {
 
   function handleKey(e) {
     if (e.key === 'Enter') {
+      // Claim the key: the value button returns focus to would otherwise be clicked by this same Enter
+      e.preventDefault();
       returnFocus(valueBtn);
       handleSave();
     }

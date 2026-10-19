@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { renderApp, HttpError } from './support/app.js';
-import { click, type, press, blur, pressThenBlur } from './support/render.js';
+import { act, click, flush, type, press, blur, pressThenBlur } from './support/render.js';
 import './support/focus.js';
 import ThreadManager from '../src/components/map/ThreadManager.jsx';
 
@@ -226,5 +226,25 @@ test('a new thread the server refuses keeps the field open with focus in it', as
   await press(input, 'Enter');
   assert.equal(view.query('.thread-new-name') === input, true);
   assert.equal(document.activeElement === input, true);
+  await view.unmount();
+});
+
+// Presses a key and returns the event, so a test can read defaultPrevented
+async function keyDownEvent(el, key) {
+  let event;
+  await act(async () => {
+    event = new window.Event('keydown', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'key', { value: key });
+    el.dispatchEvent(event);
+  });
+  await flush();
+  return event;
+}
+
+test('Enter in the new-thread field claims its keypress, so the New thread button is not clicked again', async () => {
+  const view = await mount();
+  await click(view.button('New thread'));
+  const event = await keyDownEvent(view.query('.thread-new-name'), 'Enter');
+  assert.equal(event.defaultPrevented, true);
   await view.unmount();
 });

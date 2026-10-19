@@ -185,6 +185,8 @@ export default function MainRoom() {
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
+                    // Claim the key, or this same Enter would click the + focus returns to
+                    e.preventDefault();
                     returnFocus(addChapterBtn);
                     handleAddChapter();
                   }

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
-import { render, click, press, type } from './support/render.js';
+import { act, render, click, flush, press, type } from './support/render.js';
 import './support/focus.js';
 import ThreadRow from '../src/components/map/ThreadRow.jsx';
 
@@ -63,5 +63,25 @@ test('a rename the server refuses keeps the field open with focus in it', async 
   await press(input, 'Enter');
   assert.equal(view.container.querySelector('.thread-name-input') === input, true);
   assert.equal(document.activeElement === input, true);
+  await view.unmount();
+});
+
+// Presses a key and returns the event, so a test can read defaultPrevented
+async function keyDownEvent(el, key) {
+  let event;
+  await act(async () => {
+    event = new window.Event('keydown', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'key', { value: key });
+    el.dispatchEvent(event);
+  });
+  await flush();
+  return event;
+}
+
+test('Enter in the rename field claims its keypress, so the name button is not clicked and reopened', async () => {
+  const view = await renderRow();
+  await click(button(view, 'Lighthouse'));
+  const event = await keyDownEvent(view.container.querySelector('.thread-name-input'), 'Enter');
+  assert.equal(event.defaultPrevented, true);
   await view.unmount();
 });

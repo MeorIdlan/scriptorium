@@ -58,6 +58,8 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
   };
   const onNameKey = (e) => {
     if (e.key === 'Enter') {
+      // Claim the key, or this same Enter would click the name button focus returns to
+      e.preventDefault();
       // A name that will not save keeps the editor open, so there is nothing to return to yet
       returnFocus(name !== null && !threadNameError(name) ? nameBtn : null);
       saveName();
