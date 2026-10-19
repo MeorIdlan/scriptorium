@@ -143,6 +143,7 @@ function InlineField({ label, value, onSave }) {
       {editing ? (
         <input
           className="inline-field-input"
+          type="text"
           aria-label={label}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, Fragment } from 'react';
 import { renderApp } from './support/app.js';
-import { act, click, flush, press, type } from './support/render.js';
+import { act, blur, click, flush, press, type } from './support/render.js';
 import './support/focus.js';
 import CodexView from '../src/pages/CodexView.jsx';
 
@@ -38,10 +38,14 @@ async function keyDownEvent(el, key) {
   return event;
 }
 
-// Chooses an option the way a change does: the selected option, then a change event
+// Chooses an option the way a change does: the selected attribute moves, then a change
+// event. linkedom reads a React-rendered select's value only from the attribute.
 async function choose(select, value) {
   await act(async () => {
-    for (const option of select.options) option.selected = option.value === value;
+    for (const option of select.options) {
+      if (option.value === value) option.setAttribute('selected', '');
+      else option.removeAttribute('selected');
+    }
     select.dispatchEvent(new window.Event('change', { bubbles: true }));
   });
   await flush();
@@ -135,5 +139,76 @@ test('Enter claims its keypress, so the value button it returns to is not clicke
   await click(fieldButton(view, 'Name'));
   const event = await keyDownEvent(view.query('input.inline-field-input'), 'Enter');
   assert.equal(event.defaultPrevented, true);
+  await view.unmount();
+});
+
+// The PUTs a test made, each as the path and body it sent
+const puts = (view) => view.fetch.calls.filter((c) => c.method === 'PUT');
+
+test('Enter on a changed category saves it once', async () => {
+  const view = await openCodex();
+  await click(view.button('World Rules'));
+  await click(view.button('Magic costs blood'));
+  await click(fieldButton(view, 'Category'));
+  const select = view.query('select.inline-field-select');
+  await choose(select, 'politics');
+  await press(select, 'Enter');
+  assert.deepEqual(puts(view), [{ method: 'PUT', path: '/works/w1/codex/rules/r1', body: { category: 'politics' } }]);
+  await view.unmount();
+});
+
+test('leaving a changed category saves it once', async () => {
+  const view = await openCodex();
+  await click(view.button('World Rules'));
+  await click(view.button('Magic costs blood'));
+  await click(fieldButton(view, 'Category'));
+  const select = view.query('select.inline-field-select');
+  await choose(select, 'politics');
+  await blur(select);
+  assert.deepEqual(puts(view), [{ method: 'PUT', path: '/works/w1/codex/rules/r1', body: { category: 'politics' } }]);
+  await view.unmount();
+});
+
+test('Esc on a changed category saves nothing', async () => {
+  const view = await openCodex();
+  await click(view.button('World Rules'));
+  await click(view.button('Magic costs blood'));
+  await click(fieldButton(view, 'Category'));
+  const select = view.query('select.inline-field-select');
+  await choose(select, 'politics');
+  await press(select, 'Escape');
+  assert.deepEqual(puts(view), []);
+  await view.unmount();
+});
+
+test('Enter on a changed character name saves the new name once', async () => {
+  const view = await openCodex();
+  await click(view.button('Mara'));
+  await click(fieldButton(view, 'Name'));
+  await type(view.query('input.inline-field-input'), 'Ada');
+  await press(view.query('input.inline-field-input'), 'Enter');
+  assert.deepEqual(puts(view), [{ method: 'PUT', path: '/works/w1/codex/characters/ch1', body: { name: 'Ada' } }]);
+  await view.unmount();
+});
+
+test('Enter on a changed place name saves the new name once', async () => {
+  const view = await openCodex();
+  await click(view.button('Places'));
+  await click(view.button('Harrowgate'));
+  await click(fieldButton(view, 'Name'));
+  await type(view.query('input.inline-field-input'), 'Harrowgate Keep');
+  await press(view.query('input.inline-field-input'), 'Enter');
+  assert.deepEqual(puts(view), [{ method: 'PUT', path: '/works/w1/codex/places/pl1', body: { name: 'Harrowgate Keep' } }]);
+  await view.unmount();
+});
+
+test('Enter on a changed rule field saves the new value once', async () => {
+  const view = await openCodex();
+  await click(view.button('World Rules'));
+  await click(view.button('Magic costs blood'));
+  await click(fieldButton(view, 'Established In'));
+  await type(view.query('input.inline-field-input'), 'Year 3');
+  await press(view.query('input.inline-field-input'), 'Enter');
+  assert.deepEqual(puts(view), [{ method: 'PUT', path: '/works/w1/codex/rules/r1', body: { establishedIn: 'Year 3' } }]);
   await view.unmount();
 });
