@@ -17,6 +17,7 @@ import RequireAuth from './components/auth/RequireAuth.jsx';
 import RequireAdmin from './components/auth/RequireAdmin.jsx';
 import UserManagement from './pages/admin/UserManagement.jsx';
 import { useUI } from './context/UIContext.jsx';
+import { pageKey } from './utils/pageKey.js';
 
 function Layout() {
   const location = useLocation();
@@ -41,7 +42,7 @@ function Layout() {
       <div className="main-area">
         <TopBar />
         <div className="content">
-          <div key={location.key} className="page-enter">
+          <div key={pageKey(location.pathname)} className="page-enter">
             <Outlet />
           </div>
         </div>
