@@ -1,8 +1,9 @@
+import { DAY_MS } from '../utils/time.js';
+
 // Which automatic snapshots to drop. Pure; named and milestone snapshots are
 // never touched, nor are automatic ones with a note ('Before restore'). Buckets are fixed calendar days/weeks (UTC), so a snapshot
 // that survives isn't swapped out later just because time moved on.
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_MS = 7 * DAY_MS;
 const DAILY_UNTIL_MS = 30 * DAY_MS;
 

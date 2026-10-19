@@ -1,13 +1,15 @@
 // Downloads from an Express app over a real socket and cuts the stream short: the Nth
-// Snapshot read (failingCall, 1-based) returns one record, then the read fails.
+// Snapshot read (failingCall, 1-based) returns one record, then the read fails. With
+// failingWork, the first Snapshot read for that work id fails instead (failingCall is ignored).
 import http from 'node:http';
 import { mock } from 'node:test';
 import Snapshot from '../../src/models/Snapshot.js';
 
-export async function cutShortDownload(app, path, user, { failingCall = 1 } = {}) {
+export async function cutShortDownload(app, path, user, { failingCall = 1, failingWork } = {}) {
   const failures = mock.method(console, 'error', () => {});
   const realFind = Snapshot.find;
   let calls = 0;
+  let brokeWork = false;
   // A Mongoose-cursor-shaped fake: one record, then the connection drops
   const brokenCursor = {
     async close() {},
@@ -22,7 +24,14 @@ export async function cutShortDownload(app, path, user, { failingCall = 1 } = {}
     },
   };
   const brokenQuery = { sort: () => brokenQuery, lean: () => brokenQuery, cursor: () => brokenCursor };
-  const find = mock.method(Snapshot, 'find', (...args) => (++calls === failingCall ? brokenQuery : realFind.apply(Snapshot, args)));
+  const find = mock.method(Snapshot, 'find', (...args) => {
+    if (failingWork !== undefined) {
+      const isTarget = !brokeWork && args[0]?.workId === failingWork;
+      if (isTarget) brokeWork = true;
+      return isTarget ? brokenQuery : realFind.apply(Snapshot, args);
+    }
+    return ++calls === failingCall ? brokenQuery : realFind.apply(Snapshot, args);
+  });
 
   const server = app.listen(0);
   let timer;

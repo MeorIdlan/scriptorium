@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import { startDb, clearDb, buildApp } from './support/http.js';
 import Work from '../src/models/Work.js';
+import { DAY_MS } from '../src/utils/time.js';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
 const daysAgo = (n) => new Date(Date.now() - n * DAY_MS).toISOString();
 

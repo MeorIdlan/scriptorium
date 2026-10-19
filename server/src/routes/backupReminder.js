@@ -2,12 +2,11 @@ import { Router } from 'express';
 import Work from '../models/Work.js';
 import { httpError } from '../middleware/errorHandler.js';
 import { loadWork } from '../middleware/loadWork.js';
+import { DAY_MS } from '../utils/time.js';
 import { SNOOZE_DAYS, backupReminderState } from '../services/backupReminder.js';
 
 const router = Router({ mergeParams: true });
 router.use(loadWork);
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 // POST /api/works/:workId/backup-reminder  { action: 'snooze' | 'dismiss' }
 // No stampContentChange: hiding the reminder doesn't change what a backup would capture.

@@ -247,7 +247,7 @@ test('a finished account backup stamps every included work, not other writers\' 
 test('an account backup cut short after its first work stamps nothing', async () => {
   await seedAccount();
   // The second work's snapshots fail, so the first work's stream has finished but the backup has not
-  const result = await cutShortDownload(app, '/api/backup', 'user_a', { failingCall: 2 });
+  const result = await cutShortDownload(app, '/api/backup', 'user_a', { failingWork: USER_A_IN_ORDER[1] });
   assert.equal(result.complete, false);
 
   const stamped = await Work.countDocuments({ lastBackupAt: { $exists: true } });

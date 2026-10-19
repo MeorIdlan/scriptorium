@@ -19,7 +19,7 @@ export async function* ownedWorks(userId) {
 // POST /api/backup
 router.post('/', async (req, res, next) => {
   const startedAt = new Date().toISOString();
-  const date = new Date().toISOString().slice(0, 10);
+  const date = startedAt.slice(0, 10);
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader('Content-Disposition', contentDisposition(`scriptorium-backup-${date}.zip`));
   res.setHeader('X-Accel-Buffering', 'no');
