@@ -3,6 +3,7 @@ import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { ThreadChips, ThreadMarkers } from './ThreadChips.jsx';
 import { toggleTag, tagList } from '../../utils/threads.js';
 import { SCENE_STATUSES, STATUS_LABELS, SCENE_LIMITS, sceneFieldError, sceneLabel } from '../../utils/scenes.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 const FIELDS = ['title', 'pov', 'location', 'summary'];
 
@@ -54,9 +55,9 @@ export default function SceneRow({ scene, rowKey, threads = [], current, charact
             {scene.summary && <span className="scene-row-summary">{scene.summary.split('\n')[0]}</span>}
           </button>
           <div className="scene-row-actions">
-            <button ref={editBtn} className="btn btn-ghost btn-sm" onClick={startEdit} disabled={busy}>Edit card</button>
+            <button ref={editBtn} className="btn btn-ghost btn-sm" onClick={guardBusy(busy, startEdit)} {...busyProps(busy)}>Edit card</button>
             {scene.id && !confirming && (
-              <button ref={removeBtn} className="btn btn-ghost btn-sm" onClick={() => setConfirming(true)} disabled={busy}>Remove break</button>
+              <button ref={removeBtn} className="btn btn-ghost btn-sm" onClick={guardBusy(busy, () => setConfirming(true))} {...busyProps(busy)}>Remove break</button>
             )}
             {children}
           </div>

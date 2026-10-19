@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 export default function ApiKeyField({ hasKey, keyPreview, onChange, onTest, onSave, testing, saving, testStatus }) {
   const [value, setValue] = useState('');
@@ -45,8 +46,9 @@ export default function ApiKeyField({ hasKey, keyPreview, onChange, onTest, onSa
           <button
             className="btn btn-secondary btn-sm"
             type="button"
-            onClick={() => onTest(value)}
-            disabled={testing || (!value && !hasKey)}
+            onClick={guardBusy(testing, () => onTest(value))}
+            disabled={!value && !hasKey}
+            {...busyProps(testing)}
           >
             {testing ? 'Testing…' : 'Test Key'}
           </button>
@@ -55,8 +57,8 @@ export default function ApiKeyField({ hasKey, keyPreview, onChange, onTest, onSa
           <button
             className="btn btn-primary btn-sm"
             type="button"
-            onClick={handleSave}
-            disabled={saving}
+            onClick={guardBusy(saving, handleSave)}
+            {...busyProps(saving)}
           >
             {saving ? 'Saving…' : 'Save Key'}
           </button>

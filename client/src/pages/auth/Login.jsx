@@ -3,6 +3,7 @@ import { startAuthentication } from '@simplewebauthn/browser';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../../utils/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 export default function Login() {
   const { refresh, recover } = useAuth();
@@ -46,7 +47,7 @@ export default function Login() {
   if (mode === 'recover') {
     return (
       <div className="auth-page">
-        <form className="auth-card" onSubmit={handleRecover}>
+        <form className="auth-card" onSubmit={guardBusy(submitting, handleRecover)}>
           <h1>Recover access</h1>
           <p>We'll email a verification code to your own address so you can register a new passkey.</p>
           {error && <div className="auth-error">{error}</div>}
@@ -54,7 +55,7 @@ export default function Login() {
             Email
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </label>
-          <button type="submit" disabled={submitting}>
+          <button type="submit" {...busyProps(submitting)}>
             {submitting ? 'Sending…' : 'Send recovery code'}
           </button>
           <button type="button" onClick={() => { setMode('login'); setError(null); }}>
@@ -67,14 +68,14 @@ export default function Login() {
 
   return (
     <div className="auth-page">
-      <form className="auth-card" onSubmit={handleLogin}>
+      <form className="auth-card" onSubmit={guardBusy(submitting, handleLogin)}>
         <h1>Log in</h1>
         {error && <div className="auth-error">{error}</div>}
         <label>
           Email
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </label>
-        <button type="submit" disabled={submitting}>
+        <button type="submit" {...busyProps(submitting)}>
           {submitting ? 'Waiting for device…' : 'Log in with passkey'}
         </button>
         <Link to="/register">Don't have an account? Register</Link>

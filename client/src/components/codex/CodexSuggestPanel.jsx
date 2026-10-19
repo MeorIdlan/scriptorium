@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAI } from '../../hooks/useAI.js';
 import { useAiState } from '../../context/AiContext.jsx';
 import ContextUsed from '../panel/ContextUsed.jsx';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 export default function CodexSuggestPanel({ workId, entityType, entity }) {
   const { loading, error, call } = useAI();
@@ -30,8 +31,8 @@ export default function CodexSuggestPanel({ workId, entityType, entity }) {
       {!suggestions && (
         <button
           className="btn btn-ghost codex-suggest-trigger"
-          onClick={handleSuggest}
-          disabled={loading}
+          onClick={guardBusy(loading, handleSuggest)}
+          {...busyProps(loading)}
         >
           {loading ? 'Thinking…' : '◆ AI Suggestions'}
         </button>
@@ -61,8 +62,8 @@ export default function CodexSuggestPanel({ workId, entityType, entity }) {
           <button
             className="btn btn-ghost codex-suggest-trigger"
             style={{ marginTop: '0.75rem' }}
-            onClick={handleSuggest}
-            disabled={loading}
+            onClick={guardBusy(loading, handleSuggest)}
+            {...busyProps(loading)}
           >
             {loading ? 'Thinking…' : '↻ Regenerate'}
           </button>

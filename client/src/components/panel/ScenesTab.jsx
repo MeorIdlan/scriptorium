@@ -11,6 +11,7 @@ import { moveSceneRequest, destinationScenes, dropIndex } from '../../utils/scen
 import SceneRow from './SceneRow.jsx';
 import { ChapterThreads } from './ThreadChips.jsx';
 import { setChapterThreads, toggleTag, tagList } from '../../utils/threads.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 const editorRoot = () => document.querySelector('.editor');
 const names = (list) => (list || []).map((e) => e?.name).filter((n) => typeof n === 'string' && n.trim());
@@ -208,10 +209,10 @@ export default function ScenesTab({ workId }) {
                 },
               }}
             >
-              <button className="btn btn-ghost btn-sm" aria-label="Move up" title="Move up" disabled={busy || scene.index === 0}
-                onClick={() => move(scene, editorState.chapterId, scene.index - 1, { key, toIndex: scene.index - 1, label: 'Move up' })}>↑</button>
-              <button className="btn btn-ghost btn-sm" aria-label="Move down" title="Move down" disabled={busy || scene.index === scenes.length - 1}
-                onClick={() => move(scene, editorState.chapterId, scene.index + 1, { key, toIndex: scene.index + 1, label: 'Move down' })}>↓</button>
+              <button className="btn btn-ghost btn-sm" aria-label="Move up" title="Move up" disabled={scene.index === 0} {...busyProps(busy)}
+                onClick={guardBusy(busy, () => move(scene, editorState.chapterId, scene.index - 1, { key, toIndex: scene.index - 1, label: 'Move up' }))}>↑</button>
+              <button className="btn btn-ghost btn-sm" aria-label="Move down" title="Move down" disabled={scene.index === scenes.length - 1} {...busyProps(busy)}
+                onClick={guardBusy(busy, () => move(scene, editorState.chapterId, scene.index + 1, { key, toIndex: scene.index + 1, label: 'Move down' }))}>↓</button>
               <MoveTo
                 scene={scene}
                 scenes={scenes}
@@ -242,7 +243,7 @@ function MoveTo({ scene, scenes, chapters, openChapterId, disabled, onMove }) {
   const options = positionOptions(dest, same ? { index: scene.index } : null);
   if (!open) {
     return (
-      <button ref={openBtn} className="btn btn-ghost btn-sm" disabled={disabled} onClick={() => setOpen(true)}>
+      <button ref={openBtn} className="btn btn-ghost btn-sm" {...busyProps(disabled)} onClick={guardBusy(disabled, () => setOpen(true))}>
         Move to…
       </button>
     );
@@ -258,8 +259,8 @@ function MoveTo({ scene, scenes, chapters, openChapterId, disabled, onMove }) {
         {options.map((o) => <option key={o.toIndex} value={o.toIndex}>{o.label}</option>)}
       </select>
       <button className="btn btn-ghost btn-sm" onClick={() => { returnFocus(openBtn); setOpen(false); }}>Cancel</button>
-      <button className="btn btn-primary btn-sm" disabled={disabled || toIndex === ''}
-        onClick={() => { setOpen(false); onMove(chapterId, Number(toIndex)); }}>Move</button>
+      <button className="btn btn-primary btn-sm" disabled={toIndex === ''} {...busyProps(disabled)}
+        onClick={guardBusy(disabled, () => { setOpen(false); onMove(chapterId, Number(toIndex)); })}>Move</button>
     </div>
   );
 }

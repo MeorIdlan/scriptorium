@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { catchLengthError, chapterLabel, liveChapterId, timeAgo, usedAsLabel } from '../../utils/catchGroups.js';
 import { defaultName } from '../../utils/catchActions.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 const USE_TARGETS = [
   { value: 'character', label: 'Codex character' },
@@ -109,14 +110,14 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
         </select>
         {(catchLengthError(draft) || error) && <p className="catch-row-error">{catchLengthError(draft) || error}</p>}
         <div className="catch-row-actions visible">
-          <button className="btn btn-primary btn-sm" onClick={saveEdit} disabled={busy || !draft.trim() || Boolean(catchLengthError(draft))}>Save</button>
+          <button className="btn btn-primary btn-sm" onClick={guardBusy(busy, saveEdit)} disabled={!draft.trim() || Boolean(catchLengthError(draft))} {...busyProps(busy)}>Save</button>
           <button
             className="btn btn-ghost btn-sm"
-            onClick={() => {
+            onClick={guardBusy(busy, () => {
               returnFocus(editBtn);
               setMode('view');
-            }}
-            disabled={busy}
+            })}
+            {...busyProps(busy)}
           >
             Cancel
           </button>
@@ -167,18 +168,19 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
           <div className="catch-row-actions visible">
             <button
               className="btn btn-primary btn-sm"
-              onClick={saveUse}
-              disabled={busy || (target === 'map' ? !mapChapterId : !name.trim())}
+              onClick={guardBusy(busy, saveUse)}
+              disabled={target === 'map' ? !mapChapterId : !name.trim()}
+              {...busyProps(busy)}
             >
               {busy ? 'Saving…' : 'Save'}
             </button>
             <button
               className="btn btn-ghost btn-sm"
-              onClick={() => {
+              onClick={guardBusy(busy, () => {
                 returnFocus(useBtn);
                 setMode('view');
-              }}
-              disabled={busy}
+              })}
+              {...busyProps(busy)}
             >
               Cancel
             </button>
@@ -193,17 +195,17 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
           {isOpen ? (
             <>
               {canInsert && (
-                <button className="btn btn-ghost btn-sm" onClick={() => act('insert')} disabled={busy} title="Insert as a new paragraph after the cursor">
+                <button className="btn btn-ghost btn-sm" onClick={guardBusy(busy, () => act('insert'))} {...busyProps(busy)} title="Insert as a new paragraph after the cursor">
                   Insert
                 </button>
               )}
-              <button ref={useBtn} className="btn btn-ghost btn-sm" onClick={startUse} disabled={busy}>Use as…</button>
-              <button ref={editBtn} className="btn btn-ghost btn-sm" onClick={startEdit} disabled={busy}>Edit</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => act('used')} disabled={busy}>Used</button>
-              <button className="btn btn-ghost btn-sm danger" onClick={() => act('discard')} disabled={busy}>Discard</button>
+              <button ref={useBtn} className="btn btn-ghost btn-sm" onClick={guardBusy(busy, startUse)} {...busyProps(busy)}>Use as…</button>
+              <button ref={editBtn} className="btn btn-ghost btn-sm" onClick={guardBusy(busy, startEdit)} {...busyProps(busy)}>Edit</button>
+              <button className="btn btn-ghost btn-sm" onClick={guardBusy(busy, () => act('used'))} {...busyProps(busy)}>Used</button>
+              <button className="btn btn-ghost btn-sm danger" onClick={guardBusy(busy, () => act('discard'))} {...busyProps(busy)}>Discard</button>
             </>
           ) : (
-            <button className="btn btn-ghost btn-sm" onClick={() => act('reopen')} disabled={busy}>Reopen</button>
+            <button className="btn btn-ghost btn-sm" onClick={guardBusy(busy, () => act('reopen'))} {...busyProps(busy)}>Reopen</button>
           )}
         </div>
       )}

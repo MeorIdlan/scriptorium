@@ -10,6 +10,7 @@ import { useUI } from '../../context/UIContext.jsx';
 import { scenesForPov } from '../../utils/sceneMap.js';
 import { STATUS_LABELS, sceneLabel } from '../../utils/scenes.js';
 import { SUMMARY_STATUS_LABELS, summaryRefreshPending } from '../../utils/summaryStatus.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 const FRAMEWORK_BEATS = [
   'Inciting Incident',
@@ -239,8 +240,8 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
           {aiOn && (
             <button
               className="btn btn-secondary"
-              onClick={handleAnalysePacing}
-              disabled={aiLoading}
+              onClick={guardBusy(aiLoading, handleAnalysePacing)}
+              {...busyProps(aiLoading)}
             >
               {aiLoading
                 ? summaryRefreshPending(chapters, chapterId, 'all')

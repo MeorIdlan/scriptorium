@@ -3,6 +3,7 @@ import { useAI } from '../../hooks/useAI.js';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useUI } from '../../context/UIContext.jsx';
 import ContextUsed from '../panel/ContextUsed.jsx';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 export default function HookGenerator({ workId }) {
   const { loading, error, call } = useAI();
@@ -52,8 +53,8 @@ export default function HookGenerator({ workId }) {
       {!generated && (
         <button
           className="btn btn-primary"
-          onClick={handleGenerate}
-          disabled={loading}
+          onClick={guardBusy(loading, handleGenerate)}
+          {...busyProps(loading)}
         >
           {loading ? 'Generating…' : '✨ Generate 3 Hooks'}
         </button>

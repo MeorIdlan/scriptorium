@@ -8,6 +8,7 @@ import RuleDetail from '../components/codex/RuleDetail.jsx';
 import CodexAuditModal from '../components/overlays/CodexAuditModal.jsx';
 import { useAiState } from '../context/AiContext.jsx';
 import { useModal } from '../hooks/useModal.js';
+import { busyProps, guardBusy } from '../utils/busyButton.js';
 
 const TABS = [
   { id: 'characters', label: 'Characters' },
@@ -375,8 +376,8 @@ export default function CodexView() {
             <p className="codex-ai-title">AI Assist</p>
             <button
               className="btn btn-ghost codex-ai-btn"
-              onClick={handleAudit}
-              disabled={aiLoading}
+              onClick={guardBusy(aiLoading, handleAudit)}
+              {...busyProps(aiLoading)}
               title="Analyse all characters, places, and world rules for completeness and consistency"
             >
               {aiLoading ? 'Auditing…' : '◈ Codex Audit'}

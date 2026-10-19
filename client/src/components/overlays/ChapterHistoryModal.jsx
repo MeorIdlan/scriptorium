@@ -7,6 +7,7 @@ import { useModal } from '../../hooks/useModal.js';
 import { countWords, formatNumber } from '../../utils/wordCount.js';
 import { CURRENT, versionLabel, groupByDay, orderPair, flushOpenChapter } from '../../utils/versionHistory.js';
 import VersionDiff from './VersionDiff.jsx';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 const timeOfDay = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const fullTime = (iso) => new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
@@ -127,7 +128,7 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
             if (e.key === 'Escape') { setNaming(null); e.stopPropagation(); }
           }}
         />
-        <button className="btn btn-primary btn-sm" onClick={submitName} disabled={busy || !naming.value.trim()}>Save</button>
+        <button className="btn btn-primary btn-sm" onClick={guardBusy(busy, submitName)} disabled={!naming.value.trim()} {...busyProps(busy)}>Save</button>
         <button className="btn btn-ghost btn-sm" onClick={() => setNaming(null)}>Cancel</button>
       </div>
     );
@@ -135,7 +136,7 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
     actions = (
       <div className="history-actions history-confirm">
         <span>Restore this version? Your current text will be saved as a snapshot first.</span>
-        <button className="btn btn-primary btn-sm" onClick={restore} disabled={busy}>{busy ? 'Restoring…' : 'Restore'}</button>
+        <button className="btn btn-primary btn-sm" onClick={guardBusy(busy, restore)} {...busyProps(busy)}>{busy ? 'Restoring…' : 'Restore'}</button>
         <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(null)}>Cancel</button>
       </div>
     );
@@ -143,14 +144,14 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
     actions = (
       <div className="history-actions history-confirm">
         <span>Delete “{selected.name}”? This can't be undone.</span>
-        <button className="btn btn-danger btn-sm" onClick={remove} disabled={busy}>Delete</button>
+        <button className="btn btn-danger btn-sm" onClick={guardBusy(busy, remove)} {...busyProps(busy)}>Delete</button>
         <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(null)}>Cancel</button>
       </div>
     );
   } else if (selectedId !== CURRENT) {
     actions = (
       <div className="history-actions">
-        <button className="btn btn-primary btn-sm" onClick={() => setConfirming('restore')} disabled={busy}>Restore this version</button>
+        <button className="btn btn-primary btn-sm" onClick={guardBusy(busy, () => setConfirming('restore'))} {...busyProps(busy)}>Restore this version</button>
         {selected.kind === 'auto' && (
           <button className="btn btn-ghost btn-sm" onClick={() => setNaming({ mode: 'keep', value: '' })}>Keep this version…</button>
         )}
@@ -247,7 +248,7 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
         </div>
 
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={() => setNaming({ mode: 'save', value: '' })} disabled={busy || !versions}>
+          <button className="btn btn-ghost" onClick={guardBusy(busy, () => setNaming({ mode: 'save', value: '' }))} disabled={!versions} {...busyProps(busy)}>
             Save snapshot…
           </button>
           <button className="btn btn-ghost" onClick={onDismiss}>Close</button>

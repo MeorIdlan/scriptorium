@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../../utils/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 export default function UserManagement() {
   const { user: currentUser } = useAuth();
@@ -89,9 +90,10 @@ export default function UserManagement() {
                 <td>
                   <button
                     className={isConfirming ? 'danger-confirm' : 'danger'}
-                    disabled={!!disabledReason || busyId === u.id}
+                    disabled={!!disabledReason}
+                    {...busyProps(busyId === u.id)}
                     title={disabledReason}
-                    onClick={() => handleDelete(u)}
+                    onClick={guardBusy(busyId === u.id, () => handleDelete(u))}
                   >
                     {busyId === u.id ? 'Deleting…' : isConfirming ? 'Confirm Delete?' : 'Delete'}
                   </button>

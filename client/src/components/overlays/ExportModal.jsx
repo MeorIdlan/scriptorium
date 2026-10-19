@@ -5,6 +5,7 @@ import { useWorks } from '../../context/WorksContext.jsx';
 import { api } from '../../utils/api.js';
 import { saveFile } from '../../utils/saveFile.js';
 import { backedUpNow } from '../../utils/backupReminder.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 const FORMATS = [
   { id: 'pdf', label: 'PDF' },
@@ -307,8 +308,8 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
             <button
               className="btn btn-ghost"
               data-testid="backup-button"
-              onClick={handleBackup}
-              disabled={backingUp}
+              onClick={guardBusy(backingUp, handleBackup)}
+              {...busyProps(backingUp)}
             >
               {backingUp ? 'Preparing backup…' : 'Full backup (.zip)'}
             </button>
@@ -322,8 +323,9 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
           <button className="btn btn-ghost" onClick={handleClose}>Cancel</button>
           <button
             className="btn btn-primary"
-            onClick={handleExport}
-            disabled={exporting || (manuscriptOn && (prefill !== 'ready' || !manuscript.authorName.trim()))}
+            onClick={guardBusy(exporting, handleExport)}
+            disabled={manuscriptOn && (prefill !== 'ready' || !manuscript.authorName.trim())}
+            {...busyProps(exporting)}
           >
             {exporting ? 'Exporting…' : `Export ${format.toUpperCase()}`}
           </button>

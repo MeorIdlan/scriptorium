@@ -4,6 +4,7 @@ import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useAI } from '../../hooks/useAI.js';
 import { api } from '../../utils/api.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import PacingResult from './PacingResult.jsx';
 import ContextUsed from './ContextUsed.jsx';
@@ -53,10 +54,10 @@ function RekindlerPromptModal({ onConfirm, onDismiss, loading }) {
           </p>
         </div>
         <div className="modal-footer rekindler-prompt-footer">
-          <button className="btn btn-ghost" onClick={onDismiss} disabled={loading}>
+          <button className="btn btn-ghost" onClick={guardBusy(loading, onDismiss)} {...busyProps(loading)}>
             Not now
           </button>
-          <button className="btn btn-primary" onClick={onConfirm} disabled={loading}>
+          <button className="btn btn-primary" onClick={guardBusy(loading, onConfirm)} {...busyProps(loading)}>
             {loading ? 'Rekindling…' : 'Yes, rekindle'}
           </button>
         </div>
@@ -215,22 +216,23 @@ export default function QuillTab({ workId }) {
         <p className="quill-actions-label">AI Assist</p>
         <button
           className="btn btn-ghost quill-ai-btn"
-          onClick={() => handleAI('hooks', 'hooks')}
-          disabled={loading}
+          onClick={guardBusy(loading, () => handleAI('hooks', 'hooks'))}
+          {...busyProps(loading)}
         >
           ✨ Suggest 3 hooks for this scene
         </button>
         <button
           className="btn btn-ghost quill-ai-btn"
-          onClick={() => handleAI('pacing', 'pacing')}
-          disabled={loading}
+          onClick={guardBusy(loading, () => handleAI('pacing', 'pacing'))}
+          {...busyProps(loading)}
         >
           ⟳ How is the story pacing?
         </button>
         <button
           className="btn btn-ghost quill-ai-btn quill-ai-btn--polish"
-          onClick={handlePolish}
-          disabled={loading || Boolean(polishSession) || !editorState.content?.trim()}
+          onClick={guardBusy(loading, handlePolish)}
+          disabled={Boolean(polishSession) || !editorState.content?.trim()}
+          {...busyProps(loading)}
           title="Suggests rewrites you can accept or reject one by one, keeping the story direction unchanged"
         >
           ✦ Polish {editorState.selection ? 'selection' : 'chapter'}
@@ -248,24 +250,27 @@ export default function QuillTab({ workId }) {
         <p className="quill-actions-label">AI Editor</p>
         <button
           className="btn btn-ghost quill-ai-btn quill-ai-btn--editor"
-          onClick={() => handleEditorReview('full')}
-          disabled={loading || !editorState.content?.trim()}
+          onClick={guardBusy(loading, () => handleEditorReview('full'))}
+          disabled={!editorState.content?.trim()}
+          {...busyProps(loading)}
           title="Full editorial read-through: prose, pacing, scene effectiveness, dialogue"
         >
           ◆ Editorial read-through
         </button>
         <button
           className="btn btn-ghost quill-ai-btn quill-ai-btn--editor"
-          onClick={() => handleEditorReview('show-tell')}
-          disabled={loading || !editorState.content?.trim()}
+          onClick={guardBusy(loading, () => handleEditorReview('show-tell'))}
+          disabled={!editorState.content?.trim()}
+          {...busyProps(loading)}
           title="Flags passages that tell rather than show, with rewrite suggestions"
         >
           ◈ Show, don't tell check
         </button>
         <button
           className="btn btn-ghost quill-ai-btn quill-ai-btn--editor"
-          onClick={() => handleEditorReview('voice')}
-          disabled={loading || !editorState.content?.trim()}
+          onClick={guardBusy(loading, () => handleEditorReview('voice'))}
+          disabled={!editorState.content?.trim()}
+          {...busyProps(loading)}
           title="Checks POV consistency, tense, passive voice, adverb overuse"
         >
           ◇ Voice &amp; consistency

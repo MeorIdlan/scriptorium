@@ -41,7 +41,7 @@ test('the chapter strip hints at the Map when the work has no threads', async ()
 test('the chapter strip shows a save error and disables chips while busy', async () => {
   const view = await renderApp(h(ChapterThreads, { threads, selected: [], onToggle() {}, busy: true, error: 'Could not save' }));
   assert.match(view.text(), /Could not save/);
-  assert.ok(view.queryAll('.thread-chip').every((c) => c.disabled));
+  assert.ok(view.queryAll('.thread-chip').every((c) => c.getAttribute('aria-disabled') === 'true'));
   await view.unmount();
 });
 

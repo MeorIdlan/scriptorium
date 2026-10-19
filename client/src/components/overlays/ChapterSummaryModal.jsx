@@ -3,6 +3,7 @@ import { api } from '../../utils/api.js';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { useModal } from '../../hooks/useModal.js';
 import { SUMMARY_STATUS_LABELS } from '../../utils/summaryStatus.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
   const { state, refreshChapters } = useActiveWork();
@@ -78,8 +79,9 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
         <div className="modal-footer">
           <button
             className="btn btn-ghost"
-            onClick={handleRegenerate}
-            disabled={Boolean(busy) || !chapter?.wordCount}
+            onClick={guardBusy(busy, handleRegenerate)}
+            disabled={!chapter?.wordCount}
+            {...busyProps(busy)}
             title={chapter?.wordCount ? 'Replace with a fresh AI summary' : 'Write some of this chapter first'}
           >
             {busy === 'regenerate' ? 'Generating…' : text ? 'Regenerate' : 'Generate'}
@@ -87,21 +89,21 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
           <div className="modal-footer-right">
             {editing ? (
               <>
-                <button className="btn btn-ghost" onClick={() => setEditing(false)} disabled={Boolean(busy)}>
+                <button className="btn btn-ghost" onClick={guardBusy(busy, () => setEditing(false))} {...busyProps(busy)}>
                   Cancel
                 </button>
-                <button className="btn btn-primary" onClick={handleSave} disabled={Boolean(busy)}>
+                <button className="btn btn-primary" onClick={guardBusy(busy, handleSave)} {...busyProps(busy)}>
                   {busy === 'save' ? 'Saving…' : 'Save'}
                 </button>
               </>
             ) : (
               <button
                 className="btn btn-primary"
-                onClick={() => {
+                onClick={guardBusy(busy, () => {
                   setDraft(text);
                   setEditing(true);
-                }}
-                disabled={Boolean(busy)}
+                })}
+                {...busyProps(busy)}
               >
                 Edit
               </button>

@@ -3,6 +3,7 @@ import { startRegistration } from '@simplewebauthn/browser';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../utils/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 export default function PasskeySetup() {
   const { refresh } = useAuth();
@@ -32,7 +33,7 @@ export default function PasskeySetup() {
         <h1>Add a passkey</h1>
         <p>Register a passkey (Face ID, Touch ID, or a security key) to finish setting up your account.</p>
         {error && <div className="auth-error">{error}</div>}
-        <button onClick={handleAddPasskey} disabled={submitting}>
+        <button onClick={guardBusy(submitting, handleAddPasskey)} {...busyProps(submitting)}>
           {submitting ? 'Waiting for device…' : 'Add passkey'}
         </button>
       </div>

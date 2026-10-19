@@ -5,6 +5,7 @@ import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { api } from '../../utils/api.js';
 import { chapterLabel, catchLengthError } from '../../utils/catchGroups.js';
 import { useModal } from '../../hooks/useModal.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 // Mounted only while open, so the dialog's focus handling runs per open
 export default function CatchOverlay() {
@@ -125,8 +126,9 @@ function CatchDialog() {
 
         <button
           className="btn btn-primary btn-sm"
-          onClick={handleSubmit}
-          disabled={submitting || !text.trim() || Boolean(catchLengthError(text))}
+          onClick={guardBusy(submitting, handleSubmit)}
+          disabled={!text.trim() || Boolean(catchLengthError(text))}
+          {...busyProps(submitting)}
         >
           {submitting ? 'Catching…' : 'Catch it'}
         </button>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 export default function VerifyOtp() {
   const { verifyOtp } = useAuth();
@@ -28,7 +29,7 @@ export default function VerifyOtp() {
 
   return (
     <div className="auth-page">
-      <form className="auth-card" onSubmit={handleSubmit}>
+      <form className="auth-card" onSubmit={guardBusy(submitting, handleSubmit)}>
         <h1>Enter verification code</h1>
         <p>Enter the 6-digit code we emailed you.</p>
         {error && <div className="auth-error">{error}</div>}
@@ -40,7 +41,7 @@ export default function VerifyOtp() {
           Code
           <input value={code} onChange={(e) => setCode(e.target.value)} maxLength={6} required />
         </label>
-        <button type="submit" disabled={submitting}>
+        <button type="submit" {...busyProps(submitting)}>
           {submitting ? 'Verifying…' : 'Verify'}
         </button>
         <Link to="/login">Back to login</Link>

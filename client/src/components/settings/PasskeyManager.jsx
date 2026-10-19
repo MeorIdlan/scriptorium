@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { startRegistration } from '@simplewebauthn/browser';
 import { api } from '../../utils/api.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 export default function PasskeyManager() {
   const [passkeys, setPasskeys] = useState([]);
@@ -67,8 +68,9 @@ export default function PasskeyManager() {
               <span>{p.deviceLabel}</span>
               <span>{new Date(p.createdAt).toLocaleDateString()}</span>
               <button
-                onClick={() => handleDelete(p.id)}
-                disabled={onlyOne || busyId === p.id}
+                onClick={guardBusy(busyId === p.id, () => handleDelete(p.id))}
+                disabled={onlyOne}
+                {...busyProps(busyId === p.id)}
                 title={onlyOne ? "Can't remove your last passkey" : undefined}
               >
                 {busyId === p.id ? 'Removing…' : 'Remove'}
@@ -77,7 +79,7 @@ export default function PasskeyManager() {
           ))}
         </ul>
       )}
-      <button onClick={handleAdd} disabled={adding}>
+      <button onClick={guardBusy(adding, handleAdd)} {...busyProps(adding)}>
         {adding ? 'Waiting for device…' : 'Add a passkey'}
       </button>
     </section>

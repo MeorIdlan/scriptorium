@@ -5,6 +5,7 @@ import { useModal } from '../../hooks/useModal.js';
 import { useWorks } from '../../context/WorksContext.jsx';
 import { useAI } from '../../hooks/useAI.js';
 import { useAiState } from '../../context/AiContext.jsx';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 const GENRES = ['fantasy', 'sci-fi', 'literary', 'thriller', 'romance', 'historical', 'other'];
 const POVS = [
@@ -222,8 +223,8 @@ export default function NewWorkWizard({ onClose }) {
               {aiOn && !hooks.length && (
                 <button
                   className="btn btn-secondary wizard-hooks-btn"
-                  onClick={generateHooks}
-                  disabled={aiLoading}
+                  onClick={guardBusy(aiLoading, generateHooks)}
+                  {...busyProps(aiLoading)}
                 >
                   {aiLoading ? 'Generating…' : '✨ Generate Opening Hooks'}
                 </button>
@@ -268,8 +269,8 @@ export default function NewWorkWizard({ onClose }) {
             ) : (
               <button
                 className="btn btn-primary"
-                onClick={handleSubmit}
-                disabled={submitting}
+                onClick={guardBusy(submitting, handleSubmit)}
+                {...busyProps(submitting)}
               >
                 {submitting ? 'Creating…' : 'Create Work'}
               </button>

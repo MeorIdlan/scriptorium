@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from '../../utils/api.js';
 import { saveFile } from '../../utils/saveFile.js';
 import { backedUpNow } from '../../utils/backupReminder.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 function daysText(days) {
   return `${days} ${days === 1 ? 'day' : 'days'}`;
@@ -60,7 +61,7 @@ export default function BackupReminder({ work, variant, onChange }) {
     >
       <p className="backup-reminder-text">{text}</p>
       <div className="backup-reminder-actions">
-        <button className="btn btn-secondary" onClick={backUp} disabled={busy}>
+        <button className="btn btn-secondary" onClick={guardBusy(busy, backUp)} {...busyProps(busy)}>
           {busy ? 'Backing up…' : 'Back up now'}
         </button>
         <button className="btn btn-ghost" onClick={() => respond('snooze')}>

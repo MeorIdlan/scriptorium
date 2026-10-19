@@ -7,6 +7,7 @@ import { buildChanges, diffWords } from '../../utils/polishDiff.js';
 import { applyPolish } from '../../utils/applyPolish.js';
 import ContextUsed from '../panel/ContextUsed.jsx';
 import { useModal } from '../../hooks/useModal.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 const isFatal = (err) => err.code === 'NO_API_KEY' || [401, 403, 404].includes(err.status);
 
@@ -205,7 +206,7 @@ export default function PolishReviewModal({ workId, chapterId, session, summarie
 
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={() => onClose(null)}>Discard</button>
-          <button className="btn btn-primary" onClick={handleApply} disabled={busy || accepted === 0}>
+          <button className="btn btn-primary" onClick={guardBusy(busy, handleApply)} disabled={accepted === 0} {...busyProps(busy)}>
             Apply {accepted || ''} accepted change{accepted === 1 ? '' : 's'}
           </button>
         </div>
