@@ -23,6 +23,15 @@ export default function MainRoom() {
   const editorRef = useRef(null);
   const [chapterContent, setChapterContent] = useState({ id: null, text: '', html: '' });
   const [addingChapter, setAddingChapter] = useState(false);
+  // Closing the add-chapter field unmounts it with focus in it; a keyboard close
+  // hands focus back to the + that opened it
+  const addChapterBtn = useRef(null);
+  const restoreAddFocus = useRef(false);
+  useEffect(() => {
+    if (addingChapter || !restoreAddFocus.current) return;
+    restoreAddFocus.current = false;
+    addChapterBtn.current?.focus();
+  }, [addingChapter]);
   const [newChapterTitle, setNewChapterTitle] = useState('');
   const [milestonesOpen, setMilestonesOpen] = useState(false);
   const [loadingChapterId, setLoadingChapterId] = useState(null);
@@ -158,6 +167,7 @@ export default function MainRoom() {
               </button>
               <button
                 className="chapter-add-btn"
+                ref={addChapterBtn}
                 onClick={() => setAddingChapter((v) => !v)}
                 title="Add chapter"
                 aria-label="Add chapter"
@@ -177,11 +187,25 @@ export default function MainRoom() {
                 placeholder="Chapter title"
                 autoFocus
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAddChapter();
-                  if (e.key === 'Escape') setAddingChapter(false);
+                  if (e.key === 'Enter') {
+                    restoreAddFocus.current = true;
+                    handleAddChapter();
+                  }
+                  if (e.key === 'Escape') {
+                    restoreAddFocus.current = true;
+                    setAddingChapter(false);
+                  }
                 }}
               />
-              <button className="btn btn-primary btn-sm" onClick={handleAddChapter}>Add</button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => {
+                  restoreAddFocus.current = true;
+                  handleAddChapter();
+                }}
+              >
+                Add
+              </button>
             </div>
           )}
 
