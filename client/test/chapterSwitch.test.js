@@ -228,3 +228,17 @@ test('going Back while a chapter loads keeps the open chapter and its typing', a
   assert.equal(editor.state.content, 'text of c1 and more');
   assert.equal(gets(view, 'c1'), 1);
 });
+
+test("a switch saves the old chapter's typing to the old chapter (S5)", async () => {
+  const c2 = heldReplies();
+  const view = await openMainRoom(routesFor(threeChapters, { 'GET /works/w1/chapters/c2': c2.route }));
+  await typeInEditor(view, '<p>text of c1 and more</p>');
+  await click(chapterButton(view, 'c2'));
+  await c2.releaseNext(body('c2'));
+  const puts = view.fetch.calls.filter((c) => c.method === 'PUT');
+  assert.deepEqual(
+    puts.map((c) => [c.path, c.body.content]),
+    [['/works/w1/chapters/c1', 'text of c1 and more']]
+  );
+  assert.equal(editor.state.chapterId, 'c2');
+});
