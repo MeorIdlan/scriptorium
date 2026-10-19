@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { catchLengthError, chapterLabel, liveChapterId, timeAgo, usedAsLabel } from '../../utils/catchGroups.js';
 import { defaultName } from '../../utils/catchActions.js';
 
@@ -25,6 +25,18 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
   const [target, setTarget] = useState('character');
   const [name, setName] = useState('');
   const [mapChapterId, setMapChapterId] = useState('');
+  // The Edit and Use as… buttons, and the one a close hands focus back to: the editor
+  // unmounts the focused field when it closes
+  const editBtn = useRef(null);
+  const useBtn = useRef(null);
+  const returnTo = useRef(null); // one of the ref objects above
+  useEffect(() => {
+    const el = returnTo.current?.current;
+    if (!el) return;
+    returnTo.current = null;
+    const active = document.activeElement;
+    if (!active || active === document.body) el.focus();
+  });
 
   const chapter = chapters.find((ch) => ch.id === item.taggedChapterId);
   const isOpen = item.status === 'open';
@@ -83,7 +95,10 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
               e.preventDefault();
               saveEdit();
             }
-            if (e.key === 'Escape') setMode('view');
+            if (e.key === 'Escape') {
+              returnTo.current = editBtn;
+              setMode('view');
+            }
           }}
           rows={3}
           autoFocus
@@ -98,7 +113,16 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
         {(catchLengthError(draft) || error) && <p className="catch-row-error">{catchLengthError(draft) || error}</p>}
         <div className="catch-row-actions visible">
           <button className="btn btn-primary btn-sm" onClick={saveEdit} disabled={busy || !draft.trim() || Boolean(catchLengthError(draft))}>Save</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setMode('view')} disabled={busy}>Cancel</button>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              returnTo.current = editBtn;
+              setMode('view');
+            }}
+            disabled={busy}
+          >
+            Cancel
+          </button>
         </div>
       </div>
     );
@@ -167,8 +191,8 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
                   Insert
                 </button>
               )}
-              <button className="btn btn-ghost btn-sm" onClick={startUse} disabled={busy}>Use as…</button>
-              <button className="btn btn-ghost btn-sm" onClick={startEdit} disabled={busy}>Edit</button>
+              <button ref={useBtn} className="btn btn-ghost btn-sm" onClick={startUse} disabled={busy}>Use as…</button>
+              <button ref={editBtn} className="btn btn-ghost btn-sm" onClick={startEdit} disabled={busy}>Edit</button>
               <button className="btn btn-ghost btn-sm" onClick={() => act('used')} disabled={busy}>Used</button>
               <button className="btn btn-ghost btn-sm danger" onClick={() => act('discard')} disabled={busy}>Discard</button>
             </>
