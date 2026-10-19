@@ -7,7 +7,6 @@ import {
   withBackupReminder,
   REMINDER_DAYS,
   SNOOZE_DAYS,
-  SERVER_OWNED_FIELDS,
 } from '../src/services/backupReminder.js';
 
 const now = new Date('2026-10-20T12:00:00Z');
@@ -165,13 +164,7 @@ test('the Work reminder fields store values and default to absent', () => {
   assert.equal(set.reminderState.snoozedUntil, daysAgo(-3));
 });
 
-test('the constants and server-owned field list are exported', () => {
+test('the constants are exported', () => {
   assert.equal(REMINDER_DAYS, 7);
   assert.equal(SNOOZE_DAYS, 3);
-  assert.deepEqual(SERVER_OWNED_FIELDS, [
-    'lastBackupAt',
-    'contentChangedAt',
-    'reminderState',
-    'backupReminder',
-  ]);
 });

@@ -181,6 +181,45 @@ test('PUT /api/works/:id cannot set server-owned fields through dotted keys or $
   assert.deepEqual(work.reminderState, { dismissedAt: '2026-01-06T00:00:00.000Z' });
 });
 
+test('PUT /api/works/:id ignores a dotted key into a string field instead of failing', async () => {
+  const res = await call('put', '/api/works/work_a').send({ 'title.x': 'y' });
+  assert.equal(res.status, 200);
+  const work = await Work.findById('work_a').lean();
+  assert.equal(work.title, 'A');
+});
+
+test("PUT /api/works/:id ignores fields that aren't writer-editable", async () => {
+  const res = await call('put', '/api/works/work_a').send({
+    wordCount: 999,
+    chapterCount: 99,
+    manuscript: { name: 'x' },
+    createdAt: '2000-01-01T00:00:00.000Z',
+    $set: { title: 'Hacked' },
+  });
+  assert.equal(res.status, 200);
+  const work = await Work.findById('work_a').lean();
+  assert.equal(work.wordCount, 0);
+  assert.equal(work.chapterCount, 0);
+  assert.equal(work.manuscript, undefined);
+  assert.equal(work.createdAt, '2026-01-01T00:00:00.000Z');
+  assert.equal(work.title, 'A');
+});
+
+test('PUT /api/works/:id saves the writer-editable fields', async () => {
+  const res = await call('put', '/api/works/work_a').send({
+    status: 'dormant',
+    currentDraft: 2,
+    title: 'New',
+    logline: 'L',
+  });
+  assert.equal(res.status, 200);
+  const work = await Work.findById('work_a').lean();
+  assert.equal(work.status, 'dormant');
+  assert.equal(work.currentDraft, 2);
+  assert.equal(work.title, 'New');
+  assert.equal(work.logline, 'L');
+});
+
 test("GET requests don't stamp", async () => {
   await seedChapter();
   assert.equal((await call('get', chapterBase)).status, 200);
