@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import Work from '../src/models/Work.js';
+import { DAY_MS } from '../src/utils/time.js';
 import {
   backupReminderState,
   withBackupReminder,
@@ -9,7 +10,6 @@ import {
   SERVER_OWNED_FIELDS,
 } from '../src/services/backupReminder.js';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const now = new Date('2026-10-20T12:00:00Z');
 const daysAgo = (n) => new Date(now.getTime() - n * DAY_MS).toISOString();
 
