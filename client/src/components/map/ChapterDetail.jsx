@@ -123,6 +123,8 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
             onChange={(e) => setTension(Number(e.target.value))}
             onMouseUp={(e) => handleTensionChange(Number(e.target.value))}
             onTouchEnd={(e) => handleTensionChange(Number(e.target.value))}
+            // Arrow keys change the value without a mouse-up: save when the key is released
+            onKeyUp={(e) => handleTensionChange(Number(e.currentTarget.value))}
           />
         </div>
 
