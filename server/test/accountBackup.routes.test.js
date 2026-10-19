@@ -6,6 +6,7 @@ import { PassThrough } from 'node:stream';
 import { startDb, clearDb } from './support/http.js';
 import { cutShortDownload } from './support/cutShort.js';
 import { unzip } from './support/zip.js';
+import { pollUntil } from './support/poll.js';
 import accountBackupRouter, { ownedWorks } from '../src/routes/accountBackup.js';
 import { writeWorkBackup, accountEntryPath } from '../src/services/backupService.js';
 import { errorHandler } from '../src/middleware/errorHandler.js';
@@ -231,6 +232,9 @@ test('a finished account backup stamps every included work, not other writers\' 
     mock.timers.reset();
   }
 
+  // The stamp runs after the response ends, so wait until every included work has it
+  const stampedCount = () => Work.countDocuments({ _id: { $in: USER_A_IN_ORDER }, lastBackupAt: { $exists: true } });
+  await pollUntil(async () => (await stampedCount()) === USER_A_IN_ORDER.length);
   const lastBackups = Object.fromEntries((await Work.find().lean()).map((w) => [w._id, w.lastBackupAt ?? null]));
   assert.deepEqual(lastBackups, {
     work_a1: '2026-10-19T10:00:00.000Z',

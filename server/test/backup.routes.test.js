@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { startDb, clearDb } from './support/http.js';
 import { cutShortDownload } from './support/cutShort.js';
 import { unzip } from './support/zip.js';
+import { pollUntil } from './support/poll.js';
 import backupRouter from '../src/routes/backup.js';
 import { errorHandler } from '../src/middleware/errorHandler.js';
 import Work from '../src/models/Work.js';
@@ -213,6 +214,8 @@ test('a finished backup sets lastBackupAt to the request start and clears remind
     mock.timers.reset();
   }
 
+  // The stamp runs after the response ends, so wait for it
+  await pollUntil(async () => (await Work.findById('work_a').lean()).lastBackupAt);
   const work = await Work.findById('work_a').lean();
   assert.equal(work.lastBackupAt, '2026-10-19T10:00:00.000Z');
   assert.equal(work.reminderState, undefined);
@@ -242,6 +245,8 @@ test('an edit made while the backup streams stays later than lastBackupAt', asyn
     mock.restoreAll();
   }
 
+  // The stamp runs after the response ends, so wait for it
+  await pollUntil(async () => (await Work.findById('work_a').lean()).lastBackupAt);
   const work = await Work.findById('work_a').lean();
   assert.equal(work.lastBackupAt, '2026-10-19T10:00:00.000Z');
   assert.equal(work.contentChangedAt, '2026-10-19T10:00:05.000Z');
