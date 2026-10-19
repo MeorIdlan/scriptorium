@@ -4,15 +4,18 @@ import { createElement as h, Fragment } from 'react';
 import { act, click, flush, type } from './support/render.js';
 import { renderApp, HttpError } from './support/app.js';
 // After the support imports: render.js must set up the DOM before react-dom loads
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Routes, Route } from 'react-router-dom';
 import { useEditor } from '../src/context/EditorContext.jsx';
+import { useUI } from '../src/context/UIContext.jsx';
 import MainRoom from '../src/pages/MainRoom.jsx';
 
 let editor;
 let navigate;
+let ui;
 function Probe() {
   editor = useEditor();
   navigate = useNavigate();
+  ui = useUI();
   return null;
 }
 
@@ -50,12 +53,14 @@ function routesFor(chapters, extra = {}) {
   };
 }
 
+// The Main Room only renders on chapter URLs, so navigating anywhere else
+// (the Map) unmounts it while the app's contexts stay, as in the real app
+function ChapterRoute() {
+  return h(Routes, null, h(Route, { path: '/work/:workId/chapter/:chapterId', element: h(MainRoom) }), h(Route, { path: '*', element: null }));
+}
+
 async function openMainRoom(routes, path = '/work/w1/chapter/c1') {
-  return renderApp(h(Fragment, null, h(MainRoom), h(Probe)), {
-    routes,
-    path,
-    route: '/work/:workId/chapter/:chapterId',
-  });
+  return renderApp(h(Fragment, null, h(ChapterRoute), h(Probe)), { routes, path });
 }
 
 const gets = (view, id) => view.fetch.calls.filter((c) => c.method === 'GET' && c.path === `/works/w1/chapters/${id}`).length;
@@ -241,4 +246,49 @@ test("a switch saves the old chapter's typing to the old chapter (S5)", async ()
     [['/works/w1/chapters/c1', 'text of c1 and more']]
   );
   assert.equal(editor.state.chapterId, 'c2');
+});
+
+test("opening by URL shows that chapter's text (A3)", async () => {
+  const view = await openMainRoom(routesFor(threeChapters), '/work/w1/chapter/c3');
+  assert.equal(view.query('.editor').textContent, 'text of c3');
+  assert.equal(editor.state.chapterId, 'c3');
+  assert.equal(gets(view, 'c3'), 1);
+  assert.equal(gets(view, 'c1'), 0);
+});
+
+test('returning from the Map shows the right text (A3)', async () => {
+  const view = await openMainRoom(routesFor(threeChapters), '/work/w1/chapter/c3');
+  await act(async () => navigate('/work/w1/map'));
+  await flush();
+  assert.equal(view.query('.editor'), null);
+  // EditorContext still remembers c3; the remounted Main Room has no text yet
+  assert.equal(editor.state.chapterId, 'c3');
+  await act(async () => navigate('/work/w1/chapter/c3'));
+  await flush();
+  assert.equal(view.query('.editor').textContent, 'text of c3');
+  assert.equal(gets(view, 'c3'), 2);
+});
+
+test('Open in editor from the Map loads the chapter once and goes to the scene (A3)', async (t) => {
+  // linkedom ranges can't be positioned; going to the scene only needs them to exist
+  const fakeRange = { setStart() {}, setEnd() {}, collapse() {} };
+  const { createRange, getSelection } = document;
+  document.createRange = () => fakeRange;
+  document.getSelection = () => ({ removeAllRanges() {}, addRange() {}, rangeCount: 0 });
+  t.after(() => Object.assign(document, { createRange, getSelection }));
+  const c2 = heldReplies();
+  const view = await openMainRoom(routesFor(threeChapters, { 'GET /works/w1/chapters/c2': c2.route }));
+  await act(async () => navigate('/work/w1/map'));
+  await flush();
+  await act(async () => {
+    ui.dispatch({ type: 'OPEN_SCENE', chapterId: 'c2', sceneIndex: 0 });
+    navigate('/work/w1/chapter/c2');
+  });
+  await flush();
+  assert.notEqual(ui.state.pendingScene, null);
+  await c2.releaseNext(body('c2'));
+  assert.equal(c2.count, 0);
+  assert.equal(gets(view, 'c2'), 1);
+  assert.equal(view.query('.editor').textContent, 'text of c2');
+  assert.equal(ui.state.pendingScene, null);
 });
