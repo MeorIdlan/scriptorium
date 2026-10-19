@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../../utils/api.js';
 import ThreadRow from './ThreadRow.jsx';
 import { threadNameError, threadTagCount } from '../../utils/threads.js';
@@ -10,6 +10,7 @@ export default function ThreadManager({ workId, threads, chapters, onChanged, on
   const [errors, setErrors] = useState({});
   const creating = useRef(false);
   const addingRef = useRef(false); // readable by a blur that fires while the field unmounts
+  const newButton = useRef(null);
   const base = `/works/${workId}/threads`;
 
   // Resolves true on success; on failure the server's message shows under the row
@@ -51,9 +52,25 @@ export default function ThreadManager({ workId, threads, chapters, onChanged, on
       creating.current = false;
     }
   };
+  // Set by a keyboard close: the field unmounts with focus, so focus goes back
+  // to the New thread button once it is shown again
+  const returnToNew = useRef(false);
+  useEffect(() => {
+    const button = newButton.current;
+    if (!returnToNew.current || !button) return;
+    returnToNew.current = false;
+    const active = document.activeElement;
+    if (!active || active === document.body) button.focus();
+  });
   const onNewKey = (e) => {
-    if (e.key === 'Enter') create();
-    if (e.key === 'Escape') cancelNew();
+    if (e.key === 'Enter') {
+      returnToNew.current = true;
+      create();
+    }
+    if (e.key === 'Escape') {
+      returnToNew.current = true;
+      cancelNew();
+    }
   };
 
   return (
@@ -61,7 +78,7 @@ export default function ThreadManager({ workId, threads, chapters, onChanged, on
       <div className="thread-manager-head">
         <h3 className="thread-manager-title">Plot threads</h3>
         {!adding && (
-          <button className="btn btn-secondary btn-sm" onClick={openNew}>
+          <button ref={newButton} className="btn btn-secondary btn-sm" onClick={openNew}>
             New thread
           </button>
         )}

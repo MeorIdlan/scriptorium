@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { renderApp, HttpError } from './support/app.js';
 import { click, type, press, blur, pressThenBlur } from './support/render.js';
+import './support/focus.js';
 import ThreadManager from '../src/components/map/ThreadManager.jsx';
 
 const heir = { id: 'thr_1', name: 'The missing heir', color: '#c9a96e', description: 'Who is Ada?', status: 'open', order: 0 };
@@ -50,6 +51,25 @@ test('creates a thread from the new-thread field', async () => {
   assert.deepEqual(view.writes(), [{ method: 'POST', path: '/works/w1/threads', body: { name: 'Lost letter' } }]);
   assert.equal(view.changed(), 1);
   assert.equal(view.query('.thread-new-name'), null);
+  await view.unmount();
+});
+
+test('Esc in the new-thread field returns focus to the New thread button', async () => {
+  const view = await mount();
+  const newButton = view.button('New thread');
+  newButton.focus();
+  await click(newButton);
+  await press(view.query('.thread-new-name'), 'Escape');
+  assert.equal(document.activeElement === view.button('New thread'), true);
+  await view.unmount();
+});
+
+test('Enter creates the thread and returns focus to the New thread button', async () => {
+  const view = await mount({ routes: { 'POST /works/w1/threads': { id: 'thr_2', name: 'Lost letter' } } });
+  await click(view.button('New thread'));
+  await type(view.query('.thread-new-name'), 'Lost letter');
+  await press(view.query('.thread-new-name'), 'Enter');
+  assert.equal(document.activeElement === view.button('New thread'), true);
   await view.unmount();
 });
 

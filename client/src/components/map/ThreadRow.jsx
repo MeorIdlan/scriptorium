@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { THREAD_PALETTE, threadNameError, threadDescriptionError, deleteMessage } from '../../utils/threads.js';
 
 // One plot thread. onSave(fields) resolves true when the server accepted it;
@@ -14,6 +14,20 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
   // Whether each editor is open, readable by a blur that fires while it unmounts
   const nameOpen = useRef(false);
   const descOpen = useRef(false);
+  // Each opener's button, and the one a keyboard close should hand focus back to.
+  // A closing editor unmounts the focused field, which would otherwise drop focus
+  const nameBtn = useRef(null);
+  const descBtn = useRef(null);
+  const deleteBtn = useRef(null);
+  const returnTo = useRef(null); // holds one of the ref objects above
+  useEffect(() => {
+    // Waits until the button is back on screen; then only if focus was lost with the field
+    const el = returnTo.current?.current;
+    if (!el) return;
+    returnTo.current = null;
+    const active = document.activeElement;
+    if (!active || active === document.body) el.focus();
+  });
 
   const openName = () => {
     nameOpen.current = true;
@@ -50,8 +64,12 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
     commit('name', { name: next }, closeName);
   };
   const onNameKey = (e) => {
-    if (e.key === 'Enter') saveName();
+    if (e.key === 'Enter') {
+      returnTo.current = nameBtn;
+      saveName();
+    }
     if (e.key === 'Escape') {
+      returnTo.current = nameBtn;
       closeName();
       onCancel?.();
     }
@@ -82,7 +100,7 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
           }}
         />
         {name === null ? (
-          <button className="thread-name" onClick={openName} title="Rename">
+          <button ref={nameBtn} className="thread-name" onClick={openName} title="Rename">
             {thread.name}
           </button>
         ) : (
@@ -106,7 +124,7 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
           {thread.status === 'open' ? 'Open' : 'Resolved'}
         </button>
         {!confirming && (
-          <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(true)}>
+          <button ref={deleteBtn} className="btn btn-ghost btn-sm" onClick={() => setConfirming(true)}>
             Delete
           </button>
         )}
@@ -129,7 +147,7 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
         </div>
       )}
       {desc === null ? (
-        <button className="thread-desc" onClick={openDesc}>
+        <button ref={descBtn} className="thread-desc" onClick={openDesc}>
           {thread.description ? thread.description.split('\n')[0] : 'Add a description'}
         </button>
       ) : (
@@ -141,6 +159,7 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
           onChange={(e) => setDesc(e.target.value)}
           onKeyDown={(e) => {
             if (e.key !== 'Escape') return;
+            returnTo.current = descBtn;
             closeDesc();
             onCancel?.();
           }}
@@ -154,7 +173,14 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
       {confirming && (
         <div className="thread-confirm">
           <p>{deleteMessage(thread.name, tagCount)}</p>
-          <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)}>
+          <button
+            className="btn btn-ghost btn-sm"
+            autoFocus
+            onClick={() => {
+              returnTo.current = deleteBtn;
+              setConfirming(false);
+            }}
+          >
             Cancel
           </button>
           <button
