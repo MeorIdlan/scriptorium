@@ -110,15 +110,19 @@ export default function MainRoom() {
     else loaderRef.current.cancel();
   }, [state.chapters, state.work, workId, urlChapterId, chapterContent.id, retryCount]);
 
-  // Create Work arrives with focusEditor in its state: once its first chapter is in
-  // the editor, focus the editor and clear the state, so a later visit does not
+  // Create Work arrives with focusEditor in its state. Once the first chapter has settled
+  // (in the editor, failed to load, or none to load), focus the editor, or the add-chapter
+  // button when the work has no chapters, then clear the state so no history entry keeps it
   useEffect(() => {
     if (!location.state?.focusEditor) return;
-    const ready = loadingChapterId === null && chapterContent.id !== null && chapterContent.id === editorState.chapterId;
-    if (!ready) return;
-    editorRef.current?.focus();
+    const noChapters = state.work?.id === workId && state.chapters?.length === 0;
+    const loaded = loadingChapterId === null && chapterContent.id !== null && chapterContent.id === editorState.chapterId;
+    const failed = failedChapterId !== null;
+    if (!noChapters && !loaded && !failed) return;
+    if (loaded) editorRef.current?.focus();
+    else if (noChapters) addChapterBtn.current?.focus();
     navigate(location.pathname + location.search, { replace: true, state: null });
-  }, [location, loadingChapterId, chapterContent.id, editorState.chapterId, navigate]);
+  }, [location, state.work, state.chapters, workId, loadingChapterId, chapterContent.id, editorState.chapterId, failedChapterId, navigate]);
 
   // Changing the URL is enough: the effect above loads the chapter
   function handleChapterSelect(chId) {
