@@ -95,7 +95,8 @@ export default function ThreadManager({ workId, threads, chapters, onChanged, on
             error={errors[thread.id]}
             onSave={(fields) => run(thread.id, () => api.put(`${base}/${thread.id}`, fields))}
             onDelete={async () => {
-              returnFocus(rowLeaveFocus([...listRef.current.children], index, newButton.current));
+              // A thread row's first button is its colour swatch; focus goes to the name
+              returnFocus(rowLeaveFocus([...listRef.current.children], index, newButton.current, (row) => row.querySelector('.thread-name')));
               if (await run(thread.id, () => api.delete(`${base}/${thread.id}`))) await onDeleted?.();
               else returnFocus(null);
             }}

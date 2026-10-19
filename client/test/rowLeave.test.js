@@ -39,3 +39,15 @@ test('a neighbour without a button is skipped for the one beyond it', () => {
   list[2].querySelector('button').remove();
   assert.equal(rowLeaveFocus(list, 1).current === list[0].querySelector('button'), true);
 });
+
+test('a list can pick its own action in each row', () => {
+  const list = rows(3);
+  const named = list.map((li) => {
+    const name = document.createElement('button');
+    name.className = 'name';
+    li.appendChild(name);
+    return name;
+  });
+  const pick = (row) => row.querySelector('.name');
+  assert.equal(rowLeaveFocus(list, 1, null, pick).current === named[2], true);
+});

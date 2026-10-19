@@ -278,13 +278,14 @@ async function mountList(threads, gone) {
   return view;
 }
 
-const swatchOf = (view, index) => view.container.querySelectorAll('.thread-row')[index].querySelector('.thread-swatch');
+// A neighbour's name is its first action: focus lands on the name, not the colour swatch before it
+const nameOf = (view, index) => view.container.querySelectorAll('.thread-row')[index].querySelector('.thread-name');
 
 test('deleting a thread in the middle moves focus to the next row', async () => {
   const gone = { id: 'thr_b' };
   const view = await mountList([threadAt('thr_a', 'A'), threadAt('thr_b', 'B'), threadAt('thr_c', 'C')], gone);
   await deleteRow(view, 1);
-  assert.equal(document.activeElement === swatchOf(view, 1), true);
+  assert.equal(document.activeElement === nameOf(view, 1), true);
   await view.unmount();
 });
 
@@ -292,7 +293,7 @@ test('deleting the last thread moves focus to the previous row', async () => {
   const gone = { id: 'thr_c' };
   const view = await mountList([threadAt('thr_a', 'A'), threadAt('thr_b', 'B'), threadAt('thr_c', 'C')], gone);
   await deleteRow(view, 2);
-  assert.equal(document.activeElement === swatchOf(view, 1), true);
+  assert.equal(document.activeElement === nameOf(view, 1), true);
   await view.unmount();
 });
 
