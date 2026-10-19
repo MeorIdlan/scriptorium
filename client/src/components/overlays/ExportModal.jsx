@@ -26,19 +26,29 @@ const EMPTY_MANUSCRIPT = {
   workOnly: false,
 };
 
-// Mounted only while open, so the dialog's focus handling runs per open
+// The dialog mounts only while open, so its focus handling runs per open.
+// The format and option choices live here, so a reopen keeps them.
 export default function ExportModal() {
   const { state } = useUI();
-  if (!state.exportModalOpen) return null;
-  return <ExportDialog />;
-}
-
-function ExportDialog() {
-  const { state, dispatch } = useUI();
-  const { updateWork } = useWorks();
   const [format, setFormat] = useState('pdf');
   const [includeNotes, setIncludeNotes] = useState(false);
   const [includeOutline, setIncludeOutline] = useState(false);
+  if (!state.exportModalOpen) return null;
+  return (
+    <ExportDialog
+      format={format}
+      setFormat={setFormat}
+      includeNotes={includeNotes}
+      setIncludeNotes={setIncludeNotes}
+      includeOutline={includeOutline}
+      setIncludeOutline={setIncludeOutline}
+    />
+  );
+}
+
+function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includeOutline, setIncludeOutline }) {
+  const { state, dispatch } = useUI();
+  const { updateWork } = useWorks();
   const [layout, setLayout] = useState('reading');
   const [manuscript, setManuscript] = useState(EMPTY_MANUSCRIPT);
   // idle until Manuscript is first picked, then loading, then ready
