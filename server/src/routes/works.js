@@ -97,7 +97,10 @@ router.put('/:workId', stampContentChange, async (req, res, next) => {
     const update = { ...req.body, updatedAt: new Date().toISOString() };
     delete update.id;
     delete update.ownerId;
-    for (const field of SERVER_OWNED_FIELDS) delete update[field];
+    // Server-owned fields can't be set however the body spells them: exact keys, dotted paths or $ operators
+    for (const key of Object.keys(update)) {
+      if (key.startsWith('$') || SERVER_OWNED_FIELDS.includes(key.split('.')[0])) delete update[key];
+    }
 
     const updated = await Work.findOneAndUpdate({ _id: workId, ownerId: req.user.id }, update, { new: true });
     if (!updated) return next(httpError(404, 'NOT_FOUND', 'Work not found'));

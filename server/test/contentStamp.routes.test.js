@@ -149,6 +149,37 @@ test('PUT /api/works/:id stamps contentChangedAt and ignores lastBackupAt, conte
   assert.deepEqual(work.reminderState, { dismissedAt: '2026-01-06T00:00:00.000Z' });
 });
 
+test('PUT /api/works/:id cannot set server-owned fields through dotted keys or $ operators', async () => {
+  const bogus = '2000-01-01T00:00:00.000Z';
+  await Work.updateOne(
+    { _id: 'work_a' },
+    { $set: { lastBackupAt: '2026-01-05T00:00:00.000Z', reminderState: { dismissedAt: '2026-01-06T00:00:00.000Z' } } }
+  );
+
+  const dotted = await call('put', '/api/works/work_a').send({
+    title: 'Dotted',
+    'reminderState.snoozedUntil': 'HACK',
+  });
+  assert.equal(dotted.status, 200);
+  const operator = await call('put', '/api/works/work_a').send({
+    title: 'Operator',
+    $set: { lastBackupAt: 'HACK2', contentChangedAt: bogus },
+  });
+  assert.equal(operator.status, 200);
+  const nested = await call('put', '/api/works/work_a').send({
+    $set: { 'reminderState.snoozedUntil': 'HACK3' },
+  });
+  assert.equal(nested.status, 200);
+
+  const stamped = await stampedAt();
+  assert.ok(stamped);
+  assert.notEqual(stamped, bogus);
+  const work = await Work.findById('work_a').lean();
+  assert.equal(work.title, 'Operator');
+  assert.equal(work.lastBackupAt, '2026-01-05T00:00:00.000Z');
+  assert.deepEqual(work.reminderState, { dismissedAt: '2026-01-06T00:00:00.000Z' });
+});
+
 test("GET requests don't stamp", async () => {
   await seedChapter();
   assert.equal((await call('get', chapterBase)).status, 200);
