@@ -16,6 +16,9 @@ const STATUSES = [
   { value: 'all', label: 'All' },
 ];
 
+// The status each action leaves a catch in; edit changes no status
+const STATUS_AFTER = { discard: 'discarded', used: 'used', insert: 'used', codex: 'used', map: 'used', reopen: 'open' };
+
 const EMPTY = {
   open: 'No open catches. Press Ctrl+Shift+I to capture an idea.',
   used: 'No used catches.',
@@ -53,11 +56,9 @@ export default function CatchTab({ workId }) {
 
   async function runAction(item, kind, payload) {
     let result;
-    // A discard takes the row out of the list, so focus moves to a neighbour before it goes
-    const leaving = kind === 'discard'
-      ? rowLeaveFocus([...listRef.current.querySelectorAll('.catch-row')], groups.flatMap((g) => g.items).findIndex((i) => i.id === item.id), searchRef.current)
-      : null;
-    if (kind === 'discard') returnFocus(leaving);
+    // The rows as they are before the action, and where this one sits among them
+    const rows = [...listRef.current.querySelectorAll('.catch-row')];
+    const index = groups.flatMap((g) => g.items).findIndex((i) => i.id === item.id);
     switch (kind) {
       case 'edit':
         result = await attempt(() => api.put(`/works/${workId}/catches/${item.id}`, payload));
@@ -96,7 +97,15 @@ export default function CatchTab({ workId }) {
       default:
         result = { ok: false, stage: 'create', error: new Error(`Unknown action: ${kind}`) };
     }
-    if (leaving && !result.ok) returnFocus(null);
+    // An action that changed the status: if the row leaves this filter, focus moves to a
+    // neighbour; if it stays (All, or the status still matches), focus goes to its new button
+    const next = result.ok ? STATUS_AFTER[kind] : undefined;
+    if (next) {
+      if (status !== 'all' && next !== status) returnFocus(rowLeaveFocus(rows, index, searchRef.current));
+      else returnFocus({ get current() { return rows[index]?.querySelector('button') ?? null; } });
+    } else {
+      returnFocus(null);
+    }
     refreshCatches(workId);
     return result;
   }
