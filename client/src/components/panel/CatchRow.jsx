@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { catchLengthError, chapterLabel, liveChapterId, timeAgo, usedAsLabel } from '../../utils/catchGroups.js';
 import { defaultName } from '../../utils/catchActions.js';
 
@@ -25,29 +26,25 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
   const [target, setTarget] = useState('character');
   const [name, setName] = useState('');
   const [mapChapterId, setMapChapterId] = useState('');
-  // The Edit and Use as… buttons, and the one a close hands focus back to: the editor
-  // unmounts the focused field when it closes
+  // The Edit and Use as… buttons: an editor closing hands focus back to the one that opened it
   const editBtn = useRef(null);
   const useBtn = useRef(null);
-  const returnTo = useRef(null); // one of the ref objects above
-  useEffect(() => {
-    const el = returnTo.current?.current;
-    if (!el) return;
-    returnTo.current = null;
-    const active = document.activeElement;
-    if (!active || active === document.body) el.focus();
-  });
+  const returnFocus = useReturnFocus();
 
   const chapter = chapters.find((ch) => ch.id === item.taggedChapterId);
   const isOpen = item.status === 'open';
 
-  async function act(kind, payload) {
+  // returnTo is the button to focus when the editor closes on success; a refused save
+  // keeps the editor open, so the target is cleared
+  async function act(kind, payload, returnTo) {
     setBusy(true);
     setError('');
+    if (returnTo) returnFocus(returnTo);
     const result = await onAction(kind, payload);
     setBusy(false);
     setError(resultMessage(result));
     if (result.ok || result.stage === 'mark') setMode('view');
+    else returnFocus(null);
   }
 
   function startEdit() {
@@ -69,17 +66,17 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
 
   function saveEdit() {
     if (!draft.trim() || catchLengthError(draft)) return;
-    act('edit', { content: draft, taggedChapterId: draftTag || null });
+    act('edit', { content: draft, taggedChapterId: draftTag || null }, editBtn);
   }
 
   function saveUse() {
     if (target === 'map') {
       const ch = chapters.find((c) => c.id === mapChapterId);
       if (!ch) return;
-      act('map', { chapterId: ch.id, chapterLabel: chapterLabel(ch), text: item.content });
+      act('map', { chapterId: ch.id, chapterLabel: chapterLabel(ch), text: item.content }, useBtn);
     } else {
       if (!name.trim()) return;
-      act('codex', { type: target, name, text: item.content });
+      act('codex', { type: target, name, text: item.content }, useBtn);
     }
   }
 
@@ -96,7 +93,7 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
               saveEdit();
             }
             if (e.key === 'Escape') {
-              returnTo.current = editBtn;
+              returnFocus(editBtn);
               setMode('view');
             }
           }}
@@ -116,7 +113,7 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => {
-              returnTo.current = editBtn;
+              returnFocus(editBtn);
               setMode('view');
             }}
             disabled={busy}
@@ -175,7 +172,16 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
             >
               {busy ? 'Saving…' : 'Save'}
             </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => setMode('view')} disabled={busy}>Cancel</button>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                returnFocus(useBtn);
+                setMode('view');
+              }}
+              disabled={busy}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
