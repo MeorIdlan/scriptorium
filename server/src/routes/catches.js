@@ -3,9 +3,11 @@ import CatchModel from '../models/Catch.js';
 import Chapter from '../models/Chapter.js';
 import { httpError } from '../middleware/errorHandler.js';
 import { loadWork } from '../middleware/loadWork.js';
+import { stampContentChange } from '../middleware/stampContentChange.js';
 import { catchContent, catchTag, catchUpdate, newCatchId } from '../services/catchFields.js';
 
 const router = Router({ mergeParams: true });
+router.use(stampContentChange);
 router.use(loadWork);
 
 const invalid = (message) => httpError(400, 'INVALID_FIELD', message);

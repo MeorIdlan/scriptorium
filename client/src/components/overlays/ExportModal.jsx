@@ -1,6 +1,9 @@
 import { useRef, useState } from 'react';
 import { useUI } from '../../context/UIContext.jsx';
+import { useWorks } from '../../context/WorksContext.jsx';
 import { api } from '../../utils/api.js';
+import { saveFile } from '../../utils/saveFile.js';
+import { backedUpNow } from '../../utils/backupReminder.js';
 
 const FORMATS = [
   { id: 'pdf', label: 'PDF' },
@@ -22,20 +25,9 @@ const EMPTY_MANUSCRIPT = {
   workOnly: false,
 };
 
-// Trigger the browser's save for a fetched file
-function saveFile(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
 export default function ExportModal() {
   const { state, dispatch } = useUI();
+  const { updateWork } = useWorks();
   const [format, setFormat] = useState('pdf');
   const [includeNotes, setIncludeNotes] = useState(false);
   const [includeOutline, setIncludeOutline] = useState(false);
@@ -133,6 +125,7 @@ export default function ExportModal() {
     try {
       const { blob, filename } = await api.download(`/works/${workId}/backup`, {}, 'backup.zip');
       saveFile(blob, filename);
+      updateWork(workId, { backupReminder: backedUpNow() });
     } catch (err) {
       setBackupError(err.message);
     } finally {

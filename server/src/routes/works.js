@@ -4,17 +4,30 @@ import Chapter from '../models/Chapter.js';
 import { deleteWorkCascade } from '../services/workService.js';
 import { countWords } from '../services/wordCountService.js';
 import { httpError } from '../middleware/errorHandler.js';
+import { stampContentChange } from '../middleware/stampContentChange.js';
+import { SERVER_OWNED_FIELDS, backupReminderState, withBackupReminder } from '../services/backupReminder.js';
 
 const router = Router();
 
 const INDEX_FIELDS =
   'title genre status wordCount chapterCount currentDraft coverColor logline lastTouched createdAt';
+// Selected only to work out the backup reminder; the list doesn't return them
+const REMINDER_FIELDS = 'updatedAt lastBackupAt contentChangedAt reminderState';
+
+// The index row keeps the old fields; the reminder inputs only feed the rule
+function indexRow(work, now) {
+  const { updatedAt, lastBackupAt, contentChangedAt, reminderState, ...row } = work.toJSON();
+  return { ...row, backupReminder: backupReminderState(work, now) };
+}
 
 // GET /api/works
 router.get('/', async (req, res, next) => {
   try {
-    const works = await Work.find({ ownerId: req.user.id }).select(INDEX_FIELDS).sort({ createdAt: -1 });
-    res.json(works);
+    const works = await Work.find({ ownerId: req.user.id })
+      .select(`${INDEX_FIELDS} ${REMINDER_FIELDS}`)
+      .sort({ createdAt: -1 });
+    const now = new Date();
+    res.json(works.map((work) => indexRow(work, now)));
   } catch (err) {
     next(err);
   }
@@ -67,6 +80,7 @@ router.post('/', async (req, res, next) => {
       });
       work.chapterCount = 1;
       work.wordCount = countWords(content);
+      work.contentChangedAt = now;
       await work.save();
     }
 
@@ -81,19 +95,23 @@ router.get('/:workId', async (req, res, next) => {
   try {
     const work = await Work.findOne({ _id: req.params.workId, ownerId: req.user.id });
     if (!work) return next(httpError(404, 'NOT_FOUND', 'Work not found'));
-    res.json(work);
+    res.json(withBackupReminder(work));
   } catch (err) {
     next(err);
   }
 });
 
 // PUT /api/works/:workId
-router.put('/:workId', async (req, res, next) => {
+router.put('/:workId', stampContentChange, async (req, res, next) => {
   try {
     const { workId } = req.params;
     const update = { ...req.body, updatedAt: new Date().toISOString() };
     delete update.id;
     delete update.ownerId;
+    // Server-owned fields can't be set however the body spells them: exact keys, dotted paths or $ operators
+    for (const key of Object.keys(update)) {
+      if (key.startsWith('$') || SERVER_OWNED_FIELDS.includes(key.split('.')[0])) delete update[key];
+    }
 
     const updated = await Work.findOneAndUpdate({ _id: workId, ownerId: req.user.id }, update, { new: true });
     if (!updated) return next(httpError(404, 'NOT_FOUND', 'Work not found'));

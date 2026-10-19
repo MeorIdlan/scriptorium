@@ -9,6 +9,7 @@ import Editor from '../components/editor/Editor.jsx';
 import WordCounter from '../components/editor/WordCounter.jsx';
 import RightPanel from '../components/panel/RightPanel.jsx';
 import MilestonesModal from '../components/overlays/MilestonesModal.jsx';
+import BackupReminder from '../components/backup/BackupReminder.jsx';
 import { openCountsByChapter } from '../utils/catchGroups.js';
 import { useUI } from '../context/UIContext.jsx';
 import { sceneList, scrollToScene } from '../utils/scenes.js';
@@ -17,7 +18,7 @@ import { chapterToLoad, createChapterLoader } from '../utils/chapterLoad.js';
 export default function MainRoom() {
   const { workId, chapterId: urlChapterId } = useParams();
   const navigate = useNavigate();
-  const { state, loadWork } = useActiveWork();
+  const { state, loadWork, updateWork } = useActiveWork();
   const { state: editorState, loadContent } = useEditor();
   const editorRef = useRef(null);
   const [chapterContent, setChapterContent] = useState({ id: null, text: '', html: '' });
@@ -214,6 +215,13 @@ export default function MainRoom() {
 
         {/* Editor area */}
         <div className="editor-area">
+          {state.work && (
+            <BackupReminder
+              work={state.work}
+              variant="banner"
+              onChange={(backupReminder) => updateWork({ backupReminder })}
+            />
+          )}
           <div className="editor-wrap">
             {loadingChapterId !== null ? (
               <p className="editor-loading-note">Loading…</p>

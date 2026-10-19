@@ -1,10 +1,12 @@
-import { test, before, after, beforeEach } from 'node:test';
+import { test, before, after, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
 import request from 'supertest';
 import { PassThrough } from 'node:stream';
 import { startDb, clearDb } from './support/http.js';
+import { cutShortDownload } from './support/cutShort.js';
 import { unzip } from './support/zip.js';
+import { pollUntil } from './support/poll.js';
 import accountBackupRouter, { ownedWorks } from '../src/routes/accountBackup.js';
 import { writeWorkBackup, accountEntryPath } from '../src/services/backupService.js';
 import { errorHandler } from '../src/middleware/errorHandler.js';
@@ -218,4 +220,36 @@ test('a failure before the first byte is a JSON error, not a zip download', asyn
   assert.match(res.headers['content-type'], /application\/json/);
   assert.equal(res.headers['content-disposition'], undefined);
   assert.equal(res.headers['x-accel-buffering'], undefined);
+});
+
+test('a finished account backup stamps every included work, not other writers\' works', async () => {
+  await seedAccount();
+  mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-10-19T10:00:00.000Z') });
+  try {
+    const res = await download();
+    assert.equal(res.status, 200);
+  } finally {
+    mock.timers.reset();
+  }
+
+  // The stamp runs after the response ends, so wait until every included work has it
+  const stampedCount = () => Work.countDocuments({ _id: { $in: USER_A_IN_ORDER }, lastBackupAt: { $exists: true } });
+  await pollUntil(async () => (await stampedCount()) === USER_A_IN_ORDER.length);
+  const lastBackups = Object.fromEntries((await Work.find().lean()).map((w) => [w._id, w.lastBackupAt ?? null]));
+  assert.deepEqual(lastBackups, {
+    work_a1: '2026-10-19T10:00:00.000Z',
+    work_a2: '2026-10-19T10:00:00.000Z',
+    work_a3: '2026-10-19T10:00:00.000Z',
+    work_b1: null,
+  });
+});
+
+test('an account backup cut short after its first work stamps nothing', async () => {
+  await seedAccount();
+  // The second work's snapshots fail, so the first work's stream has finished but the backup has not
+  const result = await cutShortDownload(app, '/api/backup', 'user_a', { failingCall: 2 });
+  assert.equal(result.complete, false);
+
+  const stamped = await Work.countDocuments({ lastBackupAt: { $exists: true } });
+  assert.equal(stamped, 0);
 });

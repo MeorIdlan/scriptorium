@@ -39,6 +39,8 @@ function activeWorkReducer(state, action) {
           ch.id === action.id ? { ...ch, ...action.partial } : ch
         ),
       };
+    case 'UPDATE_WORK':
+      return { ...state, work: { ...state.work, ...action.partial } };
     default:
       return state;
   }
@@ -123,6 +125,10 @@ export function ActiveWorkProvider({ children }) {
     dispatch({ type: 'UPDATE_CHAPTER', id, partial });
   }, []);
 
+  const updateWork = useCallback((partial) => {
+    dispatch({ type: 'UPDATE_WORK', partial });
+  }, []);
+
   return (
     <ActiveWorkContext.Provider
       value={{
@@ -135,6 +141,7 @@ export function ActiveWorkProvider({ children }) {
         refreshThreads,
         clearActiveWork,
         updateChapter,
+        updateWork,
       }}
     >
       {children}

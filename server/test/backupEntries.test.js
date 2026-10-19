@@ -106,6 +106,25 @@ test('records use id in place of _id, and the owner is left out of work.json', a
   assert.equal('__v' in JSON.parse(entries['snapshots.json'].text)[0], false);
 });
 
+test('work.json leaves out lastBackupAt, contentChangedAt and reminderState', async () => {
+  await seedFullWork();
+  await Work.updateOne(
+    { _id: 'work_a' },
+    {
+      $set: {
+        lastBackupAt: '2026-10-01T00:00:00.000Z',
+        contentChangedAt: '2026-10-02T00:00:00.000Z',
+        reminderState: { dismissedAt: '2026-10-03T00:00:00.000Z' },
+      },
+    }
+  );
+  const work = JSON.parse((await gather('work_a'))['work.json'].text);
+  for (const field of ['lastBackupAt', 'contentChangedAt', 'reminderState']) {
+    assert.equal(field in work, false, `${field} is left out`);
+  }
+  assert.equal(work.title, 'Work A');
+});
+
 test('a legacy chapter with only plain text still gets its HTML and Markdown (review focus 1)', async () => {
   await Work.create({ _id: 'work_a', ownerId: 'user_a', title: 'Legacy' });
   await Chapter.create({ _id: 'old', workId: 'work_a', title: 'Old', order: 1, content: 'Line one\n\nLine two' });

@@ -5,6 +5,7 @@ import Snapshot from '../models/Snapshot.js';
 import Milestone from '../models/Milestone.js';
 import { httpError } from '../middleware/errorHandler.js';
 import { loadWork } from '../middleware/loadWork.js';
+import { stampContentChange } from '../middleware/stampContentChange.js';
 import { countWords, recalculate } from '../services/wordCountService.js';
 import { validateName } from '../services/snapshotNames.js';
 import { newMilestoneId, newSnapshotId, snapshotFields } from '../services/snapshotData.js';
@@ -15,6 +16,7 @@ import { knownThreadSet } from '../services/threadScope.js';
 import { milestoneRows } from '../services/milestoneCompare.js';
 
 const router = Router({ mergeParams: true });
+router.use(stampContentChange);
 router.use(loadWork);
 
 function listRow(milestone) {

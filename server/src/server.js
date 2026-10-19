@@ -23,6 +23,7 @@ import threadsRouter from './routes/threads.js';
 import sessionsRouter from './routes/sessions.js';
 import exportRouter from './routes/export.js';
 import backupRouter from './routes/backup.js';
+import backupReminderRouter from './routes/backupReminder.js';
 import accountBackupRouter from './routes/accountBackup.js';
 import aiRouter from './routes/ai.js';
 import { requireAiEnabled } from './middleware/requireAiEnabled.js';
@@ -46,6 +47,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRouter);
 
 const auth = requireAuth();
+// Content routers record a change for the backup reminder with stampContentChange (mounted inside each router).
+// Export, backup, backup reminder, sessions and AI must not: they don't change what a backup would capture.
 app.use('/api/works', auth, worksRouter);
 app.use('/api/works/:workId/chapters/:chapterId/snapshots', auth, snapshotsRouter);
 app.use('/api/works/:workId/chapters', auth, chaptersRouter);
@@ -57,6 +60,7 @@ app.use('/api/works/:workId/threads', auth, threadsRouter);
 app.use('/api/works/:workId/sessions', auth, sessionsRouter);
 app.use('/api/works/:workId/export', auth, exportRouter);
 app.use('/api/works/:workId/backup', auth, backupRouter);
+app.use('/api/works/:workId/backup-reminder', auth, backupReminderRouter);
 app.use('/api/backup', auth, accountBackupRouter);
 app.use('/api/ai', auth, requireAiEnabled(), aiRouter);
 app.use('/api/progress', auth, progressRouter);

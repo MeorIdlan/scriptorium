@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import request from 'supertest';
 import { createHash } from 'node:crypto';
-import http from 'node:http';
 import { startDb, clearDb } from './support/http.js';
+import { cutShortDownload } from './support/cutShort.js';
 import { unzip } from './support/zip.js';
+import { pollUntil } from './support/poll.js';
 import backupRouter from '../src/routes/backup.js';
 import { errorHandler } from '../src/middleware/errorHandler.js';
 import Work from '../src/models/Work.js';
@@ -193,56 +194,90 @@ test('a title with quotes, slashes and non-Latin letters gives a safe filename (
 
 test('a failure after bytes were sent never gives the client a clean, complete response', async () => {
   await seedFullWork();
-  const failures = mock.method(console, 'error', () => {});
-  // A Mongoose-cursor-shaped fake: one record, then the connection drops
-  const brokenCursor = {
-    async close() {},
-    [Symbol.asyncIterator]() {
-      let reads = 0;
-      return {
-        async next() {
-          if (reads++ === 0) return { done: false, value: { _id: 'snap1', content: 'x' } };
-          throw new Error('mongo went away');
-        },
-      };
-    },
-  };
-  const query = { sort: () => query, lean: () => query, cursor: () => brokenCursor };
-  mock.method(Snapshot, 'find', () => query);
+  const result = await cutShortDownload(app, '/api/works/work_a/backup', 'user_a');
 
-  const server = app.listen(0);
-  let timer;
+  assert.equal(result.status, 200, 'the download had already started');
+  assert.ok(result.bytes > 0, 'some bytes were sent before the failure');
+  assert.equal(result.complete, false, 'the response was cut short, not completed');
+  assert.equal(result.ended, false, 'the response did not end cleanly');
+  assert.equal(result.logged, 1, 'the failure was logged once');
+});
+
+test('a finished backup sets lastBackupAt to the request start and clears reminderState', async () => {
+  await seedFullWork();
+  await Work.updateOne({ _id: 'work_a' }, { $set: { reminderState: { snoozedUntil: '2026-10-30T00:00:00.000Z' } } });
+  mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-10-19T10:00:00.000Z') });
   try {
-    await new Promise((resolve) => server.once('listening', resolve));
-    const outcome = new Promise((resolve) => {
-      const state = { status: null, bytes: 0, ended: false, error: null };
-      const req = http.request(
-        { port: server.address().port, method: 'POST', path: '/api/works/work_a/backup', headers: { 'x-test-user': 'user_a' } },
-        (res) => {
-          state.status = res.statusCode;
-          res.on('data', (chunk) => (state.bytes += chunk.length));
-          res.on('end', () => (state.ended = true));
-          res.on('error', (err) => (state.error = err));
-          res.on('close', () => resolve({ ...state, complete: res.complete }));
-        }
-      );
-      req.on('error', (err) => resolve({ ...state, error: err, complete: false }));
-      req.end();
-    });
-    const guard = new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error('timed out: the response never finished or failed')), 2000);
-    });
-    const result = await Promise.race([outcome, guard]);
-
-    assert.equal(result.status, 200, 'the download had already started');
-    assert.ok(result.bytes > 0, 'some bytes were sent before the failure');
-    assert.equal(result.complete, false, 'the response was cut short, not completed');
-    assert.equal(result.ended, false, 'the response did not end cleanly');
-    assert.equal(failures.mock.callCount(), 1, 'the failure was logged once');
+    const res = await download('work_a');
+    assert.equal(res.status, 200);
   } finally {
-    clearTimeout(timer);
-    mock.restoreAll();
-    server.closeAllConnections?.();
-    await new Promise((resolve) => server.close(resolve));
+    mock.timers.reset();
   }
+
+  // The stamp runs after the response ends, so wait for it
+  await pollUntil(async () => (await Work.findById('work_a').lean()).lastBackupAt);
+  const work = await Work.findById('work_a').lean();
+  assert.equal(work.lastBackupAt, '2026-10-19T10:00:00.000Z');
+  assert.equal(work.reminderState, undefined);
+});
+
+test('an edit made while the backup streams stays later than lastBackupAt', async () => {
+  await seedFullWork();
+  const started = Date.parse('2026-10-19T10:00:00.000Z');
+  mock.timers.enable({ apis: ['Date'], now: started });
+  const findCodex = Codex.findOne;
+  // Edits the work partway through the stream, after the request has started
+  mock.method(Codex, 'findOne', (...args) => {
+    const query = findCodex.apply(Codex, args);
+    return {
+      lean: async () => {
+        mock.timers.setTime(started + 5000);
+        await Work.updateOne({ _id: 'work_a' }, { $set: { contentChangedAt: new Date().toISOString() } });
+        return query.lean();
+      },
+    };
+  });
+  try {
+    const res = await download('work_a');
+    assert.equal(res.status, 200);
+  } finally {
+    mock.timers.reset();
+    mock.restoreAll();
+  }
+
+  // The stamp runs after the response ends, so wait for it
+  await pollUntil(async () => (await Work.findById('work_a').lean()).lastBackupAt);
+  const work = await Work.findById('work_a').lean();
+  assert.equal(work.lastBackupAt, '2026-10-19T10:00:00.000Z');
+  assert.equal(work.contentChangedAt, '2026-10-19T10:00:05.000Z');
+  assert.ok(work.contentChangedAt > work.lastBackupAt);
+});
+
+test('a backup cut short does not set lastBackupAt', async () => {
+  await seedFullWork();
+  const result = await cutShortDownload(app, '/api/works/work_a/backup', 'user_a');
+  assert.equal(result.complete, false);
+
+  const work = await Work.findById('work_a').lean();
+  assert.equal(work.lastBackupAt, undefined);
+});
+
+test('a failed stamp after a finished backup is logged and the download still completes', async () => {
+  await seedFullWork();
+  const failures = mock.method(console, 'error', () => {});
+  mock.method(Work, 'updateMany', () => {
+    throw new Error('mongo went away');
+  });
+  let res;
+  try {
+    res = await download('work_a');
+  } finally {
+    mock.restoreAll();
+  }
+
+  assert.equal(res.status, 200);
+  const files = await unzip(res.body);
+  assert.equal(JSON.parse(files.get('manifest.json').toString()).work.id, 'work_a');
+  assert.equal(failures.mock.callCount(), 1, 'the failed stamp was logged once');
+  assert.equal(failures.mock.calls[0].arguments[0], 'Failed to stamp lastBackupAt:', 'logged by the stamp, not the stream');
 });
