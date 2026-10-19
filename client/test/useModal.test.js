@@ -7,8 +7,8 @@ import { useModal } from '../src/hooks/useModal.js';
 
 // A minimal overlay: backdrop around the dialog, wired the way Task 4 will wire
 // the real modals
-function Modal({ onClose, initialFocusRef, children }) {
-  const { dialogProps, backdropProps } = useModal({ onClose, initialFocusRef });
+function Modal({ onClose, initialFocusRef, trap, children }) {
+  const { dialogProps, backdropProps } = useModal({ onClose, initialFocusRef, trap });
   return h('div', { className: 'modal-backdrop', ...backdropProps },
     h('div', { className: 'modal', ...dialogProps }, children));
 }
@@ -177,5 +177,42 @@ test('initialFocusRef takes focus on open instead of the first focusable element
   }
   const view = await render(h(WithRef));
   assert.equal(document.activeElement === view.container.querySelector('#second'), true);
+  await view.unmount();
+});
+
+test('trap: false leaves the dialog without aria-modal', async () => {
+  const view = await render(h(Modal, { onClose() {}, trap: false }, h('button', null, 'First')));
+  const dialog = view.container.querySelector('.modal');
+  assert.equal(dialog.getAttribute('role'), 'dialog');
+  assert.equal(dialog.hasAttribute('aria-modal'), false);
+  await view.unmount();
+});
+
+test('trap: false does not wrap Tab or Shift+Tab at the ends', async () => {
+  const view = await render(h(Modal, { onClose() {}, trap: false },
+    h('button', { id: 'first' }, 'First'),
+    h('button', { id: 'last' }, 'Last')));
+  const first = view.container.querySelector('#first');
+  const last = view.container.querySelector('#last');
+
+  last.focus();
+  const forward = await keyDown(last, 'Tab');
+  assert.equal(forward.defaultPrevented, false);
+  assert.equal(document.activeElement === last, true);
+
+  first.focus();
+  const backward = await keyDown(first, 'Tab', { shiftKey: true });
+  assert.equal(backward.defaultPrevented, false);
+  assert.equal(document.activeElement === first, true);
+  await view.unmount();
+});
+
+test('trap: false still closes on Esc from inside the dialog', async () => {
+  let closes = 0;
+  const view = await render(h(Modal, { onClose: () => closes++, trap: false },
+    h('button', { id: 'first' }, 'First')));
+  const event = await keyDown(view.container.querySelector('#first'), 'Escape');
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(closes, 1);
   await view.unmount();
 });

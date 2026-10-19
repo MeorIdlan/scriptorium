@@ -23,10 +23,22 @@ function CatchDialog() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef(null);
+  // A corner panel, not a modal: Tab leaves it for the editor
   const { dialogProps } = useModal({
     onClose: () => dispatch({ type: 'CLOSE_CATCH' }),
     initialFocusRef: inputRef,
+    trap: false,
   });
+
+  // Esc closes from anywhere in the window, as before the panel used the hook.
+  // A press inside the panel is already handled (preventDefault) and skipped
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.key === 'Escape' && !e.defaultPrevented) dispatch({ type: 'CLOSE_CATCH' });
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [dispatch]);
 
   const workId = workState.work?.id;
 

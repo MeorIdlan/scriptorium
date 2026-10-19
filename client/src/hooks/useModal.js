@@ -13,8 +13,10 @@ const FOCUSABLE = [
 // Focus handling for a modal dialog: opens focused inside it, keeps Tab
 // inside it, closes on Esc, returns focus to the opener, and closes on a
 // backdrop click. Spread dialogProps on the dialog element and backdropProps
-// on the backdrop behind it.
-export function useModal({ onClose, initialFocusRef } = {}) {
+// on the backdrop behind it. trap: false makes a non-modal panel: no
+// aria-modal, and Tab is left to the browser. Esc, mount focus and
+// return-focus behave the same.
+export function useModal({ onClose, initialFocusRef, trap = true } = {}) {
   const dialogRef = useRef(null);
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export function useModal({ onClose, initialFocusRef } = {}) {
       onClose?.();
       return;
     }
-    if (e.key !== 'Tab') return;
+    if (e.key !== 'Tab' || !trap) return;
 
     const dialog = dialogRef.current;
     const items = dialog.querySelectorAll(FOCUSABLE);
@@ -60,7 +62,7 @@ export function useModal({ onClose, initialFocusRef } = {}) {
     dialogProps: {
       ref: dialogRef,
       role: 'dialog',
-      'aria-modal': 'true',
+      ...(trap ? { 'aria-modal': 'true' } : {}),
       tabIndex: -1,
       onKeyDown,
     },
