@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { click, press, type } from './support/render.js';
 import { renderApp } from './support/app.js';
+import './support/focus.js';
 import NewWorkWizard from '../src/components/shelves/NewWorkWizard.jsx';
 
 async function toReview(view) {
@@ -36,6 +37,12 @@ test('with AI on the wizard offers opening hooks', async () => {
   const view = await renderApp(h(NewWorkWizard, { onClose() {} }), { ai: true });
   await toReview(view);
   assert.ok(view.hasButton('Generate Opening Hooks'));
+  await view.unmount();
+});
+
+test('the wizard opens focused on its title field', async () => {
+  const view = await renderApp(h(NewWorkWizard, { onClose() {} }), { ai: false });
+  assert.equal(document.activeElement === view.query('input.form-input'), true);
   await view.unmount();
 });
 

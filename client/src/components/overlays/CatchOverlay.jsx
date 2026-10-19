@@ -49,7 +49,6 @@ function CatchDialog() {
       setText('');
       setError('');
       setChapterTag(editorState.chapterId || '');
-      setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [state.catchOverlayOpen, editorState.chapterId]);
 

@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, useCallback, useEffect, useMemo } from 'react';
 import { renderApp } from './support/app.js';
+import './support/focus.js';
 import { act, flush, press } from './support/render.js';
 import { UIContext, useUI } from '../src/context/UIContext.jsx';
 import CatchOverlay from '../src/components/overlays/CatchOverlay.jsx';
@@ -41,6 +42,13 @@ test('the catch overlay is a non-modal dialog, and Esc in its input closes it', 
   assert.equal(dialog.hasAttribute('aria-modal'), false);
   await press(view.query('.catch-overlay-input'), 'Escape');
   assert.equal(view.query('.catch-overlay'), null);
+  await view.unmount();
+});
+
+test('the catch overlay opens focused on its input', async () => {
+  const view = await renderApp(h(Driver));
+  await flush();
+  assert.equal(document.activeElement === view.query('.catch-overlay-input'), true);
   await view.unmount();
 });
 

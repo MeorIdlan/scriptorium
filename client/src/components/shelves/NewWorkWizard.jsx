@@ -110,7 +110,6 @@ export default function NewWorkWizard({ onClose }) {
                   value={form.title}
                   onChange={(e) => update('title', e.target.value)}
                   placeholder="Your work's title"
-                  autoFocus
                 />
               </div>
 

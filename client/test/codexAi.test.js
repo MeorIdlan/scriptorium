@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { click, press } from './support/render.js';
 import { renderApp } from './support/app.js';
+import './support/focus.js';
 import CodexView from '../src/pages/CodexView.jsx';
 
 const codex = {
@@ -51,6 +52,15 @@ test('with AI on the Codex offers the audit and suggestions on every entry', asy
   const view = await openCodex(true);
   assert.ok(view.hasButton('Codex Audit'));
   assert.deepEqual(await suggestionsPerEntry(view), { Characters: true, Places: true, 'World Rules': true });
+  await view.unmount();
+});
+
+test('the add-entry dialog opens focused on its name field and stays open on a click inside it', async () => {
+  const view = await openCodex(false);
+  await click(view.button('+ Add'));
+  assert.equal(document.activeElement === view.query('.modal input'), true);
+  await click(view.query('.modal-body'));
+  assert.ok(view.query('[role="dialog"]'));
   await view.unmount();
 });
 

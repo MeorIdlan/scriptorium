@@ -21,8 +21,6 @@ function AddEntityModal({ type, onConfirm, onClose }) {
   const [name, setName] = useState('');
   const inputRef = useRef(null);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
-
   function handleKeyDown(e) {
     if (e.key === 'Enter' && name.trim()) onConfirm(name.trim());
   }
@@ -34,7 +32,7 @@ function AddEntityModal({ type, onConfirm, onClose }) {
 
   return (
     <div className="modal-backdrop" {...backdropProps}>
-      <div className="modal" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()} aria-labelledby={titleId} {...dialogProps}>
+      <div className="modal" style={{ maxWidth: 380 }} aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <span id={titleId} className="modal-title">New {label}</span>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -74,14 +72,12 @@ function AddRuleModal({ onConfirm, onClose }) {
   const [ruleText, setRuleText] = useState('');
   const textareaRef = useRef(null);
 
-  useEffect(() => { textareaRef.current?.focus(); }, []);
-
   const titleId = useId();
   const { dialogProps, backdropProps } = useModal({ onClose, initialFocusRef: textareaRef });
 
   return (
     <div className="modal-backdrop" {...backdropProps}>
-      <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()} aria-labelledby={titleId} {...dialogProps}>
+      <div className="modal" style={{ maxWidth: 460 }} aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <span id={titleId} className="modal-title">New World Rule</span>
           <button className="modal-close" onClick={onClose}>✕</button>
