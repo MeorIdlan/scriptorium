@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import Work from '../models/Work.js';
 import { writeAccountBackup } from '../services/backupService.js';
+import { markBackedUp } from '../services/backupReminder.js';
 import { contentDisposition } from './export.js';
 
 const router = Router();
@@ -17,12 +18,14 @@ export async function* ownedWorks(userId) {
 
 // POST /api/backup
 router.post('/', async (req, res, next) => {
+  const startedAt = new Date().toISOString();
   const date = new Date().toISOString().slice(0, 10);
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader('Content-Disposition', contentDisposition(`scriptorium-backup-${date}.zip`));
   res.setHeader('X-Accel-Buffering', 'no');
   try {
-    await writeAccountBackup(ownedWorks(req.user.id), res);
+    const items = await writeAccountBackup(ownedWorks(req.user.id), res);
+    await markBackedUp(items.map((item) => item.workId), req.user.id, startedAt);
   } catch (err) {
     // Nothing sent yet: drop the download headers so the JSON error isn't labelled as a zip
     if (!res.headersSent) {

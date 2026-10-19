@@ -1,3 +1,5 @@
+import Work from '../models/Work.js';
+
 export const REMINDER_DAYS = 7;
 export const SNOOZE_DAYS = 3;
 // Fields the client can't set: PUT /api/works/:workId strips them from the body
@@ -43,4 +45,18 @@ export function backupReminderState(work, now) {
 export function withBackupReminder(work, now = new Date()) {
   const json = work.toJSON?.() ?? work;
   return { ...json, backupReminder: backupReminderState(work, now) };
+}
+
+// Records a finished backup of these works. `startedAt` is when the request began, so an edit
+// made while the download streamed stays later than the stamp. Never throws: the download is
+// already done, so a failed stamp is only logged.
+export async function markBackedUp(workIds, ownerId, startedAt) {
+  try {
+    await Work.updateMany(
+      { _id: { $in: workIds }, ownerId },
+      { $set: { lastBackupAt: startedAt }, $unset: { reminderState: 1 } }
+    );
+  } catch (err) {
+    console.error('Failed to stamp lastBackupAt:', err);
+  }
 }

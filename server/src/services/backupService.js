@@ -19,8 +19,9 @@ export function toRecord(doc) {
   return { id: String(_id), ...rest };
 }
 
+// Server-owned backup state stays out of work.json: it describes this server, not the work
 export function workRecord(work) {
-  const { ownerId, ...rest } = toRecord(work);
+  const { ownerId, lastBackupAt, contentChangedAt, reminderState, ...rest } = toRecord(work);
   return rest;
 }
 
