@@ -94,6 +94,7 @@ test('Enter on a place field saves and returns focus to its value button', async
   const view = await openCodex();
   await click(view.button('Places'));
   await click(view.button('Harrowgate'));
+  assert.equal(fieldButton(view, 'Name').getAttribute('aria-label'), 'Name: Harrowgate');
   await click(fieldButton(view, 'Name'));
   await type(view.query('input.inline-field-input'), 'Harrowgate Keep');
   await press(view.query('input.inline-field-input'), 'Enter');
@@ -105,7 +106,9 @@ test('a category change only picks the option; Enter saves and returns focus', a
   const view = await openCodex();
   await click(view.button('World Rules'));
   await click(view.button('Magic costs blood'));
+  assert.equal(fieldButton(view, 'Category').getAttribute('aria-label'), 'Category: magic');
   await click(fieldButton(view, 'Category'));
+  assert.equal(view.query('select.inline-field-select').getAttribute('aria-label'), 'Category');
   const select = view.query('select.inline-field-select');
   await choose(select, 'politics');
   // A change alone does not close the field: the arrow keys can keep moving
