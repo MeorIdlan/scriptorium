@@ -4,8 +4,16 @@ import { useEditor } from '../../context/EditorContext.jsx';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { api } from '../../utils/api.js';
 import { chapterLabel, catchLengthError } from '../../utils/catchGroups.js';
+import { useModal } from '../../hooks/useModal.js';
 
+// Mounted only while open, so the dialog's focus handling runs per open
 export default function CatchOverlay() {
+  const { state } = useUI();
+  if (!state.catchOverlayOpen) return null;
+  return <CatchDialog />;
+}
+
+function CatchDialog() {
   const { state, dispatch } = useUI();
   const { state: editorState } = useEditor();
   const { state: workState, refreshCatches } = useActiveWork();
@@ -15,6 +23,10 @@ export default function CatchOverlay() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef(null);
+  const { dialogProps } = useModal({
+    onClose: () => dispatch({ type: 'CLOSE_CATCH' }),
+    initialFocusRef: inputRef,
+  });
 
   const workId = workState.work?.id;
 
@@ -27,17 +39,6 @@ export default function CatchOverlay() {
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [state.catchOverlayOpen, editorState.chapterId]);
-
-  // Escape to close
-  useEffect(() => {
-    function handleKey(e) {
-      if (e.key === 'Escape' && state.catchOverlayOpen) {
-        dispatch({ type: 'CLOSE_CATCH' });
-      }
-    }
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [state.catchOverlayOpen, dispatch]);
 
   async function handleSubmit() {
     if (!text.trim() || !workId || catchLengthError(text)) return;
@@ -70,10 +71,8 @@ export default function CatchOverlay() {
   const chapters = workState.chapters || [];
   const currentChapter = chapters.find((ch) => ch.id === editorState.chapterId);
 
-  if (!state.catchOverlayOpen) return null;
-
   return (
-    <div className="catch-overlay">
+    <div className="catch-overlay" {...dialogProps}>
       <div className="catch-overlay-header">
         <span className="catch-overlay-title">Catch an Idea</span>
         <button

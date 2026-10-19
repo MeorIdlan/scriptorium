@@ -1,4 +1,5 @@
 import ContextUsed from '../panel/ContextUsed.jsx';
+import { useModal } from '../../hooks/useModal.js';
 
 const TYPE_LABELS = {
   character: 'Character',
@@ -9,13 +10,11 @@ const TYPE_LABELS = {
 
 export default function CodexAuditModal({ audit, onDismiss }) {
   const { summary, findings = [], context } = audit;
+  const { dialogProps, backdropProps } = useModal({ onClose: onDismiss });
 
   return (
-    <div
-      className="modal-backdrop codex-audit-backdrop"
-      onClick={(e) => e.target === e.currentTarget && onDismiss()}
-    >
-      <div className="modal codex-audit-modal">
+    <div className="modal-backdrop codex-audit-backdrop" {...backdropProps}>
+      <div className="modal codex-audit-modal" {...dialogProps}>
         <div className="modal-header">
           <div className="codex-audit-header-text">
             <h2 className="modal-title">Codex Audit</h2>

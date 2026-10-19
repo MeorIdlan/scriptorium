@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, Fragment, useEffect } from 'react';
 import { renderApp, HttpError } from './support/app.js';
-import { flush, click, type } from './support/render.js';
+import { flush, click, press, type } from './support/render.js';
 import { useUI } from '../src/context/UIContext.jsx';
 import ExportModal from '../src/components/overlays/ExportModal.jsx';
 
@@ -253,5 +253,16 @@ test('picking Manuscript again retries a failed fetch and enables Export once it
   assert.equal(view.query('[data-testid="ms-author"]').value, 'Ada Writer');
   assert.equal(Boolean(view.query('.form-error')), false);
   assert.equal(view.button('Export PDF').hasAttribute('disabled'), false);
+  await view.unmount();
+});
+
+test('the export dialog is a labelled dialog, and Esc on a field inside it closes it', async () => {
+  const view = await renderApp(h(Driver));
+  await flush();
+  const dialog = view.query('[role="dialog"]');
+  assert.ok(dialog);
+  assert.equal(dialog.getAttribute('aria-modal'), 'true');
+  await press(dialog.querySelector('button'), 'Escape');
+  assert.equal(view.query('[role="dialog"]'), null);
   await view.unmount();
 });

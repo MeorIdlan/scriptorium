@@ -6,6 +6,7 @@ import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { buildChanges, diffWords } from '../../utils/polishDiff.js';
 import { applyPolish } from '../../utils/applyPolish.js';
 import ContextUsed from '../panel/ContextUsed.jsx';
+import { useModal } from '../../hooks/useModal.js';
 
 const isFatal = (err) => err.code === 'NO_API_KEY' || [401, 403, 404].includes(err.status);
 
@@ -138,11 +139,14 @@ export default function PolishReviewModal({ workId, chapterId, session, summarie
   } else if (allDone && list.length === 0) status = 'No changes suggested.';
   else status = `${list.length} change${list.length === 1 ? '' : 's'} · ${accepted} accepted · ${rejected} rejected`;
 
+  // Esc closes like the ✕ button; no backdrop click, so a stray click keeps the review
+  const { dialogProps } = useModal({ onClose: () => onClose(null) });
+
   // Portal: the Quill panel's tab animation leaves a transform that would
   // trap a position:fixed overlay inside the panel
   return createPortal(
     <div className="modal-backdrop draft-polish-backdrop">
-      <div className="modal polish-review-modal">
+      <div className="modal polish-review-modal" {...dialogProps}>
         <div className="modal-header">
           <div className="draft-polish-header-text">
             <h2 className="modal-title">Polish {session.mode === 'selection' ? 'selection' : 'chapter'}</h2>

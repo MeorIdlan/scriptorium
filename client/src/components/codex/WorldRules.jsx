@@ -52,15 +52,15 @@ function RuleItem({ workId, rule, onUpdate }) {
   }
 
   return (
-    <div className="rule-item" onClick={() => { setDraft({ ...rule }); setEditing(true); }}>
+    <button type="button" className="rule-item" onClick={() => { setDraft({ ...rule }); setEditing(true); }}>
       <span className={`rule-category rule-cat-${rule.category || 'other'}`}>
         {rule.category || 'other'}
       </span>
-      <p className="rule-text">{rule.rule}</p>
+      <span className="rule-text">{rule.rule}</span>
       {rule.establishedIn && (
-        <p className="rule-chapter">Est. in: {rule.establishedIn}</p>
+        <span className="rule-chapter">Est. in: {rule.establishedIn}</span>
       )}
-    </div>
+    </button>
   );
 }
 

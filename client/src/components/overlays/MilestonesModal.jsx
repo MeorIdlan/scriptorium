@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { api } from '../../utils/api.js';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
+import { useModal } from '../../hooks/useModal.js';
 import { formatNumber } from '../../utils/wordCount.js';
 import { defaultMilestoneName, flushOpenChapter } from '../../utils/versionHistory.js';
 import VersionDiff from './VersionDiff.jsx';
@@ -132,9 +133,11 @@ export default function MilestonesModal({ workId, onDismiss }) {
     );
   }
 
+  const { dialogProps, backdropProps } = useModal({ onClose: onDismiss });
+
   return createPortal(
-    <div className="modal-backdrop draft-polish-backdrop" onClick={(e) => e.target === e.currentTarget && onDismiss()}>
-      <div className="modal history-modal">
+    <div className="modal-backdrop draft-polish-backdrop" {...backdropProps}>
+      <div className="modal history-modal" {...dialogProps}>
         <div className="modal-header">
           <div className="draft-polish-header-text">
             <h2 className="modal-title">Milestones</h2>
@@ -177,7 +180,7 @@ export default function MilestonesModal({ workId, onDismiss }) {
                       onChange={(e) => setNaming({ ...naming, value: e.target.value })}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') submitName();
-                        if (e.key === 'Escape') setNaming(null);
+                        if (e.key === 'Escape') { setNaming(null); e.stopPropagation(); }
                       }}
                     />
                     <button className="btn btn-primary btn-sm" onClick={submitName} disabled={busy || !naming.value.trim()}>

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
-import { click, type } from './support/render.js';
+import { click, press, type } from './support/render.js';
 import { renderApp } from './support/app.js';
 import NewWorkWizard from '../src/components/shelves/NewWorkWizard.jsx';
 
@@ -36,5 +36,14 @@ test('with AI on the wizard offers opening hooks', async () => {
   const view = await renderApp(h(NewWorkWizard, { onClose() {} }), { ai: true });
   await toReview(view);
   assert.ok(view.hasButton('Generate Opening Hooks'));
+  await view.unmount();
+});
+
+test('the wizard is a labelled dialog, and Esc on a field inside it closes it', async () => {
+  let closed = 0;
+  const view = await renderApp(h(NewWorkWizard, { onClose() { closed++; } }), { ai: false });
+  assert.ok(view.query('[role="dialog"]'));
+  await press(view.query('input.form-input'), 'Escape');
+  assert.equal(closed, 1);
   await view.unmount();
 });

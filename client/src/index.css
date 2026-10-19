@@ -684,6 +684,17 @@ a:hover {
   margin-bottom: 0.15rem;
 }
 
+/* The title button looks like the plain title it replaces */
+.work-card-title-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .work-card-genre {
   display: inline-block;
   background: rgba(201, 169, 110, 0.1);
@@ -2460,6 +2471,14 @@ a:hover {
 }
 .rule-item:hover { border-color: var(--text-dim); }
 .rule-item.editing { cursor: default; }
+/* A rule row is a button: drop the browser button look, keep the card */
+button.rule-item {
+  display: block;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
 
 .rule-category {
   display: inline-block;
@@ -2477,12 +2496,14 @@ a:hover {
 .rule-cat-other { background: rgba(138, 133, 120, 0.12); color: var(--text-muted); }
 
 .rule-text {
+  display: block;
   font-size: 0.88rem;
   color: var(--text);
   line-height: 1.5;
 }
 
 .rule-chapter {
+  display: block;
   font-size: 0.75rem;
   color: var(--text-dim);
   margin-top: 0.25rem;

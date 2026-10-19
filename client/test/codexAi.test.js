@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
-import { click } from './support/render.js';
+import { click, press } from './support/render.js';
 import { renderApp } from './support/app.js';
 import CodexView from '../src/pages/CodexView.jsx';
 
@@ -51,5 +51,14 @@ test('with AI on the Codex offers the audit and suggestions on every entry', asy
   const view = await openCodex(true);
   assert.ok(view.hasButton('Codex Audit'));
   assert.deepEqual(await suggestionsPerEntry(view), { Characters: true, Places: true, 'World Rules': true });
+  await view.unmount();
+});
+
+test('the add-entry dialog is a labelled dialog, and Esc on its name field closes it', async () => {
+  const view = await openCodex(false);
+  await click(view.button('+ Add'));
+  assert.ok(view.query('[role="dialog"]'));
+  await press(view.query('.modal input'), 'Escape');
+  assert.equal(view.query('[role="dialog"]'), null);
   await view.unmount();
 });

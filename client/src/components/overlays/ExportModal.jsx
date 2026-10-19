@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { useUI } from '../../context/UIContext.jsx';
+import { useModal } from '../../hooks/useModal.js';
 import { useWorks } from '../../context/WorksContext.jsx';
 import { api } from '../../utils/api.js';
 import { saveFile } from '../../utils/saveFile.js';
@@ -25,7 +26,14 @@ const EMPTY_MANUSCRIPT = {
   workOnly: false,
 };
 
+// Mounted only while open, so the dialog's focus handling runs per open
 export default function ExportModal() {
+  const { state } = useUI();
+  if (!state.exportModalOpen) return null;
+  return <ExportDialog />;
+}
+
+function ExportDialog() {
   const { state, dispatch } = useUI();
   const { updateWork } = useWorks();
   const [format, setFormat] = useState('pdf');
@@ -42,8 +50,6 @@ export default function ExportModal() {
   const [backingUp, setBackingUp] = useState(false);
   const [backupError, setBackupError] = useState(null);
 
-  if (!state.exportModalOpen) return null;
-
   const workId = state.exportWorkId;
   // EPUB has no manuscript layout, so the selector only applies to PDF and DOCX
   const manuscriptOn = format !== 'epub' && layout === 'manuscript';
@@ -57,6 +63,8 @@ export default function ExportModal() {
     setPrefill('idle');
     session.current += 1;
   }
+
+  const { dialogProps, backdropProps } = useModal({ onClose: handleClose });
 
   // Fills the manuscript fields with the writer's saved details. Asked once
   // per open; a failed request is asked again on the next pick.
@@ -134,11 +142,8 @@ export default function ExportModal() {
   }
 
   return (
-    <div
-      className="modal-backdrop"
-      onClick={(e) => e.target === e.currentTarget && handleClose()}
-    >
-      <div className="modal export-modal">
+    <div className="modal-backdrop" {...backdropProps}>
+      <div className="modal export-modal" {...dialogProps}>
         <div className="modal-header">
           <h2 className="modal-title">Export Work</h2>
           <button className="modal-close" onClick={handleClose}>✕</button>

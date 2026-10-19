@@ -7,6 +7,7 @@ import PlaceEntry from '../components/codex/PlaceEntry.jsx';
 import RuleDetail from '../components/codex/RuleDetail.jsx';
 import CodexAuditModal from '../components/overlays/CodexAuditModal.jsx';
 import { useAiState } from '../context/AiContext.jsx';
+import { useModal } from '../hooks/useModal.js';
 
 const TABS = [
   { id: 'characters', label: 'Characters' },
@@ -24,14 +25,15 @@ function AddEntityModal({ type, onConfirm, onClose }) {
 
   function handleKeyDown(e) {
     if (e.key === 'Enter' && name.trim()) onConfirm(name.trim());
-    if (e.key === 'Escape') onClose();
   }
+
+  const { dialogProps, backdropProps } = useModal({ onClose, initialFocusRef: inputRef });
 
   const label = type === 'character' ? 'Character' : 'Place';
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop" {...backdropProps}>
+      <div className="modal" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()} {...dialogProps}>
         <div className="modal-header">
           <span className="modal-title">New {label}</span>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -73,9 +75,11 @@ function AddRuleModal({ onConfirm, onClose }) {
 
   useEffect(() => { textareaRef.current?.focus(); }, []);
 
+  const { dialogProps, backdropProps } = useModal({ onClose, initialFocusRef: textareaRef });
+
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop" {...backdropProps}>
+      <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()} {...dialogProps}>
         <div className="modal-header">
           <span className="modal-title">New World Rule</span>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -100,7 +104,6 @@ function AddRuleModal({ onConfirm, onClose }) {
               className="form-textarea"
               value={ruleText}
               onChange={(e) => setRuleText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
               placeholder="Describe the rule…"
               rows={4}
             />

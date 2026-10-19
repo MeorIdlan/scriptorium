@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../utils/api.js';
+import { useModal } from '../../hooks/useModal.js';
 import { useWorks } from '../../context/WorksContext.jsx';
 import { useAI } from '../../hooks/useAI.js';
 import { useAiState } from '../../context/AiContext.jsx';
@@ -34,6 +35,8 @@ export default function NewWorkWizard({ onClose }) {
   const [selectedHook, setSelectedHook] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const titleRef = useRef(null);
+  const { dialogProps, backdropProps } = useModal({ onClose, initialFocusRef: titleRef });
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -76,8 +79,8 @@ export default function NewWorkWizard({ onClose }) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal wizard-modal">
+    <div className="modal-backdrop" {...backdropProps}>
+      <div className="modal wizard-modal" {...dialogProps}>
         <div className="modal-header">
           <h2 className="modal-title">New Work</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -100,6 +103,7 @@ export default function NewWorkWizard({ onClose }) {
               <div className="form-group">
                 <label className="form-label">Title *</label>
                 <input
+                  ref={titleRef}
                   className="form-input"
                   type="text"
                   value={form.title}

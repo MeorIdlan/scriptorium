@@ -13,6 +13,7 @@ import PolishReviewModal from '../overlays/PolishReviewModal.jsx';
 import { getBlocks, chapterTargets, selectionTargets, batchTargets } from '../../utils/editorBlocks.js';
 import EditorReviewModal from '../overlays/EditorReviewModal.jsx';
 import { sceneAtCaret } from '../../utils/scenes.js';
+import { useModal } from '../../hooks/useModal.js';
 
 function RekindlerCard({ snapshot, lastSessionAt, onDismiss }) {
   return (
@@ -36,9 +37,11 @@ function RekindlerCard({ snapshot, lastSessionAt, onDismiss }) {
 }
 
 function RekindlerPromptModal({ onConfirm, onDismiss, loading }) {
+  const { dialogProps } = useModal({ onClose: onDismiss });
+
   return createPortal(
     <div className="modal-backdrop">
-      <div className="modal rekindler-prompt-modal">
+      <div className="modal rekindler-prompt-modal" {...dialogProps}>
         <div className="modal-header">
           <span className="modal-title">Rekindle your session?</span>
           <button className="modal-close" onClick={onDismiss}>✕</button>

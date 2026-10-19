@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
+import { useModal } from '../../hooks/useModal.js';
 import { SUMMARY_STATUS_LABELS } from '../../utils/summaryStatus.js';
 
 export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
@@ -37,6 +38,7 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
     }
   }
 
+  const { dialogProps, backdropProps } = useModal({ onClose: onDismiss });
   const base = `/works/${workId}/chapters/${chapterId}/summary`;
   // Saving unchanged text would only mark the AI's summary as edited by you
   const handleSave = () =>
@@ -44,11 +46,8 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
   const handleRegenerate = () => run('regenerate', () => api.post(`${base}/regenerate`, {}));
 
   return (
-    <div
-      className="modal-backdrop draft-polish-backdrop"
-      onClick={(e) => e.target === e.currentTarget && onDismiss()}
-    >
-      <div className="modal chapter-summary-modal">
+    <div className="modal-backdrop draft-polish-backdrop" {...backdropProps}>
+      <div className="modal chapter-summary-modal" {...dialogProps}>
         <div className="modal-header">
           <div className="draft-polish-header-text">
             <h2 className="modal-title">Chapter Summary</h2>

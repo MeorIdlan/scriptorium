@@ -101,6 +101,12 @@ export default function WorkCard({ work, onDelete, onExport }) {
     navigate(`/work/${work.id}`);
   }
 
+  function handleTitleClick(e) {
+    // The click would also reach the card and open the work a second time
+    e.stopPropagation();
+    handleCardClick();
+  }
+
   const coverColor = work.coverColor || '#2a2a3e';
 
   return (
@@ -133,7 +139,11 @@ export default function WorkCard({ work, onDelete, onExport }) {
       </div>
 
       <div className="work-card-body">
-        <h3 className="work-card-title">{work.title}</h3>
+        <h3 className="work-card-title">
+          <button type="button" className="work-card-title-btn" onClick={handleTitleClick}>
+            {work.title}
+          </button>
+        </h3>
         {work.genre && <span className="work-card-genre">{work.genre}</span>}
         <p className="work-card-meta">
           {formatNumber(wordCount)} words · {relativeDate(work.updatedAt || work.lastTouched)}

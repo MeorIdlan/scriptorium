@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import ContextUsed from '../panel/ContextUsed.jsx';
+import { useModal } from '../../hooks/useModal.js';
 
 const MODE_LABELS = {
   full: 'Editorial Read-through',
@@ -16,14 +17,12 @@ const FLAG_ICONS = {
 export default function EditorReviewModal({ review, onDismiss }) {
   const { mode, summary, flags = [], context } = review;
   const icon = FLAG_ICONS[mode] ?? '◆';
+  const { dialogProps, backdropProps } = useModal({ onClose: onDismiss });
 
   // Portal: see PolishReviewModal
   return createPortal(
-    <div
-      className="modal-backdrop editor-review-backdrop"
-      onClick={(e) => e.target === e.currentTarget && onDismiss()}
-    >
-      <div className="modal editor-review-modal">
+    <div className="modal-backdrop editor-review-backdrop" {...backdropProps}>
+      <div className="modal editor-review-modal" {...dialogProps}>
         <div className="modal-header">
           <div className="editor-review-header-text">
             <h2 className="modal-title">Editorial Notes</h2>

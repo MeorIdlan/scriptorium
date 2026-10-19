@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { renderApp } from './support/app.js';
-import { click } from './support/render.js';
+import { click, press } from './support/render.js';
 import ChapterHistoryModal from '../src/components/overlays/ChapterHistoryModal.jsx';
 
 const base = '/works/w1/chapters/c1/snapshots';
@@ -20,5 +20,20 @@ test('restoring a version reloads the chapter list so chapter tags are not stale
   await click(button('Restore'));
   assert.ok(view.fetch.calls.some((c) => c.method === 'POST' && c.path === `${base}/snap_1/restore`));
   assert.ok(view.fetch.calls.some((c) => c.method === 'GET' && c.path === '/works/w1/chapters'));
+  await view.unmount();
+});
+
+test('the history modal is a labelled dialog, and Esc in its naming field cancels the naming only', async () => {
+  let dismissed = 0;
+  const view = await renderApp(h(ChapterHistoryModal, { workId: 'w1', chapterId: 'c1', onDismiss() { dismissed++; } }), { routes });
+  await click(button('Keep'));
+  assert.ok(document.querySelector('[role="dialog"]'));
+  await click(button('Rename'));
+  const input = document.querySelector('.history-name-input');
+  assert.ok(input);
+  await press(input, 'Escape');
+  assert.equal(document.querySelector('.history-name-input'), null);
+  assert.ok(document.querySelector('[role="dialog"]'));
+  assert.equal(dismissed, 0);
   await view.unmount();
 });
