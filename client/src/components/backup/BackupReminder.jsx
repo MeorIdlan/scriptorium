@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../../utils/api.js';
 import { saveFile } from '../../utils/saveFile.js';
+import { backedUpNow } from '../../utils/backupReminder.js';
 
 function daysText(days) {
   return `${days} ${days === 1 ? 'day' : 'days'}`;
@@ -33,9 +34,7 @@ export default function BackupReminder({ work, variant, onChange }) {
     try {
       const { blob, filename } = await api.download(`/works/${work.id}/backup`, {}, 'backup.zip');
       saveFile(blob, filename);
-      // The server records the backup a moment after the response ends, so a
-      // fresh read here could still say due
-      onChange({ due: false, lastBackupAt: new Date().toISOString(), daysSinceBackup: 0 });
+      onChange(backedUpNow());
     } catch (err) {
       setError(err.message);
     } finally {

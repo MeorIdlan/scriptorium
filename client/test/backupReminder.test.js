@@ -7,6 +7,7 @@ import { flush, click } from './support/render.js';
 import Shelves from '../src/pages/Shelves.jsx';
 import BackupReminder from '../src/components/backup/BackupReminder.jsx';
 import MainRoom from '../src/pages/MainRoom.jsx';
+import ExportModal from '../src/components/overlays/ExportModal.jsx';
 
 const DUE_12 = { due: true, lastBackupAt: '2026-10-07T09:00:00.000Z', daysSinceBackup: 12 };
 
@@ -70,6 +71,21 @@ function captureDownloads() {
 
 function reminderStrip(view) {
   return view.query('[data-testid="backup-reminder"]');
+}
+
+// Shelves with the export modal beside it, as App mounts it
+async function renderShelfWithExport(reminder) {
+  return renderApp(h(Fragment, null, h(Shelves), h(ExportModal)), {
+    routes: { 'GET /works': [work(reminder)] },
+  });
+}
+
+// Opens the work's Export modal through the card menu, as a writer does
+async function openExportFromCard(view) {
+  await click(view.query('button[aria-label="Work options"]'));
+  const exportItem = view.queryAll('.work-card-menu button').find((b) => b.textContent === 'Export');
+  await click(exportItem);
+  await flush();
 }
 
 test('the card shows "Not backed up in 12 days" for a due work', async () => {
@@ -142,6 +158,51 @@ test('a failed backup keeps the strip and shows the error', async () => {
     await flush();
     assert.ok(reminderStrip(view));
     assert.match(view.query('.form-error').textContent, /Backup failed/);
+    assert.equal(downloads.saved.length, 0);
+    await view.unmount();
+  } finally {
+    downloads.restore();
+  }
+});
+
+test('a backup made from the export modal hides the card strip', async () => {
+  const downloads = captureDownloads();
+  try {
+    const view = await renderShelfWithExport(DUE_12);
+    await openExportFromCard(view);
+    const requests = stubBackup(
+      () =>
+        new Response('zip-bytes', {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/zip',
+            'Content-Disposition': 'attachment; filename="the-long-night-backup.zip"',
+          },
+        })
+    );
+    await click(view.query('[data-testid="backup-button"]'));
+    await flush();
+    assert.deepEqual(requests, ['POST /works/w1/backup']);
+    assert.equal(downloads.saved.length, 1);
+    assert.equal(Boolean(reminderStrip(view)), false);
+    await view.unmount();
+  } finally {
+    downloads.restore();
+  }
+});
+
+test('a failed backup from the export modal keeps the card strip', async () => {
+  const downloads = captureDownloads();
+  try {
+    const view = await renderShelfWithExport(DUE_12);
+    await openExportFromCard(view);
+    stubBackup(() => new Response(JSON.stringify({ error: 'Backup failed' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+    await click(view.query('[data-testid="backup-button"]'));
+    await flush();
+    assert.ok(reminderStrip(view));
     assert.equal(downloads.saved.length, 0);
     await view.unmount();
   } finally {
