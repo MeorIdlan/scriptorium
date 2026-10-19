@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import { createElement as h, Fragment } from 'react';
 import { useLocation } from 'react-router-dom';
 import { renderApp } from './support/app.js';
-import { click } from './support/render.js';
+import { click, press } from './support/render.js';
+import './support/focus.js';
 import WorkCard from '../src/components/shelves/WorkCard.jsx';
+import ExportModal from '../src/components/overlays/ExportModal.jsx';
 
 const work = { id: 'w1', title: 'The Long Road', wordCount: 1200, status: 'active' };
 
@@ -49,5 +51,20 @@ test('no button is nested inside another button, with the work menu open', async
   assert.ok(view.button('Archive'));
   const nested = view.queryAll('button').filter((b) => b.parentElement?.closest('button'));
   assert.equal(nested.length, 0);
+  await view.unmount();
+});
+
+test('Export from the work menu, closed with Esc, returns focus to the menu button', async () => {
+  const view = await renderApp(h(Fragment, null, h(WorkCard, { work, onDelete() {}, onExport() {} }), h(ExportModal)));
+  const menu = view.query('.work-card-menu-btn');
+  await click(menu);
+  const exportItem = view.button('Export');
+  exportItem.focus();
+  await click(exportItem);
+  const dialog = view.query('[role="dialog"]');
+  assert.ok(dialog);
+  await press(dialog, 'Escape');
+  assert.equal(view.query('[role="dialog"]'), null);
+  assert.equal(document.activeElement === menu, true);
   await view.unmount();
 });

@@ -37,6 +37,7 @@ export default function WorkCard({ work, onDelete, onExport }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const menuRef = useRef(null);
+  const menuBtnRef = useRef(null);
 
   const wordCount = work.wordCount || 0;
   const target = work.targetWordCount || TARGET_WORD_COUNT;
@@ -93,6 +94,9 @@ export default function WorkCard({ work, onDelete, onExport }) {
 
   function handleExport(e) {
     e.stopPropagation();
+    // The menu item unmounts with the menu, so the export dialog would have no
+    // opener to return focus to; the menu button is the one that stays put
+    menuBtnRef.current?.focus();
     setMenuOpen(false);
     uiDispatch({ type: 'OPEN_EXPORT', workId: work.id });
   }
@@ -115,6 +119,7 @@ export default function WorkCard({ work, onDelete, onExport }) {
         <span className="work-card-color-swatch" style={{ background: coverColor }} />
         <div className="work-card-menu-wrap" ref={menuRef} onClick={(e) => e.stopPropagation()}>
           <button
+            ref={menuBtnRef}
             className="work-card-menu-btn"
             onClick={() => setMenuOpen((v) => !v)}
             aria-label="Work options"
