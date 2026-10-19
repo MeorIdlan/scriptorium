@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 const FOCUSABLE = [
   'a[href]',
   'button:not([disabled])',
-  'input:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
   'select:not([disabled])',
   'textarea:not([disabled])',
   '[tabindex]:not([tabindex="-1"])',
@@ -47,7 +47,7 @@ export function useModal({ onClose, initialFocusRef } = {}) {
     const first = items[0];
     const last = items[items.length - 1];
     const active = document.activeElement;
-    if (e.shiftKey && (active === first || !dialog.contains(active))) {
+    if (e.shiftKey && (active === first || active === dialog || !dialog.contains(active))) {
       e.preventDefault();
       last.focus();
     } else if (!e.shiftKey && (active === last || !dialog.contains(active))) {

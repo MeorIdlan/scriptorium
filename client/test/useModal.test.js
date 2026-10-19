@@ -61,6 +61,37 @@ test('Tab from the last element wraps to the first; Shift+Tab from the first wra
   await view.unmount();
 });
 
+test('Shift+Tab with the dialog itself focused wraps to the last focusable element', async () => {
+  const view = await render(h(Modal, { onClose() {} },
+    h('p', null, 'Some text'),
+    h('button', { id: 'first' }, 'First'),
+    h('button', { id: 'last' }, 'Last')));
+  const dialog = view.container.querySelector('.modal');
+  const last = view.container.querySelector('#last');
+
+  // Focus lands on the dialog after clicking non-focusable text inside it
+  dialog.focus();
+  const event = await keyDown(dialog, 'Tab', { shiftKey: true });
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(document.activeElement === last, true);
+  await view.unmount();
+});
+
+test('a hidden input is not treated as the last focusable element', async () => {
+  const view = await render(h(Modal, { onClose() {} },
+    h('button', { id: 'first' }, 'First'),
+    h('button', { id: 'last' }, 'Last'),
+    h('input', { id: 'token', type: 'hidden', value: 'x' })));
+  const first = view.container.querySelector('#first');
+  const last = view.container.querySelector('#last');
+
+  last.focus();
+  const event = await keyDown(last, 'Tab');
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(document.activeElement === first, true);
+  await view.unmount();
+});
+
 test('Esc calls onClose once and does not reach a document keydown listener', async () => {
   let closes = 0;
   const view = await render(h(Modal, { onClose: () => closes++ },
