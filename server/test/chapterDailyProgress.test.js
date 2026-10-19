@@ -50,10 +50,24 @@ test('a move within one save adds nothing (A4)', async () => {
   assert.equal(await getDailyWords('user_a', todayUtc()), 3);
 });
 
+// Either order counts 5: 2 + 3 when the short save lands first, 5 + 0 when it lands last. A double count would be 7.
 test('two tabs saving the same chapter at once do not double count (review focus 2)', async () => {
   await Promise.all([save('one two'), save('one two three four five')]);
-  const chapter = await Chapter.findById('ch_1').lean();
-  assert.equal(await getDailyWords('user_a', todayUtc()), chapter.wordCount);
+  assert.equal(await getDailyWords('user_a', todayUtc()), 5);
+});
+
+test('two tabs: the shorter save landing last adds nothing', async () => {
+  await save('one two three four five');
+  await save('one two');
+  assert.equal(await getDailyWords('user_a', todayUtc()), 5);
+  assert.equal((await Chapter.findById('ch_1').lean()).wordCount, 2);
+});
+
+test('two tabs: the shorter save landing first adds only the gain', async () => {
+  await save('one two');
+  await save('one two three four five');
+  assert.equal(await getDailyWords('user_a', todayUtc()), 5);
+  assert.equal((await Chapter.findById('ch_1').lean()).wordCount, 5);
 });
 
 test('a missing or invalid X-Timezone still saves and counts under UTC (review focus 1)', async () => {
