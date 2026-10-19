@@ -25,13 +25,18 @@ export default function MainRoom() {
   const [newChapterTitle, setNewChapterTitle] = useState('');
   const [milestonesOpen, setMilestonesOpen] = useState(false);
   const [loadingChapterId, setLoadingChapterId] = useState(null);
+  const [failedChapterId, setFailedChapterId] = useState(null);
+  // Bumped to fetch the URL's chapter again after a failure
+  const [retryCount, setRetryCount] = useState(0);
 
   // The one place chapters are fetched: the effect below asks for the URL's
   // chapter, and the loader drops repeat asks and replies that arrive too late
   const workIdRef = useRef(workId);
   workIdRef.current = workId;
-  const shownChapterIdRef = useRef(editorState.chapterId);
-  shownChapterIdRef.current = editorState.chapterId;
+  // The chapter whose text this page holds (EditorContext can remember one
+  // from an earlier visit or another work)
+  const loadedChapterIdRef = useRef(chapterContent.id);
+  loadedChapterIdRef.current = chapterContent.id;
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
   const loaderRef = useRef(null);
@@ -41,6 +46,7 @@ export default function MainRoom() {
       onLoaded: (chId, chapter) => {
         const text = chapter.content || '';
         const html = chapter.contentHtml || '';
+        setFailedChapterId(null);
         setChapterContent({ id: chId, text, html });
         loadContent(chId, text, html);
       },
@@ -48,8 +54,9 @@ export default function MainRoom() {
         console.error('Failed to load chapter:', err);
         // Point the URL back at the chapter still on screen, so it matches
         // the editor and clicking the failed chapter again retries it
-        const shown = shownChapterIdRef.current;
+        const shown = loadedChapterIdRef.current;
         if (shown) navigateRef.current(`/work/${workIdRef.current}/chapter/${shown}`, { replace: true });
+        else setFailedChapterId(chId);
       },
       onLoadingChange: setLoadingChapterId,
     });
@@ -81,6 +88,8 @@ export default function MainRoom() {
 
   // Determine which chapter to open
   useEffect(() => {
+    // Until this work has loaded, the context still holds the previous one
+    if (state.work?.id !== workId) return;
     const target = chapterToLoad({
       urlChapterId,
       work: state.work,
@@ -92,11 +101,14 @@ export default function MainRoom() {
     // fetch still out for another chapter (a click back, or browser Back)
     if (target) loaderRef.current.load(target);
     else loaderRef.current.cancel();
-  }, [state.chapters, state.work, urlChapterId, chapterContent.id]);
+  }, [state.chapters, state.work, workId, urlChapterId, chapterContent.id, retryCount]);
 
   // Changing the URL is enough: the effect above loads the chapter
   function handleChapterSelect(chId) {
-    if (chId === (urlChapterId || editorState.chapterId)) return;
+    if (chId === (urlChapterId || editorState.chapterId)) {
+      if (chapterContent.id !== chId) setRetryCount((n) => n + 1);
+      return;
+    }
     navigate(`/work/${workId}/chapter/${chId}`);
   }
 
@@ -203,13 +215,21 @@ export default function MainRoom() {
         {/* Editor area */}
         <div className="editor-area">
           <div className="editor-wrap">
-            {loadingChapterId !== null && <p className="editor-loading-note">Loading…</p>}
+            {loadingChapterId !== null ? (
+              <p className="editor-loading-note">Loading…</p>
+            ) : (
+              failedChapterId !== null && (
+                <p className="editor-loading-note">Couldn’t load this chapter. Click it in the list to try again.</p>
+              )
+            )}
             <Editor
               ref={editorRef}
               workId={workId}
               initialContent={chapterContent.text}
               initialHtml={chapterContent.html}
-              loading={loadingChapterId !== null}
+              // Read-only until this page holds the chapter the editor is on:
+              // typing into an empty editor would save over the whole chapter
+              loading={loadingChapterId !== null || chapterContent.id === null || chapterContent.id !== editorState.chapterId}
               // Re-mount on chapter change, and once this page has the chapter's text
               key={`${editorState.chapterId}:${chapterContent.id}`}
             />
