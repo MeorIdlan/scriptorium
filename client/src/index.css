@@ -743,6 +743,7 @@ a:hover {
   gap: 0.5rem 0.75rem;
   font-size: 0.8rem;
   color: var(--gold);
+  cursor: default;
 }
 .backup-reminder--card {
   border-top: 1px solid var(--border);

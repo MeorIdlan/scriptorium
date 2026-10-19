@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createElement as h, Fragment } from 'react';
 import { useLocation } from 'react-router-dom';
 import { renderApp, HttpError } from './support/app.js';
-import { flush, click } from './support/render.js';
+import { act, flush, click } from './support/render.js';
 import Shelves from '../src/pages/Shelves.jsx';
 import BackupReminder from '../src/components/backup/BackupReminder.jsx';
 import MainRoom from '../src/pages/MainRoom.jsx';
@@ -250,6 +250,94 @@ test('a failed snooze keeps the strip and shows the error', async () => {
   await view.unmount();
 });
 
+// A request that waits until release() is called, so a test can see the UI mid-request
+function holdRequest(reply) {
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  return { release, reply: () => gate.then(reply) };
+}
+
+test('while a backup is running, Later and Dismiss are disabled', async () => {
+  const downloads = captureDownloads();
+  const held = holdRequest(
+    () =>
+      new Response('zip-bytes', {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': 'attachment; filename="the-long-night-backup.zip"',
+        },
+      })
+  );
+  try {
+    const view = await renderShelf(DUE_12);
+    stubBackup(held.reply);
+    await click(view.button('Back up now'));
+    assert.ok(view.button('Backing up')?.hasAttribute('disabled'));
+    assert.ok(view.button('Later').hasAttribute('disabled'));
+    assert.ok(view.query('button[aria-label="Dismiss"]').hasAttribute('disabled'));
+    held.release();
+    await flush();
+    await view.unmount();
+  } finally {
+    downloads.restore();
+  }
+});
+
+test('while a snooze is running, every reminder button is disabled', async () => {
+  const held = holdRequest(() => ({
+    backupReminder: { due: false, lastBackupAt: DUE_12.lastBackupAt, daysSinceBackup: 12 },
+  }));
+  const view = await renderShelf(DUE_12, {
+    'POST /works/w1/backup-reminder': held.reply,
+  });
+  await click(view.button('Later'));
+  assert.ok(view.button('Back up now').hasAttribute('disabled'));
+  assert.ok(view.button('Later').hasAttribute('disabled'));
+  assert.ok(view.query('button[aria-label="Dismiss"]').hasAttribute('disabled'));
+  held.release();
+  await flush();
+  await view.unmount();
+});
+
+test('two quick clicks on Later send one request', async () => {
+  let posts = 0;
+  const held = holdRequest(() => ({
+    backupReminder: { due: false, lastBackupAt: DUE_12.lastBackupAt, daysSinceBackup: 12 },
+  }));
+  const view = await renderShelf(DUE_12, {
+    'POST /works/w1/backup-reminder': () => {
+      posts++;
+      return held.reply();
+    },
+  });
+  const later = view.button('Later');
+  // Both clicks land before React re-renders, so the buttons aren't disabled yet
+  await act(async () => {
+    later.dispatchEvent(new globalThis.window.Event('click', { bubbles: true }));
+    later.dispatchEvent(new globalThis.window.Event('click', { bubbles: true }));
+  });
+  assert.equal(posts, 1);
+  held.release();
+  await flush();
+  await view.unmount();
+});
+
+test('a failed snooze re-enables the buttons', async () => {
+  const view = await renderShelf(DUE_12, {
+    'POST /works/w1/backup-reminder': () => new HttpError(500, 'SERVER', 'Could not snooze'),
+  });
+  await click(view.button('Later'));
+  await flush();
+  assert.equal(view.button('Back up now').hasAttribute('disabled'), false);
+  assert.equal(view.button('Later').hasAttribute('disabled'), false);
+  assert.equal(view.query('button[aria-label="Dismiss"]').hasAttribute('disabled'), false);
+  assert.match(view.query('.form-error').textContent, /Could not snooze/);
+  await view.unmount();
+});
+
 test('clicking inside the strip doesn\'t open the work', async () => {
   const view = await renderShelf(DUE_12, {
     'POST /works/w1/backup-reminder': () => ({
@@ -277,17 +365,6 @@ test('the banner variant shows the banner copy and buttons', async () => {
   assert.ok(view.button('Remind me later'));
   assert.ok(view.button('Dismiss'));
   await view.unmount();
-});
-
-// The Main Room's editor writes innerText, which linkedom only has as a getter
-Object.defineProperty(Object.getPrototypeOf(document.createElement('div')), 'innerText', {
-  configurable: true,
-  get() {
-    return this.textContent;
-  },
-  set(text) {
-    this.textContent = text;
-  },
 });
 
 // Main Room with one work from GET /works/w1
