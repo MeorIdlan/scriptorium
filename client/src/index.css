@@ -1411,7 +1411,15 @@ a:hover {
 .scene-row.dragging { opacity: 0.5; }
 .scene-row.drop-target { border-color: var(--gold); border-style: dashed; }
 .scene-row-main {
-  all: unset;
+  /* The button's own look, reset by hand: all: unset would also drop the focus ring */
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
   cursor: pointer;
   display: flex;
   flex-direction: column;

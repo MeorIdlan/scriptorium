@@ -46,3 +46,8 @@ test('scene rows take the global focus ring instead of their own 1px outline', (
   const override = blocks.find((block) => block.selector.includes('.scene-row-main:focus-visible'));
   assert.equal(override, undefined, '.scene-row-main:focus-visible overrides the global ring; delete it');
 });
+
+test('no rule resets every property with all: unset, which would also drop the focus ring', () => {
+  const resetters = blocks.filter((block) => /(?:^|;)\s*all:\s*unset\s*(?:;|$)/.test(block.body));
+  assert.deepEqual(resetters.map((block) => block.selector), [], 'replace all: unset with the properties the element needs');
+});
