@@ -100,10 +100,13 @@ test('the add-entry dialog opens focused on its name field and stays open on a c
   await view.unmount();
 });
 
-test('the add-entry dialog is a labelled dialog, and Esc on its name field closes it', async () => {
+test('the add-entry dialog is labelled by its title, and Esc on its name field closes it', async () => {
   const view = await openCodex(false);
   await click(view.button('+ Add'));
-  assert.ok(view.query('[role="dialog"]'));
+  const dialog = view.query('[role="dialog"]');
+  assert.ok(dialog);
+  assert.equal(dialog.getAttribute('aria-labelledby'), view.query('.modal-title').id);
+  assert.equal(view.query('.modal-title').textContent, 'New Character');
   await press(view.query('.modal input'), 'Escape');
   assert.equal(view.query('[role="dialog"]'), null);
   await view.unmount();
