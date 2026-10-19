@@ -8,6 +8,7 @@ import { sceneList, sceneAtNode, writeSceneCard, removeSceneBreak, scrollToScene
 import { flushOpenChapter } from '../../utils/versionHistory.js';
 import { chapterLabel } from '../../utils/catchGroups.js';
 import { moveSceneRequest, destinationScenes, dropIndex } from '../../utils/sceneMoves.js';
+import { rowLeaveFocus } from '../../utils/rowLeave.js';
 import SceneRow from './SceneRow.jsx';
 import { ChapterThreads } from './ThreadChips.jsx';
 import { setChapterThreads, toggleTag, tagList } from '../../utils/threads.js';
@@ -85,13 +86,15 @@ export default function ScenesTab({ workId }) {
     const root = editorRoot();
     if (!root) {
       setErrors((e) => ({ ...e, [key]: 'Open a chapter first.' }));
-      return;
+      return false;
     }
     try {
       fn(root);
       setErrors((e) => ({ ...e, [key]: '' }));
+      return true;
     } catch (err) {
       setErrors((e) => ({ ...e, [key]: err.message || 'Something went wrong.' }));
+      return false;
     }
   };
 
@@ -180,7 +183,11 @@ export default function ScenesTab({ workId }) {
               error={errors[key]}
               onJump={() => withRoot(key, (root) => scrollToScene(root, sceneList(root)[scene.index]))}
               onSave={(fields) => withRoot(key, (root) => writeSceneCard(root, scene.index, fields))}
-              onRemove={() => withRoot(key, (root) => removeSceneBreak(root, sceneList(root)[scene.index]?.marker))}
+              onRemove={() => {
+                // Removing selects the break in the editor; focus then goes to the next scene, or the previous one
+                const next = rowLeaveFocus([...moveList.current.children], scene.index);
+                if (withRoot(key, (root) => removeSceneBreak(root, sceneList(root)[scene.index]?.marker))) next?.current.focus();
+              }}
               busy={busy}
               dragging={dragFrom === scene.index}
               dropTarget={dragOver === scene.index && dragFrom !== null && dragFrom !== scene.index}

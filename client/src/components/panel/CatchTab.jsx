@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { api } from '../../utils/api.js';
 import { chapterLabel, filterCatches, groupCatches } from '../../utils/catchGroups.js';
 import { markUsed, markDiscarded, reopen, markUsedAfter, useAsCodex, useAsMapNote } from '../../utils/catchActions.js';
 import { insertParagraphAfter, rememberedCaret } from '../../utils/editorBlocks.js';
+import { rowLeaveFocus } from '../../utils/rowLeave.js';
 import CatchRow from './CatchRow.jsx';
 
 const STATUSES = [
@@ -36,6 +38,9 @@ export default function CatchTab({ workId }) {
   const { state: editorState } = useEditor();
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('open');
+  const listRef = useRef(null);
+  const searchRef = useRef(null);
+  const returnFocus = useReturnFocus();
 
   useEffect(() => {
     if (workId) refreshCatches(workId);
@@ -48,6 +53,11 @@ export default function CatchTab({ workId }) {
 
   async function runAction(item, kind, payload) {
     let result;
+    // A discard takes the row out of the list, so focus moves to a neighbour before it goes
+    const leaving = kind === 'discard'
+      ? rowLeaveFocus([...listRef.current.querySelectorAll('.catch-row')], groups.flatMap((g) => g.items).findIndex((i) => i.id === item.id), searchRef.current)
+      : null;
+    if (kind === 'discard') returnFocus(leaving);
     switch (kind) {
       case 'edit':
         result = await attempt(() => api.put(`/works/${workId}/catches/${item.id}`, payload));
@@ -86,6 +96,7 @@ export default function CatchTab({ workId }) {
       default:
         result = { ok: false, stage: 'create', error: new Error(`Unknown action: ${kind}`) };
     }
+    if (leaving && !result.ok) returnFocus(null);
     refreshCatches(workId);
     return result;
   }
@@ -93,8 +104,9 @@ export default function CatchTab({ workId }) {
   const trimmed = query.trim();
 
   return (
-    <div className="catch-tab">
+    <div className="catch-tab" ref={listRef}>
       <input
+        ref={searchRef}
         className="form-input catch-search"
         type="search"
         value={query}

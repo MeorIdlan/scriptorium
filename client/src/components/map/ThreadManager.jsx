@@ -3,6 +3,7 @@ import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { api } from '../../utils/api.js';
 import ThreadRow from './ThreadRow.jsx';
 import { threadNameError, threadTagCount } from '../../utils/threads.js';
+import { rowLeaveFocus } from '../../utils/rowLeave.js';
 
 // The work's plot threads, on the Map. Every write reloads the list via onChanged.
 export default function ThreadManager({ workId, threads, chapters, onChanged, onDeleted }) {
@@ -12,6 +13,7 @@ export default function ThreadManager({ workId, threads, chapters, onChanged, on
   const creating = useRef(false);
   const addingRef = useRef(false); // readable by a blur that fires while the field unmounts
   const newButton = useRef(null);
+  const listRef = useRef(null);
   // A keyboard close hands focus back to the New thread button, once it is shown again
   const returnFocus = useReturnFocus();
   const base = `/works/${workId}/threads`;
@@ -84,8 +86,8 @@ export default function ThreadManager({ workId, threads, chapters, onChanged, on
       {threads.length === 0 && !adding && (
         <p className="chapter-detail-muted">No plot threads yet. Add the subplots and mysteries you need to keep track of.</p>
       )}
-      <ul className="thread-list">
-        {threads.map((thread) => (
+      <ul className="thread-list" ref={listRef}>
+        {threads.map((thread, index) => (
           <ThreadRow
             key={thread.id}
             thread={thread}
@@ -93,7 +95,9 @@ export default function ThreadManager({ workId, threads, chapters, onChanged, on
             error={errors[thread.id]}
             onSave={(fields) => run(thread.id, () => api.put(`${base}/${thread.id}`, fields))}
             onDelete={async () => {
+              returnFocus(rowLeaveFocus([...listRef.current.children], index, newButton.current));
               if (await run(thread.id, () => api.delete(`${base}/${thread.id}`))) await onDeleted?.();
+              else returnFocus(null);
             }}
             onCancel={() => setErrors((e) => ({ ...e, [thread.id]: null }))}
           />

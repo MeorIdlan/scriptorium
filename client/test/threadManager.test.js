@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createElement as h } from 'react';
+import { createElement as h, useState } from 'react';
 import { renderApp, HttpError } from './support/app.js';
 import { act, click, flush, type, press, blur, pressThenBlur } from './support/render.js';
 import './support/focus.js';
@@ -246,5 +246,60 @@ test('Enter in the new-thread field claims its keypress, so the New thread butto
   await click(view.button('New thread'));
   const event = await keyDownEvent(view.query('.thread-new-name'), 'Enter');
   assert.equal(event.defaultPrevented, true);
+  await view.unmount();
+});
+
+// A list that drops the deleted thread on reload, as the server's list does
+function ListHost({ initial, gone }) {
+  const [threads, setThreads] = useState(initial);
+  return h(ThreadManager, {
+    workId: 'w1',
+    threads,
+    chapters,
+    onChanged: async () => setThreads((list) => list.filter((t) => t.id !== gone.id)),
+    onDeleted: async () => {},
+  });
+}
+
+async function deleteRow(view, index) {
+  const row = view.container.querySelectorAll('.thread-row')[index];
+  await click([...row.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Delete'));
+  await click(view.button('Delete thread'));
+}
+
+function threadAt(id, name) {
+  return { id, name, color: '#c9a96e', description: '', status: 'open', order: 0 };
+}
+
+async function mountList(threads, gone) {
+  const view = await renderApp(h(ListHost, { initial: threads, gone }), {
+    routes: { 'DELETE /works/w1/threads/thr_b': {}, 'DELETE /works/w1/threads/thr_c': {}, 'DELETE /works/w1/threads/thr_a': {} },
+  });
+  return view;
+}
+
+const swatchOf = (view, index) => view.container.querySelectorAll('.thread-row')[index].querySelector('.thread-swatch');
+
+test('deleting a thread in the middle moves focus to the next row', async () => {
+  const gone = { id: 'thr_b' };
+  const view = await mountList([threadAt('thr_a', 'A'), threadAt('thr_b', 'B'), threadAt('thr_c', 'C')], gone);
+  await deleteRow(view, 1);
+  assert.equal(document.activeElement === swatchOf(view, 1), true);
+  await view.unmount();
+});
+
+test('deleting the last thread moves focus to the previous row', async () => {
+  const gone = { id: 'thr_c' };
+  const view = await mountList([threadAt('thr_a', 'A'), threadAt('thr_b', 'B'), threadAt('thr_c', 'C')], gone);
+  await deleteRow(view, 2);
+  assert.equal(document.activeElement === swatchOf(view, 1), true);
+  await view.unmount();
+});
+
+test('deleting the only thread moves focus to New thread', async () => {
+  const gone = { id: 'thr_a' };
+  const view = await mountList([threadAt('thr_a', 'A')], gone);
+  await deleteRow(view, 0);
+  assert.equal(document.activeElement === view.button('New thread'), true);
   await view.unmount();
 });
