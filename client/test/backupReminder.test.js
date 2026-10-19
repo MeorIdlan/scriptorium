@@ -7,6 +7,7 @@ import { act, flush, click } from './support/render.js';
 import Shelves from '../src/pages/Shelves.jsx';
 import BackupReminder from '../src/components/backup/BackupReminder.jsx';
 import MainRoom from '../src/pages/MainRoom.jsx';
+import TopBar from '../src/components/layout/TopBar.jsx';
 import ExportModal from '../src/components/overlays/ExportModal.jsx';
 
 const DUE_12 = { due: true, lastBackupAt: '2026-10-07T09:00:00.000Z', daysSinceBackup: 12 };
@@ -367,11 +368,11 @@ test('the banner variant shows the banner copy and buttons', async () => {
   await view.unmount();
 });
 
-// Main Room with one work from GET /works/w1
+// Main Room with one work from GET /works/w1, under the TopBar as App mounts it
 const DUE_9 = { due: true, lastBackupAt: '2026-10-10T09:00:00.000Z', daysSinceBackup: 9 };
 
 async function renderMainRoom(reminder, routes = {}) {
-  return renderApp(h(MainRoom), {
+  return renderApp(h(Fragment, null, h(TopBar), h(MainRoom)), {
     path: '/work/w1',
     route: '/work/:workId',
     routes: {
@@ -407,5 +408,18 @@ test('Remind me later hides the banner', async () => {
   const post = view.fetch.calls.find((c) => c.path === '/works/w1/backup-reminder');
   assert.deepEqual(post.body, { action: 'snooze' });
   assert.equal(view.query('[data-testid="backup-reminder"]'), null);
+  await view.unmount();
+});
+
+test('Remind me later in the Main Room keeps the work\'s other fields', async () => {
+  const view = await renderMainRoom(DUE_9, {
+    'POST /works/w1/backup-reminder': () => ({
+      backupReminder: { due: false, lastBackupAt: null, daysSinceBackup: null },
+    }),
+  });
+  await click(view.button('Remind me later'));
+  await flush();
+  assert.equal(view.query('[data-testid="backup-reminder"]'), null);
+  assert.equal(view.query('.topbar-title').textContent, 'The Long Night');
   await view.unmount();
 });
