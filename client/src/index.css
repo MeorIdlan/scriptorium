@@ -263,7 +263,8 @@ a:hover {
   white-space: nowrap;
 }
 
-.btn:disabled {
+.btn:disabled,
+.btn[aria-disabled="true"] {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -273,7 +274,7 @@ a:hover {
   color: var(--bg);
   font-weight: bold;
 }
-.btn-primary:hover:not(:disabled) {
+.btn-primary:hover:not(:disabled):not([aria-disabled="true"]) {
   background: var(--gold-hover);
 }
 
@@ -282,7 +283,7 @@ a:hover {
   color: var(--gold);
   border: 1px solid var(--gold-dim);
 }
-.btn-secondary:hover:not(:disabled) {
+.btn-secondary:hover:not(:disabled):not([aria-disabled="true"]) {
   background: rgba(201, 169, 110, 0.25);
 }
 
@@ -291,7 +292,7 @@ a:hover {
   color: var(--text-muted);
   border: 1px solid var(--border-control);
 }
-.btn-ghost:hover:not(:disabled) {
+.btn-ghost:hover:not(:disabled):not([aria-disabled="true"]) {
   color: var(--text);
   border-color: var(--text-muted);
   background: rgba(255, 255, 255, 0.04);
@@ -301,7 +302,7 @@ a:hover {
 .btn.danger {
   color: var(--error);
 }
-.btn-ghost.danger:hover:not(:disabled) {
+.btn-ghost.danger:hover:not(:disabled):not([aria-disabled="true"]) {
   background: rgba(224, 122, 122, 0.1);
   border-color: var(--error);
 }
@@ -2111,7 +2112,7 @@ a:hover {
   margin-bottom: 0.35rem;
 }
 
-.codex-ai-btn:hover:not(:disabled) {
+.codex-ai-btn:hover:not(:disabled):not([aria-disabled="true"]) {
   background: var(--surface-2, rgba(255,255,255,0.04));
   color: var(--text);
 }
@@ -2133,7 +2134,7 @@ a:hover {
   transition: background 0.15s;
 }
 
-.codex-suggest-trigger:hover:not(:disabled) {
+.codex-suggest-trigger:hover:not(:disabled):not([aria-disabled="true"]) {
   background: rgba(201, 169, 110, 0.08);
 }
 
@@ -2778,7 +2779,8 @@ button.rule-item {
   cursor: pointer;
 }
 
-.admin-users-table button:disabled {
+.admin-users-table button:disabled,
+.admin-users-table button[aria-disabled="true"] {
   opacity: 0.4;
   cursor: not-allowed;
 }
@@ -3189,7 +3191,7 @@ button.rule-item {
   border: 1px solid rgba(224, 122, 122, 0.4);
   color: var(--error);
 }
-.btn-danger:hover:not(:disabled) { background: rgba(224, 122, 122, 0.2); }
+.btn-danger:hover:not(:disabled):not([aria-disabled="true"]) { background: rgba(224, 122, 122, 0.2); }
 
 .chapter-sidebar-actions { display: flex; gap: 0.25rem; }
 
@@ -3241,7 +3243,7 @@ button.rule-item {
   border-color: rgba(201, 169, 110, 0.25);
   color: var(--gold);
 }
-.quill-ai-btn--polish:hover:not(:disabled) {
+.quill-ai-btn--polish:hover:not(:disabled):not([aria-disabled="true"]) {
   background: rgba(201, 169, 110, 0.08);
   border-color: var(--gold);
 }
@@ -3250,7 +3252,7 @@ button.rule-item {
   border-color: rgba(93, 202, 165, 0.2);
   color: var(--teal);
 }
-.quill-ai-btn--editor:hover:not(:disabled) {
+.quill-ai-btn--editor:hover:not(:disabled):not([aria-disabled="true"]) {
   background: rgba(93, 202, 165, 0.07);
   border-color: var(--teal);
 }
@@ -3496,7 +3498,8 @@ button.rule-item {
   font-weight: 600;
 }
 
-.auth-card button:disabled {
+.auth-card button:disabled,
+.auth-card button[aria-disabled="true"] {
   opacity: 0.6;
   cursor: default;
 }
@@ -3545,7 +3548,7 @@ button.rule-item {
   cursor: pointer;
 }
 .context-used-line:disabled { cursor: default; }
-.context-used-line:not(:disabled):hover { color: var(--text-muted); }
+.context-used-line:not(:disabled):not([aria-disabled="true"]):hover { color: var(--text-muted); }
 
 .context-used-warning {
   margin-top: 0.2rem;
@@ -3670,7 +3673,8 @@ button.rule-item {
 .thread-chip { border: 1px solid var(--thread-color, var(--border)); border-radius: 999px; background: transparent; color: var(--text-muted); font-size: 0.78rem; padding: 2px 10px; cursor: pointer; }
 .thread-chip.on { background: var(--thread-color, var(--gold)); color: var(--bg); }
 .thread-chip.resolved:not(.on) { opacity: 0.55; text-decoration: line-through; }
-.thread-chip:disabled { cursor: default; opacity: 0.6; }
+.thread-chip:disabled,
+.thread-chip[aria-disabled="true"] { cursor: default; opacity: 0.6; }
 .thread-markers { display: inline-flex; gap: 4px; align-items: center; }
 .thread-marker { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .scene-card-threads { display: flex; flex-direction: column; gap: 4px; font-size: 0.75rem; color: var(--text-muted); }
