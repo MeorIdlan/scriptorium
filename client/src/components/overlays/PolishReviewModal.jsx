@@ -153,7 +153,7 @@ export default function PolishReviewModal({ workId, chapterId, session, summarie
             <h2 id={titleId} className="modal-title">Polish {session.mode === 'selection' ? 'selection' : 'chapter'}</h2>
             <p className="draft-polish-subtitle">Accept the changes you want. Nothing in your chapter changes until you apply.</p>
           </div>
-          <button className="modal-close" onClick={() => onClose(null)}>✕</button>
+          <button className="modal-close" aria-label="Close" onClick={() => onClose(null)}>✕</button>
         </div>
 
         <div className="polish-review-toolbar">

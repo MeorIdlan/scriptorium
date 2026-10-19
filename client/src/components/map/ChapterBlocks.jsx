@@ -43,6 +43,7 @@ export default function ChapterBlocks({ chapters, pov = '' }) {
               }}
               onClick={() => dispatch({ type: 'SET_MAP_CHAPTER', chapterId: ch.id })}
               title={`Ch. ${ch.number}: ${ch.title}`}
+              aria-label={`Ch. ${ch.number}: ${ch.title}`}
             >
               <span className="chapter-block-num">
                 {ch.number}

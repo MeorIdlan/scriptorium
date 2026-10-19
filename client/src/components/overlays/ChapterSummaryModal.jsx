@@ -56,7 +56,7 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
               AI help uses this to remember what happened in {chapter ? `“${chapter.title}”` : 'this chapter'}.
             </p>
           </div>
-          <button className="modal-close" onClick={onDismiss}>✕</button>
+          <button className="modal-close" aria-label="Close" onClick={onDismiss}>✕</button>
         </div>
 
         <div className="modal-body">

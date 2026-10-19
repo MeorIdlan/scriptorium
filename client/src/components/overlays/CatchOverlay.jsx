@@ -88,7 +88,7 @@ function CatchDialog() {
       <div className="catch-overlay-header">
         <span id={titleId} className="catch-overlay-title">Catch an Idea</span>
         <button
-          className="catch-overlay-close"
+          className="catch-overlay-close" aria-label="Close"
           onClick={() => dispatch({ type: 'CLOSE_CATCH' })}
         >
           ✕

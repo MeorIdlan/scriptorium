@@ -146,7 +146,7 @@ export default function MilestonesModal({ workId, onDismiss }) {
               A milestone saves every chapter as it is now. Compare against it later, and restore any chapter on its own.
             </p>
           </div>
-          <button className="modal-close" onClick={onDismiss}>✕</button>
+          <button className="modal-close" aria-label="Close" onClick={onDismiss}>✕</button>
         </div>
 
         <div className="modal-body history-body">

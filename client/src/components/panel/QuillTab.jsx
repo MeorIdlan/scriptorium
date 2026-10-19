@@ -45,7 +45,7 @@ function RekindlerPromptModal({ onConfirm, onDismiss, loading }) {
       <div className="modal rekindler-prompt-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <span id={titleId} className="modal-title">Rekindle your session?</span>
-          <button className="modal-close" onClick={onDismiss}>✕</button>
+          <button className="modal-close" aria-label="Close" onClick={onDismiss}>✕</button>
         </div>
         <div className="modal-body">
           <p className="rekindler-prompt-body">

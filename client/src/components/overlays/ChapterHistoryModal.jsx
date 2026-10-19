@@ -177,7 +177,7 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
               Saved automatically while you write — every version from the last day, then one a day for a month, then one a week. Named versions are kept forever.
             </p>
           </div>
-          <button className="modal-close" onClick={onDismiss}>✕</button>
+          <button className="modal-close" aria-label="Close" onClick={onDismiss}>✕</button>
         </div>
 
         <div className="modal-body history-body">

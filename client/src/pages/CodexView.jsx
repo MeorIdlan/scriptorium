@@ -40,7 +40,7 @@ function AddEntityModal({ type, onConfirm, onClose }) {
       <div className="modal" style={{ maxWidth: 380 }} aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <span id={titleId} className="modal-title">New {label}</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
           <div className="form-group">
@@ -86,7 +86,7 @@ function AddRuleModal({ onConfirm, onClose }) {
       <div className="modal" style={{ maxWidth: 460 }} aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <span id={titleId} className="modal-title">New World Rule</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
           <div className="form-group">

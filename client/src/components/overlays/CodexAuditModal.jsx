@@ -22,7 +22,7 @@ export default function CodexAuditModal({ audit, onDismiss }) {
             <h2 id={titleId} className="modal-title">Codex Audit</h2>
             <p className="codex-audit-subtitle">Cross-entry consistency &amp; completeness</p>
           </div>
-          <button className="modal-close" onClick={onDismiss}>✕</button>
+          <button className="modal-close" aria-label="Close" onClick={onDismiss}>✕</button>
         </div>
 
         <div className="codex-audit-body">

@@ -84,7 +84,7 @@ export default function NewWorkWizard({ onClose }) {
       <div className="modal wizard-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <h2 id={titleId} className="modal-title">New Work</h2>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
         </div>
 
         <div className="wizard-steps">

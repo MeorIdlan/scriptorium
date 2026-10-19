@@ -30,7 +30,7 @@ export default function EditorReviewModal({ review, onDismiss }) {
             <h2 id={titleId} className="modal-title">Editorial Notes</h2>
             <p className="editor-review-mode-label">{MODE_LABELS[mode] ?? mode}</p>
           </div>
-          <button className="modal-close" onClick={onDismiss}>✕</button>
+          <button className="modal-close" aria-label="Close" onClick={onDismiss}>✕</button>
         </div>
 
         <div className="modal-body editor-review-body">

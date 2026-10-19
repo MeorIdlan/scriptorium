@@ -88,6 +88,7 @@ export default function Toolbar({ editorRef }) {
         className="toolbar-btn"
         onClick={() => exec('justifyLeft')}
         title="Align left"
+        aria-label="Align left"
       >
         ≡
       </button>
@@ -95,6 +96,7 @@ export default function Toolbar({ editorRef }) {
         className="toolbar-btn"
         onClick={() => exec('justifyCenter')}
         title="Align center"
+        aria-label="Align center"
       >
         ☰
       </button>
@@ -102,6 +104,7 @@ export default function Toolbar({ editorRef }) {
         className="toolbar-btn"
         onClick={() => exec('justifyRight')}
         title="Align right"
+        aria-label="Align right"
       >
         ≡
       </button>
@@ -114,6 +117,7 @@ export default function Toolbar({ editorRef }) {
           if (root) insertSceneBreak(root, rememberedCaret(root));
         }}
         title="Add a scene break (Ctrl+Shift+Enter)"
+        aria-label="Add a scene break"
       >
         ⁂
       </button>

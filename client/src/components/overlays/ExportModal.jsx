@@ -157,7 +157,7 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
       <div className="modal export-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <h2 id={titleId} className="modal-title">Export Work</h2>
-          <button className="modal-close" onClick={handleClose}>✕</button>
+          <button className="modal-close" aria-label="Close" onClick={handleClose}>✕</button>
         </div>
 
         <div className="modal-body">

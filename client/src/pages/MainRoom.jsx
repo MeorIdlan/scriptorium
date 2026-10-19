@@ -152,6 +152,7 @@ export default function MainRoom() {
                 className="chapter-add-btn"
                 onClick={() => setMilestonesOpen(true)}
                 title="Milestones — save and compare the whole book"
+                aria-label="Milestones"
               >
                 ◆
               </button>
@@ -159,6 +160,7 @@ export default function MainRoom() {
                 className="chapter-add-btn"
                 onClick={() => setAddingChapter((v) => !v)}
                 title="Add chapter"
+                aria-label="Add chapter"
               >
                 +
               </button>
