@@ -5,6 +5,7 @@ import request from 'supertest';
 import { startDb, clearDb, buildApp } from './support/http.js';
 import exportRouter from '../src/routes/export.js';
 import sessionsRouter from '../src/routes/sessions.js';
+import backupRouter from '../src/routes/backup.js';
 import { errorHandler } from '../src/middleware/errorHandler.js';
 import Work from '../src/models/Work.js';
 import Chapter from '../src/models/Chapter.js';
@@ -187,6 +188,19 @@ test("GET requests don't stamp", async () => {
   await assertNotStamped();
 });
 
+test("HEAD requests don't stamp", async () => {
+  await seedChapter();
+  assert.equal((await call('head', chapterBase)).status, 200);
+  await assertNotStamped();
+});
+
+test('creating a named snapshot stamps contentChangedAt', async () => {
+  await seedChapter();
+  const res = await call('post', `${chapterBase}/ch_1/snapshots`).send({ name: 'Before the rewrite' });
+  assert.equal(res.status, 201);
+  assert.ok(await stampedAt());
+});
+
 test("a failed write doesn't stamp", async () => {
   const res = await call('post', '/api/works/work_a/threads').send({});
   assert.equal(res.status, 400);
@@ -232,7 +246,8 @@ test("POST /api/works with an opening hook sets contentChangedAt; without one it
   assert.equal(plainRow.contentChangedAt, undefined);
 });
 
-test("an export request and a writing session don't stamp", async () => {
+// Mounts the non-stamping routers the way server.js does
+function nonStampingApp() {
   const writes = express();
   writes.use(express.json());
   writes.use((req, _res, next) => {
@@ -241,7 +256,21 @@ test("an export request and a writing session don't stamp", async () => {
   });
   writes.use('/api/works/:workId/export', exportRouter);
   writes.use('/api/works/:workId/sessions', sessionsRouter);
+  writes.use('/api/works/:workId/backup', backupRouter);
   writes.use(errorHandler);
+  return writes;
+}
+
+test("a backup doesn't stamp contentChangedAt", async () => {
+  const backup = await request(nonStampingApp())
+    .post('/api/works/work_a/backup')
+    .set('x-test-user', 'user_a');
+  assert.equal(backup.status, 200);
+  await assertNotStamped();
+});
+
+test("an export request and a writing session don't stamp", async () => {
+  const writes = nonStampingApp();
 
   const exported = await request(writes)
     .post('/api/works/work_a/export')

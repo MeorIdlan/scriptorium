@@ -13,12 +13,14 @@ export async function stampWork(workId, userId) {
   }
 }
 
-// Mount first in a content router. Stamps after a successful non-GET response.
+const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
+
+// Mount first in a content router. Stamps after a successful mutating request.
 export function stampContentChange(req, res, next) {
   const { workId } = req.params;
   const userId = req.user.id;
   res.on('finish', () => {
-    if (req.method === 'GET' || res.statusCode < 200 || res.statusCode >= 300 || !workId) return;
+    if (!MUTATING_METHODS.includes(req.method) || res.statusCode < 200 || res.statusCode >= 300 || !workId) return;
     stampWork(workId, userId);
   });
   next();
