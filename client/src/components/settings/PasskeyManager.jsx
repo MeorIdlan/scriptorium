@@ -68,6 +68,7 @@ export default function PasskeyManager() {
               <span>{p.deviceLabel}</span>
               <span>{new Date(p.createdAt).toLocaleDateString()}</span>
               <button
+                className="btn btn-ghost btn-sm"
                 onClick={guardBusy(busyId === p.id, () => handleDelete(p.id))}
                 disabled={onlyOne}
                 {...busyProps(busyId === p.id)}
@@ -79,7 +80,7 @@ export default function PasskeyManager() {
           ))}
         </ul>
       )}
-      <button onClick={guardBusy(adding, handleAdd)} {...busyProps(adding)}>
+      <button className="btn btn-secondary" onClick={guardBusy(adding, handleAdd)} {...busyProps(adding)}>
         {adding ? 'Waiting for device…' : 'Add a passkey'}
       </button>
     </section>
