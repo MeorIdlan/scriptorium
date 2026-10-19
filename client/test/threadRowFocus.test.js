@@ -54,3 +54,14 @@ test('Delete opens the confirmation with focus on Cancel, and Cancel returns foc
   assert.equal(document.activeElement === button(view, 'Delete'), true);
   await view.unmount();
 });
+
+test('a rename the server refuses keeps the field open with focus in it', async () => {
+  const view = await renderRow({ onSave: async () => false });
+  await click(button(view, 'Lighthouse'));
+  const input = view.container.querySelector('.thread-name-input');
+  await type(input, 'Beacon');
+  await press(input, 'Enter');
+  assert.equal(view.container.querySelector('.thread-name-input') === input, true);
+  assert.equal(document.activeElement === input, true);
+  await view.unmount();
+});

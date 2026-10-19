@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useReturnFocus } from '../hooks/useReturnFocus.js';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useActiveWork } from '../context/ActiveWorkContext.jsx';
 import { useEditor } from '../context/EditorContext.jsx';
@@ -26,12 +27,7 @@ export default function MainRoom() {
   // Closing the add-chapter field unmounts it with focus in it; a keyboard close
   // hands focus back to the + that opened it
   const addChapterBtn = useRef(null);
-  const restoreAddFocus = useRef(false);
-  useEffect(() => {
-    if (addingChapter || !restoreAddFocus.current) return;
-    restoreAddFocus.current = false;
-    addChapterBtn.current?.focus();
-  }, [addingChapter]);
+  const returnFocus = useReturnFocus();
   const [newChapterTitle, setNewChapterTitle] = useState('');
   const [milestonesOpen, setMilestonesOpen] = useState(false);
   const [loadingChapterId, setLoadingChapterId] = useState(null);
@@ -123,7 +119,7 @@ export default function MainRoom() {
   }
 
   async function handleAddChapter() {
-    if (!newChapterTitle.trim()) return;
+    if (!newChapterTitle.trim()) return returnFocus(null);
     try {
       const chapter = await api.post(`/works/${workId}/chapters`, {
         title: newChapterTitle.trim(),
@@ -133,6 +129,7 @@ export default function MainRoom() {
       setAddingChapter(false);
       handleChapterSelect(chapter.id);
     } catch (err) {
+      returnFocus(null); // the field stays open for another try
       console.error('Failed to add chapter:', err);
     }
   }
@@ -188,11 +185,11 @@ export default function MainRoom() {
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
-                    restoreAddFocus.current = true;
+                    returnFocus(addChapterBtn);
                     handleAddChapter();
                   }
                   if (e.key === 'Escape') {
-                    restoreAddFocus.current = true;
+                    returnFocus(addChapterBtn);
                     setAddingChapter(false);
                   }
                 }}
@@ -200,7 +197,7 @@ export default function MainRoom() {
               <button
                 className="btn btn-primary btn-sm"
                 onClick={() => {
-                  restoreAddFocus.current = true;
+                  returnFocus(addChapterBtn);
                   handleAddChapter();
                 }}
               >

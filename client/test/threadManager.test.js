@@ -217,3 +217,14 @@ test('does not call onDeleted for other writes', async () => {
   assert.equal(view.deleted(), 0);
   await view.unmount();
 });
+
+test('a new thread the server refuses keeps the field open with focus in it', async () => {
+  const view = await mount({ routes: { 'POST /works/w1/threads': new HttpError(500, 'SERVER_ERROR', 'Could not save') } });
+  await click(view.button('New thread'));
+  const input = view.query('.thread-new-name');
+  await type(input, 'Lost letter');
+  await press(input, 'Enter');
+  assert.equal(view.query('.thread-new-name') === input, true);
+  assert.equal(document.activeElement === input, true);
+  await view.unmount();
+});

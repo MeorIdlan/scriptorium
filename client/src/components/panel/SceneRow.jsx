@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { ThreadChips, ThreadMarkers } from './ThreadChips.jsx';
 import { toggleTag, tagList } from '../../utils/threads.js';
 import { SCENE_STATUSES, STATUS_LABELS, SCENE_LIMITS, sceneFieldError, sceneLabel } from '../../utils/scenes.js';
@@ -9,18 +10,10 @@ export default function SceneRow({ scene, rowKey, threads = [], current, charact
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
   const [confirming, setConfirming] = useState(false);
-  // Each opener's button, and the one a close hands focus back to. The card form
-  // and the confirmation unmount the focused control, which would drop focus
+  // Each opener's button; a close hands focus back to the one that opened the card or the confirmation
   const editBtn = useRef(null);
   const removeBtn = useRef(null);
-  const returnTo = useRef(null); // one of the ref objects above
-  useEffect(() => {
-    const el = returnTo.current?.current;
-    if (!el) return;
-    returnTo.current = null;
-    const active = document.activeElement;
-    if (!active || active === document.body) el.focus();
-  });
+  const returnFocus = useReturnFocus();
 
   const startEdit = () => {
     setDraft({ title: scene.title, pov: scene.pov, location: scene.location, status: scene.status, summary: scene.summary, threadIds: tagList(scene.threadIds) });
@@ -31,12 +24,12 @@ export default function SceneRow({ scene, rowKey, threads = [], current, charact
   const save = () => {
     if (blocked) return;
     onSave(draft);
-    returnTo.current = editBtn;
+    returnFocus(editBtn);
     setEditing(false);
   };
   const onKeyDown = (e) => {
     if (e.key !== 'Escape') return;
-    returnTo.current = editBtn;
+    returnFocus(editBtn);
     setEditing(false);
   };
   const meta = [scene.pov, scene.location].filter((v) => v && v.trim()).join(' · ');
@@ -74,7 +67,7 @@ export default function SceneRow({ scene, rowKey, threads = [], current, charact
                 className="btn btn-ghost btn-sm"
                 autoFocus
                 onClick={() => {
-                  returnTo.current = removeBtn;
+                  returnFocus(removeBtn);
                   setConfirming(false);
                 }}
               >
@@ -141,7 +134,7 @@ export default function SceneRow({ scene, rowKey, threads = [], current, charact
             <button
               className="btn btn-ghost btn-sm"
               onClick={() => {
-                returnTo.current = editBtn;
+                returnFocus(editBtn);
                 setEditing(false);
               }}
             >

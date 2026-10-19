@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { api } from '../../utils/api.js';
 import ThreadRow from './ThreadRow.jsx';
 import { threadNameError, threadTagCount } from '../../utils/threads.js';
@@ -11,6 +12,8 @@ export default function ThreadManager({ workId, threads, chapters, onChanged, on
   const creating = useRef(false);
   const addingRef = useRef(false); // readable by a blur that fires while the field unmounts
   const newButton = useRef(null);
+  // A keyboard close hands focus back to the New thread button, once it is shown again
+  const returnFocus = useReturnFocus();
   const base = `/works/${workId}/threads`;
 
   // Resolves true on success; on failure the server's message shows under the row
@@ -37,7 +40,7 @@ export default function ThreadManager({ workId, threads, chapters, onChanged, on
     setErrors((e) => ({ ...e, new: null }));
   };
   const newError = newName.trim() ? threadNameError(newName) : null;
-  const create = async () => {
+  const create = async (fromKey = false) => {
     if (creating.current || !addingRef.current) return;
     if (!newName.trim()) return cancelNew();
     if (newError) return;
@@ -47,28 +50,21 @@ export default function ThreadManager({ workId, threads, chapters, onChanged, on
         addingRef.current = false;
         setAdding(false);
         setNewName('');
+      } else if (fromKey) {
+        returnFocus(null);
       }
     } finally {
       creating.current = false;
     }
   };
-  // Set by a keyboard close: the field unmounts with focus, so focus goes back
-  // to the New thread button once it is shown again
-  const returnToNew = useRef(false);
-  useEffect(() => {
-    const button = newButton.current;
-    if (!returnToNew.current || !button) return;
-    returnToNew.current = false;
-    const active = document.activeElement;
-    if (!active || active === document.body) button.focus();
-  });
   const onNewKey = (e) => {
     if (e.key === 'Enter') {
-      returnToNew.current = true;
-      create();
+      // An invalid name keeps the field open, so there is nothing to return to yet
+      returnFocus(newError ? null : newButton);
+      create(true);
     }
     if (e.key === 'Escape') {
-      returnToNew.current = true;
+      returnFocus(newButton);
       cancelNew();
     }
   };

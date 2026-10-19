@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { api } from '../../utils/api.js';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
@@ -93,8 +94,11 @@ export default function ScenesTab({ workId }) {
     }
   };
 
-  async function move(scene, toChapterId, toIndex) {
+  // focusAfter is the row's button to focus once the move has landed; it is only
+  // pending while the move runs, so a move that never starts leaves nothing behind
+  async function move(scene, toChapterId, toIndex, focusAfter = null) {
     const key = scene.id || 'opening';
+    pendingMove.current = focusAfter;
     setBusy(true);
     setNotice('');
     try {
@@ -205,9 +209,9 @@ export default function ScenesTab({ workId }) {
               }}
             >
               <button className="btn btn-ghost btn-sm" aria-label="Move up" title="Move up" disabled={busy || scene.index === 0}
-                onClick={() => { pendingMove.current = { key, toIndex: scene.index - 1, label: 'Move up' }; move(scene, editorState.chapterId, scene.index - 1); }}>↑</button>
+                onClick={() => move(scene, editorState.chapterId, scene.index - 1, { key, toIndex: scene.index - 1, label: 'Move up' })}>↑</button>
               <button className="btn btn-ghost btn-sm" aria-label="Move down" title="Move down" disabled={busy || scene.index === scenes.length - 1}
-                onClick={() => { pendingMove.current = { key, toIndex: scene.index + 1, label: 'Move down' }; move(scene, editorState.chapterId, scene.index + 1); }}>↓</button>
+                onClick={() => move(scene, editorState.chapterId, scene.index + 1, { key, toIndex: scene.index + 1, label: 'Move down' })}>↓</button>
               <MoveTo
                 scene={scene}
                 scenes={scenes}
@@ -230,12 +234,7 @@ function MoveTo({ scene, scenes, chapters, openChapterId, disabled, onMove }) {
   const [toIndex, setToIndex] = useState('');
   // Cancel unmounts the form with focus in it: hand focus back to the button that opens it
   const openBtn = useRef(null);
-  const restoreFocus = useRef(false);
-  useEffect(() => {
-    if (open || !restoreFocus.current) return;
-    restoreFocus.current = false;
-    openBtn.current?.focus();
-  }, [open]);
+  const returnFocus = useReturnFocus();
   const same = chapterId === openChapterId;
   const dest = same
     ? scenes.map((s) => ({ title: s.title, index: s.index }))
@@ -258,7 +257,7 @@ function MoveTo({ scene, scenes, chapters, openChapterId, disabled, onMove }) {
         <option value="" disabled>Choose a position</option>
         {options.map((o) => <option key={o.toIndex} value={o.toIndex}>{o.label}</option>)}
       </select>
-      <button className="btn btn-ghost btn-sm" onClick={() => { restoreFocus.current = true; setOpen(false); }}>Cancel</button>
+      <button className="btn btn-ghost btn-sm" onClick={() => { returnFocus(openBtn); setOpen(false); }}>Cancel</button>
       <button className="btn btn-primary btn-sm" disabled={disabled || toIndex === ''}
         onClick={() => { setOpen(false); onMove(chapterId, Number(toIndex)); }}>Move</button>
     </div>

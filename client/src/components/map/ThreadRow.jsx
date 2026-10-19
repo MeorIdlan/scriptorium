@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { THREAD_PALETTE, threadNameError, threadDescriptionError, deleteMessage } from '../../utils/threads.js';
 
 // One plot thread. onSave(fields) resolves true when the server accepted it;
@@ -14,20 +15,11 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
   // Whether each editor is open, readable by a blur that fires while it unmounts
   const nameOpen = useRef(false);
   const descOpen = useRef(false);
-  // Each opener's button, and the one a keyboard close should hand focus back to.
-  // A closing editor unmounts the focused field, which would otherwise drop focus
+  // Each opener's button; a keyboard close hands focus back to the one that opened the editor
   const nameBtn = useRef(null);
   const descBtn = useRef(null);
   const deleteBtn = useRef(null);
-  const returnTo = useRef(null); // holds one of the ref objects above
-  useEffect(() => {
-    // Waits until the button is back on screen; then only if focus was lost with the field
-    const el = returnTo.current?.current;
-    if (!el) return;
-    returnTo.current = null;
-    const active = document.activeElement;
-    if (!active || active === document.body) el.focus();
-  });
+  const returnFocus = useReturnFocus();
 
   const openName = () => {
     nameOpen.current = true;
@@ -51,6 +43,7 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
     saving.current.add(key);
     try {
       if (await onSave(fields)) close();
+      else returnFocus(null);
     } finally {
       saving.current.delete(key);
     }
@@ -65,11 +58,12 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
   };
   const onNameKey = (e) => {
     if (e.key === 'Enter') {
-      returnTo.current = nameBtn;
+      // A name that will not save keeps the editor open, so there is nothing to return to yet
+      returnFocus(name !== null && !threadNameError(name) ? nameBtn : null);
       saveName();
     }
     if (e.key === 'Escape') {
-      returnTo.current = nameBtn;
+      returnFocus(nameBtn);
       closeName();
       onCancel?.();
     }
@@ -159,7 +153,7 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
           onChange={(e) => setDesc(e.target.value)}
           onKeyDown={(e) => {
             if (e.key !== 'Escape') return;
-            returnTo.current = descBtn;
+            returnFocus(descBtn);
             closeDesc();
             onCancel?.();
           }}
@@ -177,7 +171,7 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
             className="btn btn-ghost btn-sm"
             autoFocus
             onClick={() => {
-              returnTo.current = deleteBtn;
+              returnFocus(deleteBtn);
               setConfirming(false);
             }}
           >
