@@ -35,13 +35,13 @@ function InlineField({ label, value, onSave }) {
           autoFocus
         />
       ) : (
-        <span
+        <button type="button"
           className="inline-field-value"
           onClick={startEdit}
           title="Click to edit"
         >
           {value || <em className="inline-field-placeholder">—</em>}
-        </span>
+        </button>
       )}
     </div>
   );
@@ -74,13 +74,13 @@ function InlineTextarea({ label, value, onSave }) {
           rows={4}
         />
       ) : (
-        <span
+        <button type="button"
           className="inline-field-value"
           onClick={startEdit}
           title="Click to edit"
         >
           {value || <em className="inline-field-placeholder">—</em>}
-        </span>
+        </button>
       )}
     </div>
   );

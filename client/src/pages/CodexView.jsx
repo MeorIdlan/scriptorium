@@ -22,7 +22,12 @@ function AddEntityModal({ type, onConfirm, onClose }) {
   const inputRef = useRef(null);
 
   function handleKeyDown(e) {
-    if (e.key === 'Enter' && name.trim()) onConfirm(name.trim());
+    if (e.key === 'Enter' && name.trim()) {
+      // Claim the key: focus returns to the opener on confirm, and Chrome would
+      // otherwise click it again for this same Enter
+      e.preventDefault();
+      onConfirm(name.trim());
+    }
   }
 
   const titleId = useId();
@@ -43,6 +48,7 @@ function AddEntityModal({ type, onConfirm, onClose }) {
             <input
               ref={inputRef}
               className="form-input"
+              type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}

@@ -31,7 +31,7 @@ function InlineSelect({ label, value, options, onSave }) {
           ))}
         </select>
       ) : (
-        <span
+        <button type="button"
           className="inline-field-value"
           onClick={() => { setDraft(value || options[0]); setEditing(true); }}
           title="Click to edit"
@@ -39,7 +39,7 @@ function InlineSelect({ label, value, options, onSave }) {
           {value
             ? value.charAt(0).toUpperCase() + value.slice(1)
             : <em className="inline-field-placeholder">—</em>}
-        </span>
+        </button>
       )}
     </div>
   );
@@ -67,13 +67,13 @@ function InlineTextarea({ label, value, onSave }) {
           rows={5}
         />
       ) : (
-        <span
+        <button type="button"
           className="inline-field-value"
           onClick={() => { setDraft(value || ''); setEditing(true); }}
           title="Click to edit"
         >
           {value || <em className="inline-field-placeholder">—</em>}
-        </span>
+        </button>
       )}
     </div>
   );
@@ -106,13 +106,13 @@ function InlineField({ label, value, onSave }) {
           autoFocus
         />
       ) : (
-        <span
+        <button type="button"
           className="inline-field-value"
           onClick={() => { setDraft(value || ''); setEditing(true); }}
           title="Click to edit"
         >
           {value || <em className="inline-field-placeholder">—</em>}
-        </span>
+        </button>
       )}
     </div>
   );

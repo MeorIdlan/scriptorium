@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
-import { click, press } from './support/render.js';
+import { act, click, flush, press, type } from './support/render.js';
 import { renderApp } from './support/app.js';
 import './support/focus.js';
 import CodexView from '../src/pages/CodexView.jsx';
@@ -52,6 +52,42 @@ test('with AI on the Codex offers the audit and suggestions on every entry', asy
   const view = await openCodex(true);
   assert.ok(view.hasButton('Codex Audit'));
   assert.deepEqual(await suggestionsPerEntry(view), { Characters: true, Places: true, 'World Rules': true });
+  await view.unmount();
+});
+
+// Presses a key and returns the event, so the test can read defaultPrevented
+async function keyDownEvent(el, key) {
+  let event;
+  await act(async () => {
+    event = new window.Event('keydown', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'key', { value: key });
+    el.dispatchEvent(event);
+  });
+  await flush();
+  return event;
+}
+
+test('Enter in the add-entry name field confirms and claims the key, so the opener is not clicked again', async () => {
+  const view = await openCodex(false);
+  await click(view.button('+ Add'));
+  const input = view.query('.modal input');
+  await type(input, 'Ada');
+  const event = await keyDownEvent(input, 'Enter');
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(view.query('[role="dialog"]'), null);
+  await view.unmount();
+});
+
+test('the character, place and rule fields are buttons, so the keyboard can open them', async () => {
+  const view = await openCodex(false);
+  const tabs = { Harrowgate: 'Places', 'Magic costs blood': 'World Rules' };
+  for (const entry of ['Mara', 'Harrowgate', 'Magic costs blood']) {
+    if (tabs[entry]) await click(view.button(tabs[entry]));
+    await click(view.button(entry));
+    const fields = view.queryAll('.inline-field-value');
+    assert.ok(fields.length > 0, `${entry} shows editable fields`);
+    for (const field of fields) assert.equal(field.tagName, 'BUTTON', `${entry} field is a button`);
+  }
   await view.unmount();
 });
 

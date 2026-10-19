@@ -2359,6 +2359,16 @@ a:hover {
 .inline-field-value:hover {
   border-bottom-color: var(--text-dim);
 }
+/* The value is a button so the keyboard can open it: reset it to the span's look */
+button.inline-field-value {
+  background: none;
+  border: 0;
+  border-bottom: 1px dashed transparent;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  text-align: left;
+}
 
 .inline-field-placeholder {
   color: var(--text-dim);
