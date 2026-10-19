@@ -10,7 +10,8 @@ function caretTopNode(root, range) {
   return end === root ? root.childNodes[Math.max(0, range.endOffset - 1)] || null : topLevelNode(root, end);
 }
 
-const Editor = forwardRef(function Editor({ workId, initialContent = '', initialHtml = '' }, ref) {
+// `loading`: a chapter is on its way, so the editor is read-only until it lands
+const Editor = forwardRef(function Editor({ workId, initialContent = '', initialHtml = '', loading = false }, ref) {
   const editorRef = useRef(null);
   const { state, setContent, clearReplacement, setSelection } = useEditor();
 
@@ -95,8 +96,8 @@ const Editor = forwardRef(function Editor({ workId, initialContent = '', initial
   return (
     <div
       ref={editorRef}
-      className="editor"
-      contentEditable
+      className={`editor${loading ? ' editor--loading' : ''}`}
+      contentEditable={!loading}
       suppressContentEditableWarning
       onInput={handleInput}
       onKeyDown={handleKeyDown}

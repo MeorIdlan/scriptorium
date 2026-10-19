@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, Fragment } from 'react';
 import { act, click, flush, type } from './support/render.js';
-import { renderApp } from './support/app.js';
+import { renderApp, HttpError } from './support/app.js';
 import { useEditor } from '../src/context/EditorContext.jsx';
 import MainRoom from '../src/pages/MainRoom.jsx';
 
@@ -126,4 +126,53 @@ test('add chapter loads it once', async () => {
   while (c4.count) await c4.releaseNext(body('c4'));
   assert.equal(gets(view, 'c4'), 1);
   assert.equal(editor.state.chapterId, 'c4');
+});
+
+const locked = (view) => {
+  const el = view.query('.editor');
+  return el.getAttribute('contenteditable') === 'false' && el.classList.contains('editor--loading') && /Loading…/.test(view.text());
+};
+const unlocked = (view) => {
+  const el = view.query('.editor');
+  return el.getAttribute('contenteditable') === 'true' && !el.classList.contains('editor--loading') && !/Loading…/.test(view.text());
+};
+
+test('the editor is locked while a chapter loads', async () => {
+  const c2 = heldReplies();
+  const view = await openMainRoom(routesFor(threeChapters, { 'GET /works/w1/chapters/c2': c2.route }));
+  assert.ok(unlocked(view));
+  await click(chapterButton(view, 'c2'));
+  assert.ok(locked(view));
+  await c2.releaseNext(body('c2'));
+  assert.ok(unlocked(view));
+});
+
+test('the editor is locked on first entry until the first chapter arrives', async () => {
+  const c1 = heldReplies();
+  const view = await openMainRoom(routesFor(threeChapters, { 'GET /works/w1/chapters/c1': c1.route }));
+  assert.ok(locked(view));
+  await c1.releaseNext(body('c1'));
+  assert.ok(unlocked(view));
+  assert.equal(view.query('.editor').textContent, 'text of c1');
+});
+
+test('a failed chapter fetch unlocks the editor and keeps the open chapter', async () => {
+  const view = await openMainRoom(routesFor(threeChapters, { 'GET /works/w1/chapters/c2': new HttpError(500, 'SERVER_ERROR') }));
+  const logged = console.error;
+  console.error = () => {};
+  try {
+    await click(chapterButton(view, 'c2'));
+  } finally {
+    console.error = logged;
+  }
+  assert.ok(unlocked(view));
+  assert.equal(editor.state.chapterId, 'c1');
+  assert.equal(view.query('.editor').textContent, 'text of c1');
+});
+
+test('clicking the open chapter neither fetches nor locks', async () => {
+  const view = await openMainRoom(routesFor(threeChapters));
+  await click(chapterButton(view, 'c1'));
+  assert.equal(gets(view, 'c1'), 1);
+  assert.ok(unlocked(view));
 });

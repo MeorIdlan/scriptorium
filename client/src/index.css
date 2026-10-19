@@ -914,6 +914,18 @@ a:hover {
   caret-color: var(--gold);
 }
 
+.editor--loading {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.editor-loading-note {
+  max-width: 680px;
+  margin: 0 auto 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 .editor:empty::before {
   content: attr(data-placeholder);
   color: var(--text-dim);

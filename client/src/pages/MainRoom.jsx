@@ -190,11 +190,13 @@ export default function MainRoom() {
         {/* Editor area */}
         <div className="editor-area">
           <div className="editor-wrap">
+            {loadingChapterId !== null && <p className="editor-loading-note">Loading…</p>}
             <Editor
               ref={editorRef}
               workId={workId}
               initialContent={chapterContent.text}
               initialHtml={chapterContent.html}
+              loading={loadingChapterId !== null}
               // Re-mount on chapter change, and once this page has the chapter's text
               key={`${editorState.chapterId}:${chapterContent.id}`}
             />
