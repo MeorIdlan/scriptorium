@@ -1650,7 +1650,7 @@ a:hover {
   width: 68px;
   min-height: 24px;
   background: transparent;
-  border: 2px solid #4a4a5e;
+  border: 2px solid var(--border-control);
   border-radius: var(--radius-sm);
   cursor: pointer;
   display: flex;
@@ -1723,7 +1723,7 @@ a:hover {
 .thread-swatch { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--border); padding: 0; cursor: pointer; flex: none; }
 .thread-name { flex: 1; text-align: left; background: none; border: none; color: var(--text); font-family: Georgia, serif; font-size: 0.95rem; cursor: text; padding: 2px 0; }
 .thread-name-input { flex: 1; }
-.thread-status { border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; font-size: 0.75rem; padding: 2px 8px; cursor: pointer; }
+.thread-status { border: 1px solid var(--border-control); border-radius: var(--radius-sm); background: none; font-size: 0.75rem; padding: 2px 8px; cursor: pointer; }
 .thread-status--open { color: var(--gold); border-color: var(--gold-dim); }
 .thread-status--resolved { color: var(--success); }
 .thread-desc { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; background: none; border: none; color: var(--text-muted); font-size: 0.8rem; cursor: text; padding: 0 0 0 24px; }

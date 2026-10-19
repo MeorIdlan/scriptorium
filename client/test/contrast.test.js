@@ -57,6 +57,20 @@ test('text hierarchy is preserved', () => {
   assert.ok(luminance(token('text-muted')) < luminance(token('text')), '--text-muted must be dimmer than --text');
 });
 
+function ruleBody(selector) {
+  const blocks = [...css.matchAll(new RegExp(`(?:^|\\n)${selector.replace(/[.]/g, '\\.')}\\s*\\{([^}]*)\\}`, 'g'))];
+  assert.ok(blocks.length, `${selector} rule is missing from index.css`);
+  return blocks.map((m) => m[1]).join('\n');
+}
+
+test('clickable map controls use the control border token (not the divider)', () => {
+  for (const selector of ['.thread-status', '.chapter-block']) {
+    const border = ruleBody(selector).match(/border:\s*\d+px solid ([^;]+);/);
+    assert.ok(border, `${selector} has no solid border`);
+    assert.equal(border[1].trim(), 'var(--border-control)', `${selector} border must use var(--border-control)`);
+  }
+});
+
 test('no hard-coded text colours outside :root', () => {
   const outsideRoot = css.replace(rootBlock[0], '');
   const colorDecl = /(?:^|[\s;{])color\s*:\s*([^;}]+)/g;
