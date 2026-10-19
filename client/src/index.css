@@ -57,6 +57,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
 a {
   color: var(--gold);
   text-decoration: none;
@@ -339,7 +344,6 @@ a:hover {
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
-  outline: none;
   border-color: var(--gold);
 }
 
@@ -860,7 +864,6 @@ a:hover {
   width: 100%;
 }
 .chapter-add-input:focus {
-  outline: none;
   border-color: var(--gold);
 }
 
@@ -957,12 +960,16 @@ a:hover {
   min-height: 100%;
   max-width: 680px;
   margin: 0 auto;
-  outline: none;
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 1rem;
   line-height: 1.85;
   color: var(--text);
   caret-color: var(--gold);
+}
+
+.editor:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--border-focus);
 }
 
 .editor--loading {
@@ -2358,7 +2365,6 @@ a:hover {
   font-size: 0.88rem;
   padding: 0.25rem 0.4rem;
 }
-.inline-field-input:focus { outline: none; }
 
 .inline-field-textarea {
   flex: 1;
@@ -2371,7 +2377,6 @@ a:hover {
   padding: 0.25rem 0.4rem;
   resize: vertical;
 }
-.inline-field-textarea:focus { outline: none; }
 
 .inline-field-select {
   flex: 1;
@@ -2383,7 +2388,6 @@ a:hover {
   font-size: 0.88rem;
   padding: 0.25rem 0.4rem;
 }
-.inline-field-select:focus { outline: none; }
 
 /* ============================================================
    Flag List
@@ -2798,7 +2802,6 @@ a:hover {
   transition: border-color var(--transition);
 }
 .catch-overlay-input:focus {
-  outline: none;
   border-color: var(--gold);
 }
 
