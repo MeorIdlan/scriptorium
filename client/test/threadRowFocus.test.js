@@ -85,3 +85,52 @@ test('Enter in the rename field claims its keypress, so the name button is not c
   assert.equal(event.defaultPrevented, true);
   await view.unmount();
 });
+
+const swatch = (view) => view.container.querySelector('.thread-swatch');
+const palette = (view) => view.container.querySelector('.thread-palette');
+const colour = (view, hex) => view.container.querySelector(`[aria-label="Colour ${hex}"]`);
+async function openPalette(view) {
+  await click(swatch(view));
+}
+
+test('the palette is rendered directly after the swatch', async () => {
+  const view = await renderRow();
+  await openPalette(view);
+  assert.equal(swatch(view).nextElementSibling === palette(view), true);
+  await view.unmount();
+});
+
+test('opening the palette moves focus to the current colour', async () => {
+  const view = await renderRow();
+  await openPalette(view);
+  assert.equal(document.activeElement === colour(view, '#7fa7d9'), true);
+  await view.unmount();
+});
+
+test('opening the palette for a colour outside it focuses the first colour', async () => {
+  const view = await renderRow({ thread: { ...thread, color: '#123456' } });
+  await openPalette(view);
+  assert.equal(document.activeElement === colour(view, '#c9a96e'), true);
+  await view.unmount();
+});
+
+test('Esc in the palette closes it, returns focus to the swatch, and does not reach the parent', async () => {
+  let parentKeys = 0;
+  const view = await render(h('div', { onKeyDown: () => { parentKeys += 1; } },
+    h(ThreadRow, { thread, tagCount: 0, onSave: async () => true, onDelete() {}, onCancel() {} })));
+  await openPalette(view);
+  await press(colour(view, '#7fa7d9'), 'Escape');
+  assert.equal(palette(view) === null, true);
+  assert.equal(document.activeElement === swatch(view), true);
+  assert.equal(parentKeys, 0);
+  await view.unmount();
+});
+
+test('choosing a colour closes the palette and returns focus to the swatch', async () => {
+  const view = await renderRow();
+  await openPalette(view);
+  await click(colour(view, '#d97f7f'));
+  assert.equal(palette(view) === null, true);
+  assert.equal(document.activeElement === swatch(view), true);
+  await view.unmount();
+});

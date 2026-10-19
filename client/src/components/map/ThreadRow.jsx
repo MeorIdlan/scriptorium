@@ -19,6 +19,7 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
   const nameBtn = useRef(null);
   const descBtn = useRef(null);
   const deleteBtn = useRef(null);
+  const swatchBtn = useRef(null);
   const returnFocus = useReturnFocus();
 
   const openName = () => {
@@ -79,13 +80,21 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
     commit('description', { description: next }, closeDesc);
   };
 
-  const pickColor = (color) => commit('color', { color }, () => setPicking(false));
+  // The palette closes with focus back on the swatch that opened it
+  const closePalette = () => {
+    returnFocus(swatchBtn);
+    setPicking(false);
+  };
+  const pickColor = (color) => commit('color', { color }, closePalette);
+  // The palette opens on the thread's colour, or the first colour when the thread's is not in it
+  const selectedColour = THREAD_PALETTE.includes(thread.color) ? thread.color : THREAD_PALETTE[0];
   const toggleStatus = () => commit('status', { status: thread.status === 'open' ? 'resolved' : 'open' }, () => {});
 
   return (
     <li className={`thread-row thread-row--${thread.status}`}>
       <div className="thread-row-main">
         <button
+          ref={swatchBtn}
           className="thread-swatch"
           style={{ background: thread.color }}
           aria-label="Change colour"
@@ -95,6 +104,31 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
             setPicking(!picking);
           }}
         />
+        {picking && (
+          <div
+            className="thread-palette"
+            onKeyDown={(e) => {
+              if (e.key !== 'Escape') return;
+              e.stopPropagation();
+              closePalette();
+            }}
+          >
+            {THREAD_PALETTE.map((color) => (
+              <button
+                key={color}
+                className={`thread-palette-color${color === thread.color ? ' current' : ''}`}
+                style={{ background: color }}
+                aria-label={`Colour ${color}`}
+                autoFocus={color === selectedColour}
+                onClick={() => pickColor(color)}
+              />
+            ))}
+            <input type="color" aria-label="Custom colour" value={custom} onChange={(e) => setCustom(e.target.value)} />
+            <button className="btn btn-ghost btn-sm" onClick={() => pickColor(custom)}>
+              Use colour
+            </button>
+          </div>
+        )}
         {name === null ? (
           <button ref={nameBtn} className="thread-name" onClick={openName} title="Rename">
             {thread.name}
@@ -125,23 +159,6 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
           </button>
         )}
       </div>
-      {picking && (
-        <div className="thread-palette">
-          {THREAD_PALETTE.map((color) => (
-            <button
-              key={color}
-              className={`thread-palette-color${color === thread.color ? ' current' : ''}`}
-              style={{ background: color }}
-              aria-label={`Colour ${color}`}
-              onClick={() => pickColor(color)}
-            />
-          ))}
-          <input type="color" aria-label="Custom colour" value={custom} onChange={(e) => setCustom(e.target.value)} />
-          <button className="btn btn-ghost btn-sm" onClick={() => pickColor(custom)}>
-            Use colour
-          </button>
-        </div>
-      )}
       {desc === null ? (
         <button ref={descBtn} className="thread-desc" onClick={openDesc}>
           {thread.description ? thread.description.split('\n')[0] : 'Add a description'}
