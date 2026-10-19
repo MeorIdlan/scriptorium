@@ -36,7 +36,9 @@ export function createChapterLoader({ fetchChapter, onLoaded, onError, onLoading
     },
     cancel() {
       ticket++;
+      if (inFlight === null) return;
       inFlight = null;
+      onLoadingChange(null);
     },
   };
 }

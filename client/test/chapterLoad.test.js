@@ -106,11 +106,18 @@ test('a failure for a chapter the writer has left is dropped', async () => {
   assert.deepEqual(events, [['loading', 'c2'], ['loading', 'c3']]);
 });
 
-test('cancel drops replies still in flight', async () => {
+test('cancel drops replies still in flight and stops loading', async () => {
   const server = fakeServer();
   const { loader, events } = loaderWith(server);
   loader.load('c2');
   loader.cancel();
   await server.reply('c2');
-  assert.deepEqual(events, [['loading', 'c2']]);
+  assert.deepEqual(events, [['loading', 'c2'], ['loading', null]]);
+});
+
+test('cancel with nothing in flight reports nothing', () => {
+  const server = fakeServer();
+  const { loader, events } = loaderWith(server);
+  loader.cancel();
+  assert.deepEqual(events, []);
 });

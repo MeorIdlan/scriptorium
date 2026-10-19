@@ -30,6 +30,10 @@ export default function MainRoom() {
   // chapter, and the loader drops repeat asks and replies that arrive too late
   const workIdRef = useRef(workId);
   workIdRef.current = workId;
+  const shownChapterIdRef = useRef(editorState.chapterId);
+  shownChapterIdRef.current = editorState.chapterId;
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
   const loaderRef = useRef(null);
   if (!loaderRef.current) {
     loaderRef.current = createChapterLoader({
@@ -40,7 +44,13 @@ export default function MainRoom() {
         setChapterContent({ id: chId, text, html });
         loadContent(chId, text, html);
       },
-      onError: (chId, err) => console.error('Failed to load chapter:', err),
+      onError: (chId, err) => {
+        console.error('Failed to load chapter:', err);
+        // Point the URL back at the chapter still on screen, so it matches
+        // the editor and clicking the failed chapter again retries it
+        const shown = shownChapterIdRef.current;
+        if (shown) navigateRef.current(`/work/${workIdRef.current}/chapter/${shown}`, { replace: true });
+      },
       onLoadingChange: setLoadingChapterId,
     });
   }
@@ -78,12 +88,15 @@ export default function MainRoom() {
       editorChapterId: editorState.chapterId,
       loadedChapterId: chapterContent.id,
     });
+    // No target means the URL's chapter is the one on screen: drop any
+    // fetch still out for another chapter (a click back, or browser Back)
     if (target) loaderRef.current.load(target);
+    else loaderRef.current.cancel();
   }, [state.chapters, state.work, urlChapterId, chapterContent.id]);
 
   // Changing the URL is enough: the effect above loads the chapter
   function handleChapterSelect(chId) {
-    if (chId === editorState.chapterId) return;
+    if (chId === (urlChapterId || editorState.chapterId)) return;
     navigate(`/work/${workId}/chapter/${chId}`);
   }
 

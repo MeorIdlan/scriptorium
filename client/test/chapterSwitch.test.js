@@ -3,12 +3,16 @@ import assert from 'node:assert/strict';
 import { createElement as h, Fragment } from 'react';
 import { act, click, flush, type } from './support/render.js';
 import { renderApp, HttpError } from './support/app.js';
+// After the support imports: render.js must set up the DOM before react-dom loads
+import { useNavigate } from 'react-router-dom';
 import { useEditor } from '../src/context/EditorContext.jsx';
 import MainRoom from '../src/pages/MainRoom.jsx';
 
 let editor;
+let navigate;
 function Probe() {
   editor = useEditor();
+  navigate = useNavigate();
   return null;
 }
 
@@ -86,6 +90,7 @@ test('a slow response never resets text typed after the switch (A2, A4)', async 
   await typeInEditor(view, '<p>text of c2 and more</p>');
   // Any further reply for c2 arrives after the writer started typing
   while (c2.count) await c2.releaseNext(body('c2'));
+  assert.equal(gets(view, 'c2'), 1);
   assert.equal(editor.state.content, 'text of c2 and more');
   assert.equal(editor.state.hasUnsavedChanges, true);
 });
@@ -175,4 +180,51 @@ test('clicking the open chapter neither fetches nor locks', async () => {
   await click(chapterButton(view, 'c1'));
   assert.equal(gets(view, 'c1'), 1);
   assert.ok(unlocked(view));
+});
+
+test('after a failed fetch, clicking the chapter again retries it', async () => {
+  let failNext = true;
+  const view = await openMainRoom(
+    routesFor(threeChapters, {
+      'GET /works/w1/chapters/c2': () => {
+        if (!failNext) return body('c2');
+        failNext = false;
+        return new HttpError(500, 'SERVER_ERROR');
+      },
+    })
+  );
+  const logged = console.error;
+  console.error = () => {};
+  try {
+    await click(chapterButton(view, 'c2'));
+  } finally {
+    console.error = logged;
+  }
+  await click(chapterButton(view, 'c2'));
+  assert.equal(gets(view, 'c2'), 2);
+  assert.equal(editor.state.chapterId, 'c2');
+});
+
+test('clicking the open chapter while another loads goes back to it', async () => {
+  const c2 = heldReplies();
+  const view = await openMainRoom(routesFor(threeChapters, { 'GET /works/w1/chapters/c2': c2.route }));
+  await click(chapterButton(view, 'c2'));
+  await click(chapterButton(view, 'c1'));
+  assert.ok(unlocked(view));
+  while (c2.count) await c2.releaseNext(body('c2'));
+  assert.equal(editor.state.chapterId, 'c1');
+  assert.equal(gets(view, 'c1'), 1);
+});
+
+test('going Back while a chapter loads keeps the open chapter and its typing', async () => {
+  const c2 = heldReplies();
+  const view = await openMainRoom(routesFor(threeChapters, { 'GET /works/w1/chapters/c2': c2.route }));
+  await click(chapterButton(view, 'c2'));
+  await act(async () => navigate('/work/w1/chapter/c1'));
+  await flush();
+  await typeInEditor(view, '<p>text of c1 and more</p>');
+  while (c2.count) await c2.releaseNext(body('c2'));
+  assert.equal(editor.state.chapterId, 'c1');
+  assert.equal(editor.state.content, 'text of c1 and more');
+  assert.equal(gets(view, 'c1'), 1);
 });
