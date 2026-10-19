@@ -15,6 +15,20 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 for (const name of ['oninput', 'onchange']) window.document[name] ??= null;
 window.requestAnimationFrame ??= (cb) => setTimeout(cb, 0);
 window.cancelAnimationFrame ??= (id) => clearTimeout(id);
+// linkedom's innerText has no setter; the Editor sets it for plain-text chapters
+{
+  let proto = window.HTMLElement.prototype;
+  while (proto && !Object.getOwnPropertyDescriptor(proto, 'innerText')) proto = Object.getPrototypeOf(proto);
+  const desc = proto && Object.getOwnPropertyDescriptor(proto, 'innerText');
+  if (desc && !desc.set) {
+    Object.defineProperty(proto, 'innerText', {
+      ...desc,
+      set(value) {
+        this.textContent = value;
+      },
+    });
+  }
+}
 window.sessionStorage ??= memoryStorage();
 window.localStorage ??= memoryStorage();
 globalThis.sessionStorage ??= window.sessionStorage;
