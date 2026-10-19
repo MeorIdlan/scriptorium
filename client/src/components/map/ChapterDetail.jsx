@@ -69,13 +69,16 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
     );
   }
 
+  // Resolves true when the server accepted the update
   async function save(updates) {
     setSaving(true);
     try {
       await api.put(`/works/${workId}/map/chapters/${chapterId}`, updates);
       onSaved?.();
+      return true;
     } catch (err) {
       console.error('Save chapter map data failed:', err);
+      return false;
     } finally {
       setSaving(false);
     }
@@ -83,8 +86,8 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
 
   async function handleTensionChange(val) {
     setTension(val);
-    savedTension.current = val;
-    await save({ tensionScore: val });
+    // Only a value the server has counts as saved, so a refused one is sent again
+    if (await save({ tensionScore: val })) savedTension.current = val;
   }
 
   async function handleBeatChange(val) {
