@@ -18,9 +18,14 @@ async function arrowKey(slider, value) {
     slider.dispatchEvent(new window.Event('input', { bubbles: true }));
   });
   await flush();
+  await releaseKey(slider, 'ArrowRight');
+}
+
+// Releases a key on the slider, as a keyboard user does after moving or passing it
+async function releaseKey(slider, key) {
   await act(async () => {
     const event = new window.Event('keyup', { bubbles: true, cancelable: true });
-    Object.defineProperty(event, 'key', { value: 'ArrowRight' });
+    Object.defineProperty(event, 'key', { value: key });
     slider.dispatchEvent(event);
   });
   await flush();
@@ -34,5 +39,21 @@ test('a tension change made with the arrow keys is saved when the key is release
   const view = await openChapter();
   await arrowKey(view.query('.tension-slider'), 70);
   assert.deepEqual(tensionSaves(view).map((c) => c.body), [{ tensionScore: 70 }]);
+  await view.unmount();
+});
+
+test('an arrow key that leaves the value at the saved one does not save', async () => {
+  const view = await openChapter();
+  await arrowKey(view.query('.tension-slider'), 50);
+  assert.deepEqual(tensionSaves(view), []);
+  await view.unmount();
+});
+
+test('Tab onto the slider and Shift do not save the unchanged tension', async () => {
+  const view = await openChapter();
+  const slider = view.query('.tension-slider');
+  await releaseKey(slider, 'Tab');
+  await releaseKey(slider, 'Shift');
+  assert.deepEqual(tensionSaves(view), []);
   await view.unmount();
 });

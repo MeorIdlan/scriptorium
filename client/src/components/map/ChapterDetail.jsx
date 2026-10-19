@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../utils/api.js';
 import { useAI } from '../../hooks/useAI.js';
@@ -23,6 +23,8 @@ const FRAMEWORK_BEATS = [
 ];
 
 const ACTS = ['Act I', 'Act II', 'Act III'];
+// The keys that move the tension slider; any other key release leaves it alone
+const TENSION_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown']);
 
 function MetricCard({ label, value }) {
   return (
@@ -42,6 +44,8 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
   const chapter = chapters.find((ch) => ch.id === chapterId);
 
   const [tension, setTension] = useState(chapter?.tensionScore ?? 50);
+  // The last tension the server has, so a key release that changes nothing saves nothing
+  const savedTension = useRef(chapter?.tensionScore ?? 50);
   const [beat, setBeat] = useState(chapter?.beat ?? '');
   const [act, setAct] = useState(chapter?.act ?? '');
   const [notes, setNotes] = useState(chapter?.notes ?? '');
@@ -50,6 +54,7 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
   useEffect(() => {
     if (chapter) {
       setTension(chapter.tensionScore ?? 50);
+      savedTension.current = chapter.tensionScore ?? 50;
       setBeat(chapter.beat ?? '');
       setAct(chapter.act ?? '');
       setNotes(chapter.notes ?? '');
@@ -78,6 +83,7 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
 
   async function handleTensionChange(val) {
     setTension(val);
+    savedTension.current = val;
     await save({ tensionScore: val });
   }
 
@@ -124,7 +130,11 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
             onMouseUp={(e) => handleTensionChange(Number(e.target.value))}
             onTouchEnd={(e) => handleTensionChange(Number(e.target.value))}
             // Arrow keys change the value without a mouse-up: save when the key is released
-            onKeyUp={(e) => handleTensionChange(Number(e.currentTarget.value))}
+            onKeyUp={(e) => {
+              if (!TENSION_KEYS.has(e.key)) return;
+              const val = Number(e.currentTarget.value);
+              if (val !== savedTension.current) handleTensionChange(val);
+            }}
           />
         </div>
 
