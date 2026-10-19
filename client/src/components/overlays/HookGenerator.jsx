@@ -44,6 +44,7 @@ export default function HookGenerator({ workId }) {
         <span className="hook-generator-title">Hook Generator</span>
         <button
           className="hook-generator-close"
+          aria-label="Close hook generator"
           onClick={() => dispatch({ type: 'TOGGLE_HOOK_GENERATOR' })}
         >
           ✕

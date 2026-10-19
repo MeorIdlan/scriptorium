@@ -21,7 +21,7 @@ function RekindlerCard({ snapshot, lastSessionAt, onDismiss }) {
     <div className="rekindler-card">
       <div className="rekindler-header">
         <span className="rekindler-label">Where you left off</span>
-        <button className="rekindler-dismiss" onClick={onDismiss}>✕</button>
+        <button className="rekindler-dismiss" aria-label="Dismiss where you left off" onClick={onDismiss}>✕</button>
       </div>
       <p className="rekindler-text">{snapshot.lastScene || 'No summary available.'}</p>
       {snapshot.toneNote && <p className="rekindler-text rekindler-tone">{snapshot.toneNote}</p>}

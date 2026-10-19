@@ -46,7 +46,7 @@ export default function CodexSuggestPanel({ workId, entityType, entity }) {
         <>
           <div className="codex-suggest-header">
             <span className="codex-suggest-label">AI Suggestions</span>
-            <button className="codex-suggest-dismiss" onClick={handleDismiss}>✕</button>
+            <button className="codex-suggest-dismiss" aria-label="Dismiss suggestions" onClick={handleDismiss}>✕</button>
           </div>
           <div className="codex-suggest-list">
             {suggestions.map((s, i) => (
