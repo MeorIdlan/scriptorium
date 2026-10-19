@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../utils/api.js';
 import { useEditor } from '../../context/EditorContext.jsx';
@@ -164,14 +164,15 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
     );
   }
 
+  const titleId = useId();
   const { dialogProps, backdropProps } = useModal({ onClose: onDismiss });
 
   return createPortal(
     <div className="modal-backdrop draft-polish-backdrop" {...backdropProps}>
-      <div className="modal history-modal" {...dialogProps}>
+      <div className="modal history-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <div className="draft-polish-header-text">
-            <h2 className="modal-title">Chapter History</h2>
+            <h2 id={titleId} className="modal-title">Chapter History</h2>
             <p className="draft-polish-subtitle">
               Saved automatically while you write — every version from the last day, then one a day for a month, then one a week. Named versions are kept forever.
             </p>

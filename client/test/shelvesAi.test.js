@@ -42,7 +42,10 @@ test('with AI on the wizard offers opening hooks', async () => {
 test('the wizard is a labelled dialog, and Esc on a field inside it closes it', async () => {
   let closed = 0;
   const view = await renderApp(h(NewWorkWizard, { onClose() { closed++; } }), { ai: false });
-  assert.ok(view.query('[role="dialog"]'));
+  const dialog = view.query('[role="dialog"]');
+  assert.ok(dialog);
+  assert.equal(dialog.getAttribute('aria-labelledby'), view.query('.modal-title').id);
+  assert.equal(view.query('.modal-title').textContent, 'New Work');
   await press(view.query('input.form-input'), 'Escape');
   assert.equal(closed, 1);
   await view.unmount();

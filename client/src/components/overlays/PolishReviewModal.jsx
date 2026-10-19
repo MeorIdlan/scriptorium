@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../utils/api.js';
 import { useEditor } from '../../context/EditorContext.jsx';
@@ -140,16 +140,17 @@ export default function PolishReviewModal({ workId, chapterId, session, summarie
   else status = `${list.length} change${list.length === 1 ? '' : 's'} · ${accepted} accepted · ${rejected} rejected`;
 
   // Esc closes like the ✕ button; no backdrop click, so a stray click keeps the review
+  const titleId = useId();
   const { dialogProps } = useModal({ onClose: () => onClose(null) });
 
   // Portal: the Quill panel's tab animation leaves a transform that would
   // trap a position:fixed overlay inside the panel
   return createPortal(
     <div className="modal-backdrop draft-polish-backdrop">
-      <div className="modal polish-review-modal" {...dialogProps}>
+      <div className="modal polish-review-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <div className="draft-polish-header-text">
-            <h2 className="modal-title">Polish {session.mode === 'selection' ? 'selection' : 'chapter'}</h2>
+            <h2 id={titleId} className="modal-title">Polish {session.mode === 'selection' ? 'selection' : 'chapter'}</h2>
             <p className="draft-polish-subtitle">Accept the changes you want. Nothing in your chapter changes until you apply.</p>
           </div>
           <button className="modal-close" onClick={() => onClose(null)}>✕</button>

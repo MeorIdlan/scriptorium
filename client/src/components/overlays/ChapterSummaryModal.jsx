@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { useModal } from '../../hooks/useModal.js';
@@ -38,6 +38,7 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
     }
   }
 
+  const titleId = useId();
   const { dialogProps, backdropProps } = useModal({ onClose: onDismiss });
   const base = `/works/${workId}/chapters/${chapterId}/summary`;
   // Saving unchanged text would only mark the AI's summary as edited by you
@@ -47,10 +48,10 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
 
   return (
     <div className="modal-backdrop draft-polish-backdrop" {...backdropProps}>
-      <div className="modal chapter-summary-modal" {...dialogProps}>
+      <div className="modal chapter-summary-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <div className="draft-polish-header-text">
-            <h2 className="modal-title">Chapter Summary</h2>
+            <h2 id={titleId} className="modal-title">Chapter Summary</h2>
             <p className="draft-polish-subtitle">
               AI help uses this to remember what happened in {chapter ? `“${chapter.title}”` : 'this chapter'}.
             </p>

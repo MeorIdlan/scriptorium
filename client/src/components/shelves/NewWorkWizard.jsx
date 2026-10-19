@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../utils/api.js';
 import { useModal } from '../../hooks/useModal.js';
@@ -36,6 +36,7 @@ export default function NewWorkWizard({ onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const titleRef = useRef(null);
+  const titleId = useId();
   const { dialogProps, backdropProps } = useModal({ onClose, initialFocusRef: titleRef });
 
   function update(field, value) {
@@ -80,9 +81,9 @@ export default function NewWorkWizard({ onClose }) {
 
   return (
     <div className="modal-backdrop" {...backdropProps}>
-      <div className="modal wizard-modal" {...dialogProps}>
+      <div className="modal wizard-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
-          <h2 className="modal-title">New Work</h2>
+          <h2 id={titleId} className="modal-title">New Work</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 

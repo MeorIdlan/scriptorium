@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
@@ -37,13 +37,14 @@ function RekindlerCard({ snapshot, lastSessionAt, onDismiss }) {
 }
 
 function RekindlerPromptModal({ onConfirm, onDismiss, loading }) {
+  const titleId = useId();
   const { dialogProps } = useModal({ onClose: onDismiss });
 
   return createPortal(
     <div className="modal-backdrop">
-      <div className="modal rekindler-prompt-modal" {...dialogProps}>
+      <div className="modal rekindler-prompt-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
-          <span className="modal-title">Rekindle your session?</span>
+          <span id={titleId} className="modal-title">Rekindle your session?</span>
           <button className="modal-close" onClick={onDismiss}>✕</button>
         </div>
         <div className="modal-body">

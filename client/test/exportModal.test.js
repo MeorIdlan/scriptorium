@@ -281,6 +281,8 @@ test('the export dialog is a labelled dialog, and Esc on a field inside it close
   const dialog = view.query('[role="dialog"]');
   assert.ok(dialog);
   assert.equal(dialog.getAttribute('aria-modal'), 'true');
+  assert.equal(dialog.getAttribute('aria-labelledby'), view.query('.modal-title').id);
+  assert.equal(view.query('.modal-title').textContent, 'Export Work');
   await press(dialog.querySelector('button'), 'Escape');
   assert.equal(view.query('[role="dialog"]'), null);
   await view.unmount();

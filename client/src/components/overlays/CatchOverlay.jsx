@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useId, useState, useEffect, useRef } from 'react';
 import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
@@ -24,6 +24,7 @@ function CatchDialog() {
   const [error, setError] = useState('');
   const inputRef = useRef(null);
   // A corner panel, not a modal: Tab leaves it for the editor
+  const titleId = useId();
   const { dialogProps } = useModal({
     onClose: () => dispatch({ type: 'CLOSE_CATCH' }),
     initialFocusRef: inputRef,
@@ -84,9 +85,9 @@ function CatchDialog() {
   const currentChapter = chapters.find((ch) => ch.id === editorState.chapterId);
 
   return (
-    <div className="catch-overlay" {...dialogProps}>
+    <div className="catch-overlay" aria-labelledby={titleId} {...dialogProps}>
       <div className="catch-overlay-header">
-        <span className="catch-overlay-title">Catch an Idea</span>
+        <span id={titleId} className="catch-overlay-title">Catch an Idea</span>
         <button
           className="catch-overlay-close"
           onClick={() => dispatch({ type: 'CLOSE_CATCH' })}

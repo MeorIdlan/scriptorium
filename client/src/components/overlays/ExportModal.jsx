@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { useUI } from '../../context/UIContext.jsx';
 import { useModal } from '../../hooks/useModal.js';
 import { useWorks } from '../../context/WorksContext.jsx';
@@ -74,6 +74,7 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
     session.current += 1;
   }
 
+  const titleId = useId();
   const { dialogProps, backdropProps } = useModal({ onClose: handleClose });
 
   // Fills the manuscript fields with the writer's saved details. Asked once
@@ -153,9 +154,9 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
 
   return (
     <div className="modal-backdrop" {...backdropProps}>
-      <div className="modal export-modal" {...dialogProps}>
+      <div className="modal export-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
-          <h2 className="modal-title">Export Work</h2>
+          <h2 id={titleId} className="modal-title">Export Work</h2>
           <button className="modal-close" onClick={handleClose}>✕</button>
         </div>
 

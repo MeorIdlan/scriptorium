@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import ContextUsed from '../panel/ContextUsed.jsx';
 import { useModal } from '../../hooks/useModal.js';
 
@@ -10,14 +11,15 @@ const TYPE_LABELS = {
 
 export default function CodexAuditModal({ audit, onDismiss }) {
   const { summary, findings = [], context } = audit;
+  const titleId = useId();
   const { dialogProps, backdropProps } = useModal({ onClose: onDismiss });
 
   return (
     <div className="modal-backdrop codex-audit-backdrop" {...backdropProps}>
-      <div className="modal codex-audit-modal" {...dialogProps}>
+      <div className="modal codex-audit-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <div className="codex-audit-header-text">
-            <h2 className="modal-title">Codex Audit</h2>
+            <h2 id={titleId} className="modal-title">Codex Audit</h2>
             <p className="codex-audit-subtitle">Cross-entry consistency &amp; completeness</p>
           </div>
           <button className="modal-close" onClick={onDismiss}>✕</button>
