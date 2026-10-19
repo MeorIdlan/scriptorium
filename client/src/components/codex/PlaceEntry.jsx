@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { api } from '../../utils/api.js';
 import FlagList from './FlagList.jsx';
 import CodexSuggestPanel from './CodexSuggestPanel.jsx';
@@ -6,10 +7,18 @@ import CodexSuggestPanel from './CodexSuggestPanel.jsx';
 function InlineField({ label, value, onSave }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value || '');
+  const valueBtn = useRef(null);
+  const returnFocus = useReturnFocus();
 
   function handleKey(e) {
-    if (e.key === 'Enter') handleSave();
-    if (e.key === 'Escape') setEditing(false);
+    if (e.key === 'Enter') {
+      returnFocus(valueBtn);
+      handleSave();
+    }
+    if (e.key === 'Escape') {
+      returnFocus(valueBtn);
+      setEditing(false);
+    }
   }
 
   function handleSave() {
@@ -23,6 +32,7 @@ function InlineField({ label, value, onSave }) {
       {editing ? (
         <input
           className="inline-field-input"
+          aria-label={label}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKey}
@@ -31,7 +41,9 @@ function InlineField({ label, value, onSave }) {
         />
       ) : (
         <button type="button"
+          ref={valueBtn}
           className="inline-field-value"
+          aria-label={`${label}: ${value || 'empty'}`}
           onClick={() => { setDraft(value || ''); setEditing(true); }}
           title="Click to edit"
         >
@@ -45,6 +57,16 @@ function InlineField({ label, value, onSave }) {
 function InlineTextarea({ label, value, onSave }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value || '');
+  const valueBtn = useRef(null);
+  const returnFocus = useReturnFocus();
+
+  // Enter is a new line here, so Esc is the keyboard way out: it drops the draft
+  function handleKey(e) {
+    if (e.key === 'Escape') {
+      returnFocus(valueBtn);
+      setEditing(false);
+    }
+  }
 
   function handleSave() {
     setEditing(false);
@@ -57,15 +79,19 @@ function InlineTextarea({ label, value, onSave }) {
       {editing ? (
         <textarea
           className="inline-field-textarea"
+          aria-label={label}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={handleKey}
           onBlur={handleSave}
           autoFocus
           rows={4}
         />
       ) : (
         <button type="button"
+          ref={valueBtn}
           className="inline-field-value"
+          aria-label={`${label}: ${value || 'empty'}`}
           onClick={() => { setDraft(value || ''); setEditing(true); }}
           title="Click to edit"
         >
