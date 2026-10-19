@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useReturnFocus } from '../hooks/useReturnFocus.js';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useActiveWork } from '../context/ActiveWorkContext.jsx';
 import { useEditor } from '../context/EditorContext.jsx';
 import { api } from '../utils/api.js';
@@ -43,6 +43,7 @@ export default function MainRoom() {
   // from an earlier visit or another work)
   const loadedChapterIdRef = useRef(chapterContent.id);
   loadedChapterIdRef.current = chapterContent.id;
+  const location = useLocation();
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
   const loaderRef = useRef(null);
@@ -108,6 +109,16 @@ export default function MainRoom() {
     if (target) loaderRef.current.load(target);
     else loaderRef.current.cancel();
   }, [state.chapters, state.work, workId, urlChapterId, chapterContent.id, retryCount]);
+
+  // Create Work arrives with focusEditor in its state: once its first chapter is in
+  // the editor, focus the editor and clear the state, so a later visit does not
+  useEffect(() => {
+    if (!location.state?.focusEditor) return;
+    const ready = loadingChapterId === null && chapterContent.id !== null && chapterContent.id === editorState.chapterId;
+    if (!ready) return;
+    editorRef.current?.focus();
+    navigate(location.pathname + location.search, { replace: true, state: null });
+  }, [location, loadingChapterId, chapterContent.id, editorState.chapterId, navigate]);
 
   // Changing the URL is enough: the effect above loads the chapter
   function handleChapterSelect(chId) {

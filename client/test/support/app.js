@@ -50,7 +50,7 @@ export function stubFetch(routes = {}) {
 
 // Renders `element` at `path` (matched against `route`) inside every app
 // provider, signed in, with AI on or off as the server would report it
-export async function renderApp(element, { ai = false, routes = {}, path = '/', route = '*' } = {}) {
+export async function renderApp(element, { ai = false, routes = {}, path = '/', route = '*', state } = {}) {
   let settings = aiSettings(ai);
   const fetchStub = stubFetch({
     'GET /auth/me': { id: 'user_1', email: 'w@example.com', scope: 'full' },
@@ -62,7 +62,7 @@ export async function renderApp(element, { ai = false, routes = {}, path = '/', 
   });
   const tree = h(
     MemoryRouter,
-    { initialEntries: [path] },
+    { initialEntries: [state ? { pathname: path, state } : path] },
     h(AuthProvider, null,
       h(AiProvider, null,
         h(WorksProvider, null,

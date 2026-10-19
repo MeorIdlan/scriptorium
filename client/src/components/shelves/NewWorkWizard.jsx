@@ -67,7 +67,8 @@ export default function NewWorkWizard({ onClose }) {
       };
       const work = await api.post('/works', payload);
       addWork(work);
-      navigate(`/work/${work.id}`);
+      // The Main Room focuses the editor once the first chapter is in it
+      navigate(`/work/${work.id}`, { state: { focusEditor: true } });
       onClose();
     } catch (err) {
       setError(err.message);
