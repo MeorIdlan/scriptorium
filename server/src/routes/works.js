@@ -4,6 +4,8 @@ import Chapter from '../models/Chapter.js';
 import { deleteWorkCascade } from '../services/workService.js';
 import { countWords } from '../services/wordCountService.js';
 import { httpError } from '../middleware/errorHandler.js';
+import { stampContentChange } from '../middleware/stampContentChange.js';
+import { SERVER_OWNED_FIELDS } from '../services/backupReminder.js';
 
 const router = Router();
 
@@ -67,6 +69,7 @@ router.post('/', async (req, res, next) => {
       });
       work.chapterCount = 1;
       work.wordCount = countWords(content);
+      work.contentChangedAt = now;
       await work.save();
     }
 
@@ -88,12 +91,13 @@ router.get('/:workId', async (req, res, next) => {
 });
 
 // PUT /api/works/:workId
-router.put('/:workId', async (req, res, next) => {
+router.put('/:workId', stampContentChange, async (req, res, next) => {
   try {
     const { workId } = req.params;
     const update = { ...req.body, updatedAt: new Date().toISOString() };
     delete update.id;
     delete update.ownerId;
+    for (const field of SERVER_OWNED_FIELDS) delete update[field];
 
     const updated = await Work.findOneAndUpdate({ _id: workId, ownerId: req.user.id }, update, { new: true });
     if (!updated) return next(httpError(404, 'NOT_FOUND', 'Work not found'));

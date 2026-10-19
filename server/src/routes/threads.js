@@ -2,10 +2,12 @@ import { Router } from 'express';
 import PlotThread from '../models/PlotThread.js';
 import { httpError } from '../middleware/errorHandler.js';
 import { loadWork } from '../middleware/loadWork.js';
+import { stampContentChange } from '../middleware/stampContentChange.js';
 import { threadCreate, threadUpdate, newThreadId, defaultThreadColor } from '../services/threadFields.js';
 import { removeThreadFromWork } from '../services/threadCleanup.js';
 
 const router = Router({ mergeParams: true });
+router.use(stampContentChange);
 router.use(loadWork);
 
 const refused = (r) => httpError(400, r.code, r.message);

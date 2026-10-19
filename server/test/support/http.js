@@ -9,6 +9,9 @@ import threadsRouter from '../../src/routes/threads.js';
 import chaptersRouter from '../../src/routes/chapters.js';
 import snapshotsRouter from '../../src/routes/snapshots.js';
 import milestonesRouter from '../../src/routes/milestones.js';
+import codexRouter from '../../src/routes/codex.js';
+import catchesRouter from '../../src/routes/catches.js';
+import mapRouter from '../../src/routes/map.js';
 import progressRouter from '../../src/routes/progress.js';
 import { errorHandler } from '../../src/middleware/errorHandler.js';
 
@@ -38,6 +41,9 @@ export function buildApp() {
   app.use('/api/works/:workId/threads', threadsRouter);
   app.use('/api/works/:workId/chapters/:chapterId/snapshots', snapshotsRouter);
   app.use('/api/works/:workId/milestones', milestonesRouter);
+  app.use('/api/works/:workId/codex', codexRouter);
+  app.use('/api/works/:workId/catches', catchesRouter);
+  app.use('/api/works/:workId/map', mapRouter);
   app.use('/api/works/:workId/chapters', chaptersRouter);
   app.use(errorHandler);
   return app;

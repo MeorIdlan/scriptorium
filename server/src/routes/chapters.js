@@ -7,6 +7,7 @@ import { addDailyWords, dayKeyForRequest } from '../services/progressService.js'
 import { scan } from '../services/consistencyService.js';
 import { sanitizeChapterHtml } from '../services/htmlService.js';
 import { loadWork } from '../middleware/loadWork.js';
+import { stampContentChange } from '../middleware/stampContentChange.js';
 import { summaryStatus, hashContent } from '../services/summaryText.js';
 import { generateSummary } from '../services/summaryService.js';
 import Snapshot from '../models/Snapshot.js';
@@ -17,6 +18,7 @@ import { checkTagList, knownThreadIds, filterHtmlThreads } from '../services/thr
 import { knownThreadSet } from '../services/threadScope.js';
 
 const router = Router({ mergeParams: true });
+router.use(stampContentChange);
 router.use(loadWork);
 
 // GET /api/works/:workId/chapters

@@ -46,6 +46,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRouter);
 
 const auth = requireAuth();
+// Content routers record a change for the backup reminder with stampContentChange (mounted inside each router).
+// Export, backup, sessions and AI must not: they don't change what a backup would capture.
 app.use('/api/works', auth, worksRouter);
 app.use('/api/works/:workId/chapters/:chapterId/snapshots', auth, snapshotsRouter);
 app.use('/api/works/:workId/chapters', auth, chaptersRouter);

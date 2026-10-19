@@ -4,11 +4,13 @@ import Snapshot from '../models/Snapshot.js';
 import Milestone from '../models/Milestone.js';
 import { httpError } from '../middleware/errorHandler.js';
 import { loadWork } from '../middleware/loadWork.js';
+import { stampContentChange } from '../middleware/stampContentChange.js';
 import { validateName } from '../services/snapshotNames.js';
 import { newSnapshotId, snapshotFields } from '../services/snapshotData.js';
 import { restoreFromSnapshot } from '../services/snapshotService.js';
 
 const router = Router({ mergeParams: true });
+router.use(stampContentChange);
 router.use(loadWork);
 
 // Every route acts on one chapter of the work
