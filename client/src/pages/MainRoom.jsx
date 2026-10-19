@@ -12,7 +12,7 @@ import MilestonesModal from '../components/overlays/MilestonesModal.jsx';
 import { openCountsByChapter } from '../utils/catchGroups.js';
 import { useUI } from '../context/UIContext.jsx';
 import { sceneList, scrollToScene } from '../utils/scenes.js';
-import { chapterToLoad } from '../utils/chapterLoad.js';
+import { chapterToLoad, createChapterLoader } from '../utils/chapterLoad.js';
 
 export default function MainRoom() {
   const { workId, chapterId: urlChapterId } = useParams();
@@ -24,6 +24,27 @@ export default function MainRoom() {
   const [addingChapter, setAddingChapter] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState('');
   const [milestonesOpen, setMilestonesOpen] = useState(false);
+  const [loadingChapterId, setLoadingChapterId] = useState(null);
+
+  // The one place chapters are fetched: the effect below asks for the URL's
+  // chapter, and the loader drops repeat asks and replies that arrive too late
+  const workIdRef = useRef(workId);
+  workIdRef.current = workId;
+  const loaderRef = useRef(null);
+  if (!loaderRef.current) {
+    loaderRef.current = createChapterLoader({
+      fetchChapter: (chId) => api.get(`/works/${workIdRef.current}/chapters/${chId}`),
+      onLoaded: (chId, chapter) => {
+        const text = chapter.content || '';
+        const html = chapter.contentHtml || '';
+        setChapterContent({ id: chId, text, html });
+        loadContent(chId, text, html);
+      },
+      onError: (chId, err) => console.error('Failed to load chapter:', err),
+      onLoadingChange: setLoadingChapterId,
+    });
+  }
+  useEffect(() => () => loaderRef.current.cancel(), []);
 
   const { state: uiState, dispatch: uiDispatch } = useUI();
 
@@ -57,25 +78,13 @@ export default function MainRoom() {
       editorChapterId: editorState.chapterId,
       loadedChapterId: chapterContent.id,
     });
-    if (target) loadChapter(target);
+    if (target) loaderRef.current.load(target);
   }, [state.chapters, state.work, urlChapterId, chapterContent.id]);
 
-  async function loadChapter(chId) {
-    try {
-      const chapter = await api.get(`/works/${workId}/chapters/${chId}`);
-      const text = chapter.content || '';
-      const html = chapter.contentHtml || '';
-      setChapterContent({ id: chId, text, html });
-      loadContent(chId, text, html);
-    } catch (err) {
-      console.error('Failed to load chapter:', err);
-    }
-  }
-
+  // Changing the URL is enough: the effect above loads the chapter
   function handleChapterSelect(chId) {
     if (chId === editorState.chapterId) return;
     navigate(`/work/${workId}/chapter/${chId}`);
-    loadChapter(chId);
   }
 
   async function handleAddChapter() {
