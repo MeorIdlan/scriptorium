@@ -82,6 +82,8 @@ export default function QuillTab({ workId }) {
   const [polishSession, setPolishSession] = useState(null);
   const [polishResult, setPolishResult] = useState(null);
   const [editorReview, setEditorReview] = useState(null);
+  // While a review is open over the chapter, Polish waits without losing focus
+  const polishing = loading || Boolean(polishSession);
 
   useEffect(() => {
     if (!workId) return;
@@ -230,9 +232,9 @@ export default function QuillTab({ workId }) {
         </button>
         <button
           className="btn btn-ghost quill-ai-btn quill-ai-btn--polish"
-          onClick={guardBusy(loading, handlePolish)}
-          disabled={Boolean(polishSession) || !editorState.content?.trim()}
-          {...busyProps(loading)}
+          onClick={guardBusy(polishing, handlePolish)}
+          disabled={!editorState.content?.trim()}
+          {...busyProps(polishing)}
           title="Suggests rewrites you can accept or reject one by one, keeping the story direction unchanged"
         >
           ✦ Polish {editorState.selection ? 'selection' : 'chapter'}

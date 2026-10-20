@@ -32,6 +32,7 @@ function ChangeView({ change, onSet }) {
         <button
           className={`polish-change-btn${status === 'accepted' ? ' active' : ''}`}
           onClick={() => onSet(change.id, 'accepted')}
+          aria-label="Accept this change"
           title="Accept this change"
         >
           ✓
