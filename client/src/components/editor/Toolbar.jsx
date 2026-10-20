@@ -20,6 +20,19 @@ export default function Toolbar({ editorRef }) {
   const [summaryOpen, setSummaryOpen] = useState(false);
   // The writer's selection inside the editor, kept for the font and size selects
   const editorRange = useRef(null);
+  const [formats, setFormats] = useState({ bold: false, italic: false, underline: false });
+
+  // Whether B, I and U are on at the selection; the browser answers for the caret too
+  function readFormats() {
+    const read = (command) => {
+      try {
+        return document.queryCommandState(command);
+      } catch {
+        return false;
+      }
+    };
+    return { bold: read('bold'), italic: read('italic'), underline: read('underline') };
+  }
 
   useEffect(() => {
     function remember() {
@@ -27,6 +40,7 @@ export default function Toolbar({ editorRef }) {
       const sel = document.getSelection();
       if (root && sel && sel.rangeCount > 0 && root.contains(sel.anchorNode)) {
         editorRange.current = sel.getRangeAt(0).cloneRange();
+        setFormats(readFormats());
       }
     }
     document.addEventListener('selectionchange', remember);
@@ -37,6 +51,7 @@ export default function Toolbar({ editorRef }) {
   function exec(command, value = null) {
     editorRef.current?.focus();
     document.execCommand(command, false, value);
+    setFormats(readFormats());
   }
 
   // The selects keep focus, so the command goes to the selection the writer left in the editor
@@ -88,6 +103,7 @@ export default function Toolbar({ editorRef }) {
       <button
         className="toolbar-btn"
         onClick={() => exec('bold')}
+        aria-pressed={formats.bold}
         title="Bold (Ctrl+B)"
       >
         <strong>B</strong>
@@ -95,6 +111,7 @@ export default function Toolbar({ editorRef }) {
       <button
         className="toolbar-btn toolbar-italic"
         onClick={() => exec('italic')}
+        aria-pressed={formats.italic}
         title="Italic (Ctrl+I)"
       >
         <em>I</em>
@@ -102,6 +119,7 @@ export default function Toolbar({ editorRef }) {
       <button
         className="toolbar-btn toolbar-underline"
         onClick={() => exec('underline')}
+        aria-pressed={formats.underline}
         title="Underline (Ctrl+U)"
       >
         <u>U</u>
