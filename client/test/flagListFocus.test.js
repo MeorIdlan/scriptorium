@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createElement as h, useState } from 'react';
+import { createElement as h, useRef, useState } from 'react';
 import { act, click, flush, render } from './support/render.js';
 import { stubFetch } from './support/app.js';
 import './support/focus.js';
@@ -107,3 +107,38 @@ test('a flag action keeps focus while its request runs and sends nothing more', 
     await view.unmount();
   }
 });
+
+// The flag list with the entry's first field beside it, as the sheets render it
+function FallbackHarness() {
+  const nameRef = useRef(null);
+  const [flags, setFlags] = useState(store.filter((f) => f.status === 'unresolved'));
+  return h('div', null,
+    h('button', { ref: nameRef, type: 'button' }, 'Name'),
+    h(FlagList, {
+      workId: 'w1',
+      flags,
+      entityType: 'character',
+      entityId: 'c1',
+      fallback: nameRef,
+      onFlagsChange: () => setFlags(store.filter((f) => f.status === 'unresolved')),
+    })
+  );
+}
+
+test('resolving the last flag moves focus to the fallback', async () => {
+  resetStore();
+  store = store.slice(0, 1);
+  stubFetch(routes);
+  const view = await render(h(FallbackHarness));
+  try {
+    await flush();
+    const name = [...view.container.querySelectorAll('button')].find((b) => b.textContent === 'Name');
+    await pressButton(rowButtons(view, 0, 'Keep canonical'));
+    await flush();
+    assert.equal(view.container.querySelectorAll('.flag-item').length, 0);
+    assert.equal(document.activeElement === name, true);
+  } finally {
+    await view.unmount();
+  }
+});
+

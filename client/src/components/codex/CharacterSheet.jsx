@@ -4,10 +4,11 @@ import { api } from '../../utils/api.js';
 import FlagList from './FlagList.jsx';
 import CodexSuggestPanel from './CodexSuggestPanel.jsx';
 
-function InlineField({ label, value, onSave }) {
+function InlineField({ label, value, onSave, valueRef }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value || '');
-  const valueBtn = useRef(null);
+  const ownValueBtn = useRef(null);
+  const valueBtn = valueRef || ownValueBtn;
   const returnFocus = useReturnFocus();
 
   function handleKey(e) {
@@ -107,6 +108,8 @@ function InlineTextarea({ label, value, onSave }) {
 
 export default function CharacterSheet({ workId, character, onUpdate, onFlagsChange }) {
   const [char, setChar] = useState(character);
+  // The Name value is the sheet's first field: where focus goes when the last flag leaves
+  const nameBtn = useRef(null);
   // The Codex refetches after a flag or edit; show what the server now holds
   useEffect(() => setChar(character), [character]);
 
@@ -135,7 +138,7 @@ export default function CharacterSheet({ workId, character, onUpdate, onFlagsCha
       <h3 className="codex-entry-title">{char.name}</h3>
 
       <div className="codex-entry-fields">
-        <InlineField label="Name" value={char.name} onSave={(v) => handleSave('name', v)} />
+        <InlineField label="Name" value={char.name} onSave={(v) => handleSave('name', v)} valueRef={nameBtn} />
         <InlineField label="Role" value={char.role} onSave={(v) => handleSave('role', v)} />
         <InlineField label="Aliases" value={char.aliases} onSave={(v) => handleSave('aliases', v)} />
         <InlineField label="Rank" value={char.rank} onSave={(v) => handleSave('rank', v)} />
@@ -173,6 +176,7 @@ export default function CharacterSheet({ workId, character, onUpdate, onFlagsCha
         entityType="character"
         entityId={char.id}
         onFlagsChange={onFlagsChange}
+        fallback={nameBtn}
       />
 
       <CodexSuggestPanel workId={workId} entityType="character" entity={char} />

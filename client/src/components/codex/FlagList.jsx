@@ -4,7 +4,8 @@ import { busyProps, guardBusy } from '../../utils/busyButton.js';
 import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { rowLeaveFocus } from '../../utils/rowLeave.js';
 
-export default function FlagList({ workId, flags, entityType, entityId, onFlagsChange }) {
+// fallback is the entry's first field: focus goes there when the last flag leaves
+export default function FlagList({ workId, flags, entityType, entityId, onFlagsChange, fallback }) {
   const [busyId, setBusyId] = useState(null);
   const list = useRef(null);
   const returnFocus = useReturnFocus();
@@ -14,8 +15,9 @@ export default function FlagList({ workId, flags, entityType, entityId, onFlagsC
   }
 
   async function handleAction(flag, index, action) {
-    // A resolved flag leaves the list: focus goes to the next flag's first action, else the previous
-    returnFocus(rowLeaveFocus([...list.current.querySelectorAll('.flag-item')], index));
+    // A resolved flag leaves the list: focus goes to the next flag's first action, else the
+    // previous one, else the fallback
+    returnFocus(rowLeaveFocus([...list.current.querySelectorAll('.flag-item')], index, fallback?.current ?? null));
     setBusyId(flag.id);
     try {
       await api.put(`/works/${workId}/codex/flags/${flag.id}`, { status: action });
