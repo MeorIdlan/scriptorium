@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, Profiler } from 'react';
-import { act, click, flush } from './support/render.js';
+import { act, click, flush, press } from './support/render.js';
 import { renderApp } from './support/app.js';
 import './support/focus.js';
 import Toolbar from '../src/components/editor/Toolbar.jsx';
@@ -81,6 +81,76 @@ test('a size change keeps focus on the select and applies it to the saved select
     await change(size, '18');
     assert.equal(document.activeElement === size, true);
     assert.deepEqual(env.calls, [['fontSize', 4]]);
+    await view.unmount();
+  } finally {
+    env.restore();
+  }
+});
+
+// Presses the mouse on an element, which is what a pick with the pointer starts with
+async function pointerDown(el) {
+  await act(async () => el.dispatchEvent(new window.Event('pointerdown', { bubbles: true })));
+  await flush();
+}
+
+test('a font picked with the mouse moves focus into the editor and applies it there', async () => {
+  const env = setup();
+  try {
+    const view = await renderApp(h(Toolbar, { editorRef: { current: env.editor } }), { ai: false, path: '/work/w1/chapter/c1', route: '/work/:workId/chapter/:chapterId' });
+    document.dispatchEvent(new window.Event('selectionchange'));
+    const font = view.query('select[title="Font family"]');
+    font.focus();
+    await pointerDown(font);
+    await change(font, 'Arial');
+    assert.equal(document.activeElement === env.editor, true);
+    assert.deepEqual(env.calls, [['fontName', 'Arial']]);
+    await view.unmount();
+  } finally {
+    env.restore();
+  }
+});
+
+test('a size picked with the mouse moves focus into the editor and applies it there', async () => {
+  const env = setup();
+  try {
+    const view = await renderApp(h(Toolbar, { editorRef: { current: env.editor } }), { ai: false, path: '/work/w1/chapter/c1', route: '/work/:workId/chapter/:chapterId' });
+    const size = view.query('select[title="Font size"]');
+    size.focus();
+    await pointerDown(size);
+    await change(size, '20');
+    assert.equal(document.activeElement === env.editor, true);
+    assert.deepEqual(env.calls, [['fontSize', 5]]);
+    await view.unmount();
+  } finally {
+    env.restore();
+  }
+});
+
+test('a keyboard pick after a mouse pick keeps focus on the select', async () => {
+  const env = setup();
+  try {
+    const view = await renderApp(h(Toolbar, { editorRef: { current: env.editor } }), { ai: false, path: '/work/w1/chapter/c1', route: '/work/:workId/chapter/:chapterId' });
+    const font = view.query('select[title="Font family"]');
+    font.focus();
+    await pointerDown(font);
+    await press(font, 'ArrowDown');
+    await change(font, 'Courier');
+    assert.equal(document.activeElement === font, true);
+    assert.deepEqual(env.calls, [['fontName', 'Courier']]);
+    await view.unmount();
+  } finally {
+    env.restore();
+  }
+});
+
+test('Enter on a select moves focus to the editor', async () => {
+  const env = setup();
+  try {
+    const view = await renderApp(h(Toolbar, { editorRef: { current: env.editor } }), { ai: false, path: '/work/w1/chapter/c1', route: '/work/:workId/chapter/:chapterId' });
+    const size = view.query('select[title="Font size"]');
+    size.focus();
+    await press(size, 'Enter');
+    assert.equal(document.activeElement === env.editor, true);
     await view.unmount();
   } finally {
     env.restore();

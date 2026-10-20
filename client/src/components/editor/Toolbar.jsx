@@ -20,6 +20,9 @@ export default function Toolbar({ editorRef }) {
   const [summaryOpen, setSummaryOpen] = useState(false);
   // The writer's selection inside the editor, kept for the font and size selects
   const editorRange = useRef(null);
+  // Whether the last input on a select was a mouse press. A mouse pick leaves focus on
+  // the select, so its command goes to the editor; a keyboard pick keeps focus on the select.
+  const pointerPick = useRef(false);
   const [formats, setFormats] = useState({ bold: false, italic: false, underline: false });
   const formatsRef = useRef(formats);
 
@@ -69,6 +72,10 @@ export default function Toolbar({ editorRef }) {
   // editor. Adding a range inside the editor focuses it, so the range is only put back when
   // the selection has left the editor, and focus returns to the select afterwards.
   function execOnSelection(control, command, value) {
+    if (pointerPick.current) {
+      exec(command, value);
+      return;
+    }
     const sel = document.getSelection();
     const root = editorRef.current;
     if (editorRange.current && sel && !root?.contains(sel.anchorNode)) {
@@ -77,6 +84,17 @@ export default function Toolbar({ editorRef }) {
     }
     document.execCommand(command, false, value);
     control.focus();
+  }
+
+  function selectPointerDown() {
+    pointerPick.current = true;
+  }
+
+  // Any key but Enter makes the next pick a keyboard pick. Enter commits the pick and
+  // hands focus to the editor, so a change that Enter causes takes the pointer path.
+  function selectKeyDown(e) {
+    pointerPick.current = e.key === 'Enter';
+    if (e.key === 'Enter') editorRef.current?.focus();
   }
 
   function setFont(font, control) {
@@ -94,6 +112,8 @@ export default function Toolbar({ editorRef }) {
       <select
         className="toolbar-select"
         onChange={(e) => setFont(e.target.value, e.target)}
+        onPointerDown={selectPointerDown}
+        onKeyDown={selectKeyDown}
         defaultValue="Georgia"
         title="Font family"
       >
@@ -105,6 +125,8 @@ export default function Toolbar({ editorRef }) {
       <select
         className="toolbar-select"
         onChange={(e) => setSize(Number(e.target.value), e.target)}
+        onPointerDown={selectPointerDown}
+        onKeyDown={selectKeyDown}
         defaultValue="16"
         title="Font size"
       >
