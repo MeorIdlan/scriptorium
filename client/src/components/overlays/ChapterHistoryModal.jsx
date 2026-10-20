@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../utils/api.js';
 import { useEditor } from '../../context/EditorContext.jsx';
@@ -8,6 +8,7 @@ import { countWords, formatNumber } from '../../utils/wordCount.js';
 import { CURRENT, versionLabel, groupByDay, orderPair, flushOpenChapter } from '../../utils/versionHistory.js';
 import VersionDiff from './VersionDiff.jsx';
 import { busyProps, guardBusy } from '../../utils/busyButton.js';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 
 const timeOfDay = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const fullTime = (iso) => new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
@@ -25,6 +26,21 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
   const [confirming, setConfirming] = useState(null); // 'restore' | 'delete'
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  // Each editor or confirmation hands focus back to the control that opened it
+  const saveSnapshotBtn = useRef(null);
+  const keepBtn = useRef(null);
+  const renameBtn = useRef(null);
+  const restoreBtn = useRef(null);
+  const deleteBtn = useRef(null);
+  const listRef = useRef(null);
+  const returnFocus = useReturnFocus();
+  const namingTrigger = { save: saveSnapshotBtn, keep: keepBtn, rename: renameBtn };
+  // The selected version's list item, read when focus lands (the list reloads first)
+  const selectedItem = {
+    get current() {
+      return listRef.current?.querySelector('.history-item.active') ?? null;
+    },
+  };
 
   const current = { id: CURRENT, kind: 'current', createdAt: null, wordCount: countWords(editorState.content || '') };
   const byId = (id) => (id === CURRENT ? current : versions?.find((v) => v.id === id));
@@ -85,8 +101,19 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
         await api.patch(`${base}/${selectedId}`, { name });
         await load(selectedId);
       }
+      returnFocus(namingTrigger[naming.mode]);
       setNaming(null);
     });
+
+  function closeNaming() {
+    returnFocus(namingTrigger[naming.mode]);
+    setNaming(null);
+  }
+
+  function stopConfirming(trigger) {
+    returnFocus(trigger);
+    setConfirming(null);
+  }
 
   const restore = () =>
     run(async () => {
@@ -101,8 +128,10 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
   const remove = () =>
     run(async () => {
       await api.delete(`${base}/${selectedId}`);
-      setConfirming(null);
       await load();
+      // The reload has moved the selection; focus lands on it as the confirmation closes
+      returnFocus(selectedItem);
+      setConfirming(null);
     });
 
   const selected = byId(selectedId) || current;
@@ -115,7 +144,7 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
   let actions = null;
   if (naming) {
     actions = (
-      <div className="history-actions">
+      <div key="naming" className="history-actions">
         <input
           className="history-name-input"
           value={naming.value}
@@ -125,40 +154,40 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
           onChange={(e) => setNaming({ ...naming, value: e.target.value })}
           onKeyDown={(e) => {
             if (e.key === 'Enter') submitName();
-            if (e.key === 'Escape') { setNaming(null); e.stopPropagation(); }
+            if (e.key === 'Escape') { closeNaming(); e.stopPropagation(); }
           }}
         />
         <button className="btn btn-primary btn-sm" onClick={guardBusy(busy, submitName)} disabled={!naming.value.trim()} {...busyProps(busy)}>Save</button>
-        <button className="btn btn-ghost btn-sm" onClick={() => setNaming(null)}>Cancel</button>
+        <button className="btn btn-ghost btn-sm" onClick={closeNaming}>Cancel</button>
       </div>
     );
   } else if (confirming === 'restore') {
     actions = (
-      <div className="history-actions history-confirm">
+      <div key="confirm" className="history-actions history-confirm">
         <span>Restore this version? Your current text will be saved as a snapshot first.</span>
         <button className="btn btn-primary btn-sm" onClick={guardBusy(busy, restore)} {...busyProps(busy)}>{busy ? 'Restoring…' : 'Restore'}</button>
-        <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(null)}>Cancel</button>
+        <button autoFocus className="btn btn-ghost btn-sm" onClick={() => stopConfirming(restoreBtn)}>Cancel</button>
       </div>
     );
   } else if (confirming === 'delete') {
     actions = (
-      <div className="history-actions history-confirm">
+      <div key="confirm" className="history-actions history-confirm">
         <span>Delete “{selected.name}”? This can't be undone.</span>
         <button className="btn btn-danger btn-sm" onClick={guardBusy(busy, remove)} {...busyProps(busy)}>Delete</button>
-        <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(null)}>Cancel</button>
+        <button autoFocus className="btn btn-ghost btn-sm" onClick={() => stopConfirming(deleteBtn)}>Cancel</button>
       </div>
     );
   } else if (selectedId !== CURRENT) {
     actions = (
-      <div className="history-actions">
-        <button className="btn btn-primary btn-sm" onClick={guardBusy(busy, () => setConfirming('restore'))} {...busyProps(busy)}>Restore this version</button>
+      <div key="actions" className="history-actions">
+        <button ref={restoreBtn} className="btn btn-primary btn-sm" onClick={guardBusy(busy, () => setConfirming('restore'))} {...busyProps(busy)}>Restore this version</button>
         {selected.kind === 'auto' && (
-          <button className="btn btn-ghost btn-sm" onClick={() => setNaming({ mode: 'keep', value: '' })}>Keep this version…</button>
+          <button ref={keepBtn} className="btn btn-ghost btn-sm" onClick={() => setNaming({ mode: 'keep', value: '' })}>Keep this version…</button>
         )}
         {selected.kind === 'named' && (
           <>
-            <button className="btn btn-ghost btn-sm" onClick={() => setNaming({ mode: 'rename', value: selected.name })}>Rename…</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => setConfirming('delete')}>Delete…</button>
+            <button ref={renameBtn} className="btn btn-ghost btn-sm" onClick={() => setNaming({ mode: 'rename', value: selected.name })}>Rename…</button>
+            <button ref={deleteBtn} className="btn btn-ghost btn-sm" onClick={() => setConfirming('delete')}>Delete…</button>
           </>
         )}
       </div>
@@ -185,7 +214,7 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
           {!versions && !error && <p className="panel-loading">Loading history…</p>}
           {versions && (
             <>
-              <ul className="history-list">
+              <ul ref={listRef} className="history-list">
                 <li>
                   <button className={`history-item${selectedId === CURRENT ? ' active' : ''}`} onClick={() => select(CURRENT)}>
                     <span className="history-item-label">Current text</span>
@@ -248,7 +277,7 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
         </div>
 
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={guardBusy(busy, () => setNaming({ mode: 'save', value: '' }))} disabled={!versions} {...busyProps(busy)}>
+          <button ref={saveSnapshotBtn} className="btn btn-ghost" onClick={guardBusy(busy, () => setNaming({ mode: 'save', value: '' }))} disabled={!versions} {...busyProps(busy)}>
             Save snapshot…
           </button>
           <button className="btn btn-ghost" onClick={onDismiss}>Close</button>
