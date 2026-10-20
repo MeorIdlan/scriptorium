@@ -59,3 +59,26 @@ test('Regenerate keeps focus on Regenerate while the request runs', async () => 
   assert.equal(document.activeElement === regenerate, true);
   await view.unmount();
 });
+
+test('Regenerate keeps the context chips until the new suggestions arrive', async () => {
+  let calls = 0;
+  let release;
+  const view = await renderPanel({
+    'POST /ai/codex-suggest': () => {
+      calls += 1;
+      if (calls === 1) return { suggestions: [{ field: null, text: 'Fake suggestion.' }], context: { summaries: 2 } };
+      return new Promise((r) => (release = r));
+    },
+  });
+  await press(view.button('AI Suggestions'));
+  await flush();
+  assert.match(view.text(), /Context: 2 chapter summaries/);
+  await press(view.button('Regenerate'));
+  // The old chips stay on screen while the new suggestions are on their way
+  assert.match(view.text(), /Context: 2 chapter summaries/);
+  await act(async () => release({ suggestions: [{ field: null, text: 'Newer.' }], context: { summaries: 3 } }));
+  await flush();
+  assert.match(view.text(), /Context: 3 chapter summaries/);
+  await view.unmount();
+});
+

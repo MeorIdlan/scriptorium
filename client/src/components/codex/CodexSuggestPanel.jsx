@@ -14,10 +14,10 @@ export default function CodexSuggestPanel({ workId, entityType, entity }) {
   const dismiss = useRef(null);
   const returnFocus = useReturnFocus();
 
-  // Regenerate keeps the list on screen until the new one arrives, so its focus stays put
+  // Regenerate keeps the list and its context chips until the new result arrives,
+  // so its focus stays put
   async function handleSuggest() {
     const fromTrigger = suggestions === null;
-    setContext(null);
     const data = await call('codex-suggest', { workId, entityType, entity });
     if (data?.suggestions) {
       // The trigger leaves as the list arrives; the list's Dismiss takes focus
