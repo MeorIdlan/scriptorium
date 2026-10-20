@@ -12,7 +12,7 @@ const FONTS = ['Georgia', 'Arial', 'Verdana', 'Courier'];
 const SIZES = [12, 14, 16, 18, 20];
 
 export default function Toolbar({ editorRef }) {
-  const { dispatch } = useUI();
+  const { state: uiState, dispatch } = useUI();
   const { workId } = useParams();
   const { state: editorState } = useEditor();
   const { aiOn } = useAiState();
@@ -127,7 +127,11 @@ export default function Toolbar({ editorRef }) {
       {aiOn && (
         <button
           className="toolbar-btn toolbar-spark"
-          onClick={() => dispatch({ type: 'TOGGLE_HOOK_GENERATOR' })}
+          onClick={() => {
+            // The generator opens in the Quill tab, so bring that tab forward
+            if (!uiState.hookGeneratorOpen) dispatch({ type: 'SET_PANEL_TAB', tab: 'quill' });
+            dispatch({ type: 'TOGGLE_HOOK_GENERATOR' });
+          }}
           title="Open Spark / Hook Generator"
         >
           ✨ Spark
