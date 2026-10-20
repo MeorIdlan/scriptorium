@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
@@ -18,20 +18,45 @@ export default function Toolbar({ editorRef }) {
   const { aiOn } = useAiState();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  // The writer's selection inside the editor, kept for the font and size selects
+  const editorRange = useRef(null);
 
+  useEffect(() => {
+    function remember() {
+      const root = editorRef.current;
+      const sel = document.getSelection();
+      if (root && sel && sel.rangeCount > 0 && root.contains(sel.anchorNode)) {
+        editorRange.current = sel.getRangeAt(0).cloneRange();
+      }
+    }
+    document.addEventListener('selectionchange', remember);
+    return () => document.removeEventListener('selectionchange', remember);
+  }, [editorRef]);
+
+  // Buttons focus the editor, then run the command on its selection
   function exec(command, value = null) {
     editorRef.current?.focus();
     document.execCommand(command, false, value);
   }
 
+  // The selects keep focus, so the command goes to the selection the writer left in the editor
+  function execOnSelection(command, value) {
+    const sel = document.getSelection();
+    if (editorRange.current && sel) {
+      sel.removeAllRanges();
+      sel.addRange(editorRange.current);
+    }
+    document.execCommand(command, false, value);
+  }
+
   function setFont(font) {
-    exec('fontName', font);
+    execOnSelection('fontName', font);
   }
 
   function setSize(size) {
     // execCommand fontSize uses 1-7, map px roughly
     const sizeMap = { 12: 1, 14: 2, 16: 3, 18: 4, 20: 5 };
-    exec('fontSize', sizeMap[size] || 3);
+    execOnSelection('fontSize', sizeMap[size] || 3);
   }
 
   return (
