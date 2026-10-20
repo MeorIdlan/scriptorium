@@ -541,6 +541,12 @@ a:hover {
 }
 
 .wizard-hook-card {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);

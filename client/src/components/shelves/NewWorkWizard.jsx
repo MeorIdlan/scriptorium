@@ -6,6 +6,7 @@ import { useWorks } from '../../context/WorksContext.jsx';
 import { useAI } from '../../hooks/useAI.js';
 import { useAiState } from '../../context/AiContext.jsx';
 import { busyProps, guardBusy } from '../../utils/busyButton.js';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 
 const GENRES = ['fantasy', 'sci-fi', 'literary', 'thriller', 'romance', 'historical', 'other'];
 const POVS = [
@@ -37,6 +38,8 @@ export default function NewWorkWizard({ onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const titleRef = useRef(null);
+  const firstHook = useRef(null);
+  const returnFocus = useReturnFocus();
   const titleId = useId();
   const { dialogProps, backdropProps } = useModal({ onClose, initialFocusRef: titleRef });
 
@@ -53,6 +56,8 @@ export default function NewWorkWizard({ onClose }) {
       protagonist: form.protagonist,
     });
     if (result && result.hooks) {
+      // Generate leaves the page as the hooks arrive; the first hook takes focus
+      returnFocus(firstHook);
       setHooks(result.hooks);
     }
   }
@@ -235,13 +240,16 @@ export default function NewWorkWizard({ onClose }) {
                 <div className="wizard-hooks">
                   <p className="wizard-hooks-label">Choose an opening hook (optional):</p>
                   {hooks.map((hook, i) => (
-                    <div
+                    <button
                       key={i}
+                      ref={i === 0 ? firstHook : undefined}
+                      type="button"
                       className={`wizard-hook-card${selectedHook === hook ? ' selected' : ''}`}
+                      aria-pressed={selectedHook === hook}
                       onClick={() => setSelectedHook(selectedHook === hook ? null : hook)}
                     >
-                      <p>{hook}</p>
-                    </div>
+                      {hook}
+                    </button>
                   ))}
                 </div>
               )}
