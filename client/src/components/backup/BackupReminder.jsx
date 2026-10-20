@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { saveFile } from '../../utils/saveFile.js';
 import { backedUpNow } from '../../utils/backupReminder.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 function daysText(days) {
   return `${days} ${days === 1 ? 'day' : 'days'}`;
@@ -18,6 +19,7 @@ export default function BackupReminder({ work, variant, onChange }) {
   const reminder = work.backupReminder;
   if (!reminder?.due) return null;
 
+  const busy = pending !== null;
   const banner = variant === 'banner';
   const never = !reminder.lastBackupAt;
   const days = reminder.daysSinceBackup;
@@ -30,7 +32,7 @@ export default function BackupReminder({ work, variant, onChange }) {
     text = never ? 'Never backed up' : `Not backed up in ${daysText(days)}`;
   }
 
-  // Runs one request at a time; every reminder button is disabled meanwhile
+  // Runs one request at a time; every reminder button is marked busy meanwhile
   async function run(kind, request) {
     if (inFlight.current) return;
     inFlight.current = true;
@@ -69,17 +71,17 @@ export default function BackupReminder({ work, variant, onChange }) {
     >
       <p className="backup-reminder-text">{text}</p>
       <div className="backup-reminder-actions">
-        <button className="btn btn-secondary" onClick={backUp} disabled={pending !== null}>
+        <button className="btn btn-secondary" onClick={guardBusy(busy, backUp)} {...busyProps(busy)}>
           {pending === 'backup' ? 'Backing up…' : 'Back up now'}
         </button>
-        <button className="btn btn-ghost" onClick={() => respond('snooze')} disabled={pending !== null}>
+        <button className="btn btn-ghost" onClick={guardBusy(busy, () => respond('snooze'))} {...busyProps(busy)}>
           {banner ? 'Remind me later' : 'Later'}
         </button>
         <button
           className="backup-reminder-dismiss"
           aria-label="Dismiss"
-          onClick={() => respond('dismiss')}
-          disabled={pending !== null}
+          onClick={guardBusy(busy, () => respond('dismiss'))}
+          {...busyProps(busy)}
         >
           {banner ? 'Dismiss' : '✕'}
         </button>

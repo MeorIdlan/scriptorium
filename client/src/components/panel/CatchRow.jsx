@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { catchLengthError, chapterLabel, liveChapterId, timeAgo, usedAsLabel } from '../../utils/catchGroups.js';
 import { defaultName } from '../../utils/catchActions.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 const USE_TARGETS = [
   { value: 'character', label: 'Codex character' },
@@ -25,17 +27,25 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
   const [target, setTarget] = useState('character');
   const [name, setName] = useState('');
   const [mapChapterId, setMapChapterId] = useState('');
+  // The Edit and Use as… buttons: an editor closing hands focus back to the one that opened it
+  const editBtn = useRef(null);
+  const useBtn = useRef(null);
+  const returnFocus = useReturnFocus();
 
   const chapter = chapters.find((ch) => ch.id === item.taggedChapterId);
   const isOpen = item.status === 'open';
 
-  async function act(kind, payload) {
+  // returnTo is the button to focus when the editor closes on success; a refused save
+  // keeps the editor open, so the target is cleared
+  async function act(kind, payload, returnTo) {
     setBusy(true);
     setError('');
+    if (returnTo) returnFocus(returnTo);
     const result = await onAction(kind, payload);
     setBusy(false);
     setError(resultMessage(result));
     if (result.ok || result.stage === 'mark') setMode('view');
+    else returnFocus(null);
   }
 
   function startEdit() {
@@ -57,17 +67,17 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
 
   function saveEdit() {
     if (!draft.trim() || catchLengthError(draft)) return;
-    act('edit', { content: draft, taggedChapterId: draftTag || null });
+    act('edit', { content: draft, taggedChapterId: draftTag || null }, editBtn);
   }
 
   function saveUse() {
     if (target === 'map') {
       const ch = chapters.find((c) => c.id === mapChapterId);
       if (!ch) return;
-      act('map', { chapterId: ch.id, chapterLabel: chapterLabel(ch), text: item.content });
+      act('map', { chapterId: ch.id, chapterLabel: chapterLabel(ch), text: item.content }, useBtn);
     } else {
       if (!name.trim()) return;
-      act('codex', { type: target, name, text: item.content });
+      act('codex', { type: target, name, text: item.content }, useBtn);
     }
   }
 
@@ -83,7 +93,10 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
               e.preventDefault();
               saveEdit();
             }
-            if (e.key === 'Escape') setMode('view');
+            if (e.key === 'Escape') {
+              returnFocus(editBtn);
+              setMode('view');
+            }
           }}
           rows={3}
           autoFocus
@@ -97,8 +110,17 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
         </select>
         {(catchLengthError(draft) || error) && <p className="catch-row-error">{catchLengthError(draft) || error}</p>}
         <div className="catch-row-actions visible">
-          <button className="btn btn-primary btn-sm" onClick={saveEdit} disabled={busy || !draft.trim() || Boolean(catchLengthError(draft))}>Save</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setMode('view')} disabled={busy}>Cancel</button>
+          <button className="btn btn-primary btn-sm" onClick={guardBusy(busy, saveEdit)} disabled={!draft.trim() || Boolean(catchLengthError(draft))} {...busyProps(busy)}>Save</button>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={guardBusy(busy, () => {
+              returnFocus(editBtn);
+              setMode('view');
+            })}
+            {...busyProps(busy)}
+          >
+            Cancel
+          </button>
         </div>
       </div>
     );
@@ -146,12 +168,22 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
           <div className="catch-row-actions visible">
             <button
               className="btn btn-primary btn-sm"
-              onClick={saveUse}
-              disabled={busy || (target === 'map' ? !mapChapterId : !name.trim())}
+              onClick={guardBusy(busy, saveUse)}
+              disabled={target === 'map' ? !mapChapterId : !name.trim()}
+              {...busyProps(busy)}
             >
               {busy ? 'Saving…' : 'Save'}
             </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => setMode('view')} disabled={busy}>Cancel</button>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={guardBusy(busy, () => {
+                returnFocus(useBtn);
+                setMode('view');
+              })}
+              {...busyProps(busy)}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
@@ -163,17 +195,17 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
           {isOpen ? (
             <>
               {canInsert && (
-                <button className="btn btn-ghost btn-sm" onClick={() => act('insert')} disabled={busy} title="Insert as a new paragraph after the cursor">
+                <button className="btn btn-ghost btn-sm" onClick={guardBusy(busy, () => act('insert'))} {...busyProps(busy)} title="Insert as a new paragraph after the cursor">
                   Insert
                 </button>
               )}
-              <button className="btn btn-ghost btn-sm" onClick={startUse} disabled={busy}>Use as…</button>
-              <button className="btn btn-ghost btn-sm" onClick={startEdit} disabled={busy}>Edit</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => act('used')} disabled={busy}>Used</button>
-              <button className="btn btn-ghost btn-sm danger" onClick={() => act('discard')} disabled={busy}>Discard</button>
+              <button ref={useBtn} className="btn btn-ghost btn-sm" onClick={guardBusy(busy, startUse)} {...busyProps(busy)}>Use as…</button>
+              <button ref={editBtn} className="btn btn-ghost btn-sm" onClick={guardBusy(busy, startEdit)} {...busyProps(busy)}>Edit</button>
+              <button className="btn btn-ghost btn-sm" onClick={guardBusy(busy, () => act('used'))} {...busyProps(busy)}>Used</button>
+              <button className="btn btn-ghost btn-sm danger" onClick={guardBusy(busy, () => act('discard'))} {...busyProps(busy)}>Discard</button>
             </>
           ) : (
-            <button className="btn btn-ghost btn-sm" onClick={() => act('reopen')} disabled={busy}>Reopen</button>
+            <button className="btn btn-ghost btn-sm" onClick={guardBusy(busy, () => act('reopen'))} {...busyProps(busy)}>Reopen</button>
           )}
         </div>
       )}

@@ -41,7 +41,7 @@ function Layout() {
       <Sidebar />
       <div className="main-area">
         <TopBar />
-        <div className="content">
+        <div className="content" tabIndex={-1}>
           <div key={pageKey(location.pathname)} className="page-enter">
             <Outlet />
           </div>

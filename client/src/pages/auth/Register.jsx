@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 export default function Register() {
   const { register } = useAuth();
@@ -26,7 +27,7 @@ export default function Register() {
 
   return (
     <div className="auth-page">
-      <form className="auth-card" onSubmit={handleSubmit}>
+      <form className="auth-card" onSubmit={guardBusy(submitting, handleSubmit)}>
         <h1>Create an account</h1>
         <p>We'll email you a verification code to confirm your address.</p>
         {error && <div className="auth-error">{error}</div>}
@@ -38,7 +39,7 @@ export default function Register() {
           Email
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </label>
-        <button type="submit" disabled={submitting}>
+        <button type="submit" {...busyProps(submitting)}>
           {submitting ? 'Sending…' : 'Register'}
         </button>
         <Link to="/login">Already have an account? Log in</Link>

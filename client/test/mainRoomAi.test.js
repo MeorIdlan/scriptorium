@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, Fragment } from 'react';
-import { act, click, flush } from './support/render.js';
+import { act, click, flush, press } from './support/render.js';
 import { renderApp, aiSettings, HttpError } from './support/app.js';
 import { useAiState } from '../src/context/AiContext.jsx';
 import { useUI } from '../src/context/UIContext.jsx';
@@ -124,5 +124,17 @@ test('the panel still opens, without Quill, when settings fail to load', async (
     routes: { ...routes, 'GET /settings': new HttpError(500, 'INTERNAL', 'down') },
   });
   assert.deepEqual(tabLabels(view), ['Scenes', 'Codex', 'Catch']);
+  await view.unmount();
+});
+
+test('the summary dialog is a labelled dialog, and Esc on a field inside it closes it', async () => {
+  let dismissed = 0;
+  const view = await renderApp(h(ChapterSummaryModal, { workId: 'w1', chapterId: 'c1', onDismiss() { dismissed++; } }), {
+    ai: true,
+    routes,
+  });
+  assert.ok(view.query('[role="dialog"]'));
+  await press(view.button('Edit'), 'Escape');
+  assert.equal(dismissed, 1);
   await view.unmount();
 });

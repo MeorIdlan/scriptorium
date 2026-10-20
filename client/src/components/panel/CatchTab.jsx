@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { api } from '../../utils/api.js';
 import { chapterLabel, filterCatches, groupCatches } from '../../utils/catchGroups.js';
 import { markUsed, markDiscarded, reopen, markUsedAfter, useAsCodex, useAsMapNote } from '../../utils/catchActions.js';
 import { insertParagraphAfter, rememberedCaret } from '../../utils/editorBlocks.js';
+import { rowLeaveFocus } from '../../utils/rowLeave.js';
 import CatchRow from './CatchRow.jsx';
 
 const STATUSES = [
@@ -13,6 +15,9 @@ const STATUSES = [
   { value: 'discarded', label: 'Discarded' },
   { value: 'all', label: 'All' },
 ];
+
+// The status each action leaves a catch in; edit changes no status
+const STATUS_AFTER = { discard: 'discarded', used: 'used', insert: 'used', codex: 'used', map: 'used', reopen: 'open' };
 
 const EMPTY = {
   open: 'No open catches. Press Ctrl+Shift+I to capture an idea.',
@@ -36,6 +41,9 @@ export default function CatchTab({ workId }) {
   const { state: editorState } = useEditor();
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('open');
+  const listRef = useRef(null);
+  const searchRef = useRef(null);
+  const returnFocus = useReturnFocus();
 
   useEffect(() => {
     if (workId) refreshCatches(workId);
@@ -48,6 +56,9 @@ export default function CatchTab({ workId }) {
 
   async function runAction(item, kind, payload) {
     let result;
+    // The rows as they are before the action, and where this one sits among them
+    const rows = [...listRef.current.querySelectorAll('.catch-row')];
+    const index = groups.flatMap((g) => g.items).findIndex((i) => i.id === item.id);
     switch (kind) {
       case 'edit':
         result = await attempt(() => api.put(`/works/${workId}/catches/${item.id}`, payload));
@@ -86,6 +97,15 @@ export default function CatchTab({ workId }) {
       default:
         result = { ok: false, stage: 'create', error: new Error(`Unknown action: ${kind}`) };
     }
+    // An action that changed the status: if the row leaves this filter, focus moves to a
+    // neighbour; if it stays (All, or the status still matches), focus goes to its new button
+    const next = result.ok ? STATUS_AFTER[kind] : undefined;
+    if (next) {
+      if (status !== 'all' && next !== status) returnFocus(rowLeaveFocus(rows, index, searchRef.current));
+      else returnFocus({ get current() { return rows[index]?.querySelector('button') ?? null; } });
+    } else {
+      returnFocus(null);
+    }
     refreshCatches(workId);
     return result;
   }
@@ -93,8 +113,9 @@ export default function CatchTab({ workId }) {
   const trimmed = query.trim();
 
   return (
-    <div className="catch-tab">
+    <div className="catch-tab" ref={listRef}>
       <input
+        ref={searchRef}
         className="form-input catch-search"
         type="search"
         value={query}

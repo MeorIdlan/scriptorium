@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { parseGoalInput } from '../../utils/dailyProgress.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 // The writer's daily word goal (FR-18). Shown whether or not AI is on.
 export default function DailyGoalField() {
@@ -8,6 +9,7 @@ export default function DailyGoalField() {
   const [input, setInput] = useState('');
   const [message, setMessage] = useState(null);
   const [saving, setSaving] = useState(false);
+  const busy = saving || !loaded;
 
   useEffect(() => {
     api
@@ -59,10 +61,10 @@ export default function DailyGoalField() {
         />
       </div>
       <div className="settings-actions">
-        <button className="btn btn-primary" onClick={() => save(input)} disabled={saving || !loaded}>
+        <button className="btn btn-primary" onClick={guardBusy(busy, () => save(input))} {...busyProps(busy)}>
           Save goal
         </button>
-        <button className="btn btn-secondary" onClick={() => save('')} disabled={saving || !loaded}>
+        <button className="btn btn-secondary" onClick={guardBusy(busy, () => save(''))} {...busyProps(busy)}>
           Clear goal
         </button>
       </div>

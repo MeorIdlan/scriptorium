@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../utils/api.js';
 import { useEditor } from '../../context/EditorContext.jsx';
@@ -6,6 +6,8 @@ import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { buildChanges, diffWords } from '../../utils/polishDiff.js';
 import { applyPolish } from '../../utils/applyPolish.js';
 import ContextUsed from '../panel/ContextUsed.jsx';
+import { useModal } from '../../hooks/useModal.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 const isFatal = (err) => err.code === 'NO_API_KEY' || [401, 403, 404].includes(err.status);
 
@@ -30,6 +32,7 @@ function ChangeView({ change, onSet }) {
         <button
           className={`polish-change-btn${status === 'accepted' ? ' active' : ''}`}
           onClick={() => onSet(change.id, 'accepted')}
+          aria-label="Accept this change"
           title="Accept this change"
         >
           ✓
@@ -37,6 +40,7 @@ function ChangeView({ change, onSet }) {
         <button
           className={`polish-change-btn${status === 'rejected' ? ' active' : ''}`}
           onClick={() => onSet(change.id, 'rejected')}
+          aria-label="Keep the original"
           title="Keep the original"
         >
           ✕
@@ -138,17 +142,21 @@ export default function PolishReviewModal({ workId, chapterId, session, summarie
   } else if (allDone && list.length === 0) status = 'No changes suggested.';
   else status = `${list.length} change${list.length === 1 ? '' : 's'} · ${accepted} accepted · ${rejected} rejected`;
 
+  // Esc closes like the ✕ button; no backdrop click, so a stray click keeps the review
+  const titleId = useId();
+  const { dialogProps } = useModal({ onClose: () => onClose(null) });
+
   // Portal: the Quill panel's tab animation leaves a transform that would
   // trap a position:fixed overlay inside the panel
   return createPortal(
     <div className="modal-backdrop draft-polish-backdrop">
-      <div className="modal polish-review-modal">
+      <div className="modal polish-review-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <div className="draft-polish-header-text">
-            <h2 className="modal-title">Polish {session.mode === 'selection' ? 'selection' : 'chapter'}</h2>
+            <h2 id={titleId} className="modal-title">Polish {session.mode === 'selection' ? 'selection' : 'chapter'}</h2>
             <p className="draft-polish-subtitle">Accept the changes you want. Nothing in your chapter changes until you apply.</p>
           </div>
-          <button className="modal-close" onClick={() => onClose(null)}>✕</button>
+          <button className="modal-close" aria-label="Close" onClick={() => onClose(null)}>✕</button>
         </div>
 
         <div className="polish-review-toolbar">
@@ -200,7 +208,7 @@ export default function PolishReviewModal({ workId, chapterId, session, summarie
 
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={() => onClose(null)}>Discard</button>
-          <button className="btn btn-primary" onClick={handleApply} disabled={busy || accepted === 0}>
+          <button className="btn btn-primary" onClick={guardBusy(busy, handleApply)} disabled={accepted === 0} {...busyProps(busy)}>
             Apply {accepted || ''} accepted change{accepted === 1 ? '' : 's'}
           </button>
         </div>

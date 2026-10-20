@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
-import { click, type } from './support/render.js';
+import { click, press, type } from './support/render.js';
 import { renderApp } from './support/app.js';
+import './support/focus.js';
 import NewWorkWizard from '../src/components/shelves/NewWorkWizard.jsx';
 
 async function toReview(view) {
@@ -36,5 +37,23 @@ test('with AI on the wizard offers opening hooks', async () => {
   const view = await renderApp(h(NewWorkWizard, { onClose() {} }), { ai: true });
   await toReview(view);
   assert.ok(view.hasButton('Generate Opening Hooks'));
+  await view.unmount();
+});
+
+test('the wizard opens focused on its title field', async () => {
+  const view = await renderApp(h(NewWorkWizard, { onClose() {} }), { ai: false });
+  assert.equal(document.activeElement === view.query('input.form-input'), true);
+  await view.unmount();
+});
+
+test('the wizard is a labelled dialog, and Esc on a field inside it closes it', async () => {
+  let closed = 0;
+  const view = await renderApp(h(NewWorkWizard, { onClose() { closed++; } }), { ai: false });
+  const dialog = view.query('[role="dialog"]');
+  assert.ok(dialog);
+  assert.equal(dialog.getAttribute('aria-labelledby'), view.query('.modal-title').id);
+  assert.equal(view.query('.modal-title').textContent, 'New Work');
+  await press(view.query('input.form-input'), 'Escape');
+  assert.equal(closed, 1);
   await view.unmount();
 });

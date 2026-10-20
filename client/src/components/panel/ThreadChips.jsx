@@ -1,4 +1,5 @@
 import { tagList } from '../../utils/threads.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 // One toggle chip per plot thread of the work
 export function ThreadChips({ threads, selected, onToggle, disabled, label }) {
@@ -12,8 +13,8 @@ export function ThreadChips({ threads, selected, onToggle, disabled, label }) {
           className={`thread-chip${on.includes(t.id) ? ' on' : ''}${t.status === 'resolved' ? ' resolved' : ''}`}
           style={{ '--thread-color': t.color }}
           aria-pressed={on.includes(t.id)}
-          disabled={disabled}
-          onClick={() => onToggle(t.id)}
+          {...busyProps(disabled)}
+          onClick={guardBusy(disabled, () => onToggle(t.id))}
         >
           {t.name}
         </button>

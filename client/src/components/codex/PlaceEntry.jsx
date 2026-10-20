@@ -1,15 +1,27 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { api } from '../../utils/api.js';
 import FlagList from './FlagList.jsx';
 import CodexSuggestPanel from './CodexSuggestPanel.jsx';
 
-function InlineField({ label, value, onSave }) {
+function InlineField({ label, value, onSave, valueRef }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value || '');
+  const ownValueBtn = useRef(null);
+  const valueBtn = valueRef || ownValueBtn;
+  const returnFocus = useReturnFocus();
 
   function handleKey(e) {
-    if (e.key === 'Enter') handleSave();
-    if (e.key === 'Escape') setEditing(false);
+    if (e.key === 'Enter') {
+      // Claim the key: the value button returns focus to would otherwise be clicked by this same Enter
+      e.preventDefault();
+      returnFocus(valueBtn);
+      handleSave();
+    }
+    if (e.key === 'Escape') {
+      returnFocus(valueBtn);
+      setEditing(false);
+    }
   }
 
   function handleSave() {
@@ -23,6 +35,8 @@ function InlineField({ label, value, onSave }) {
       {editing ? (
         <input
           className="inline-field-input"
+          type="text"
+          aria-label={label}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKey}
@@ -30,13 +44,15 @@ function InlineField({ label, value, onSave }) {
           autoFocus
         />
       ) : (
-        <span
+        <button type="button"
+          ref={valueBtn}
           className="inline-field-value"
+          aria-label={`${label}: ${value || 'empty'}`}
           onClick={() => { setDraft(value || ''); setEditing(true); }}
           title="Click to edit"
         >
           {value || <em className="inline-field-placeholder">—</em>}
-        </span>
+        </button>
       )}
     </div>
   );
@@ -45,6 +61,16 @@ function InlineField({ label, value, onSave }) {
 function InlineTextarea({ label, value, onSave }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value || '');
+  const valueBtn = useRef(null);
+  const returnFocus = useReturnFocus();
+
+  // Enter is a new line here, so Esc is the keyboard way out: it drops the draft
+  function handleKey(e) {
+    if (e.key === 'Escape') {
+      returnFocus(valueBtn);
+      setEditing(false);
+    }
+  }
 
   function handleSave() {
     setEditing(false);
@@ -57,20 +83,24 @@ function InlineTextarea({ label, value, onSave }) {
       {editing ? (
         <textarea
           className="inline-field-textarea"
+          aria-label={label}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={handleKey}
           onBlur={handleSave}
           autoFocus
           rows={4}
         />
       ) : (
-        <span
+        <button type="button"
+          ref={valueBtn}
           className="inline-field-value"
+          aria-label={`${label}: ${value || 'empty'}`}
           onClick={() => { setDraft(value || ''); setEditing(true); }}
           title="Click to edit"
         >
           {value || <em className="inline-field-placeholder">—</em>}
-        </span>
+        </button>
       )}
     </div>
   );
@@ -78,6 +108,10 @@ function InlineTextarea({ label, value, onSave }) {
 
 export default function PlaceEntry({ workId, place, onUpdate, onFlagsChange }) {
   const [entry, setEntry] = useState(place);
+  // The Name value is the entry's first field: where focus goes when the last flag leaves
+  const nameBtn = useRef(null);
+  // The Codex refetches after a flag or edit; show what the server now holds
+  useEffect(() => setEntry(place), [place]);
 
   const handleSave = useCallback(async (field, value) => {
     try {
@@ -98,7 +132,7 @@ export default function PlaceEntry({ workId, place, onUpdate, onFlagsChange }) {
       <h3 className="codex-entry-title">{entry.name}</h3>
 
       <div className="codex-entry-fields">
-        <InlineField label="Name" value={entry.name} onSave={(v) => handleSave('name', v)} />
+        <InlineField label="Name" value={entry.name} onSave={(v) => handleSave('name', v)} valueRef={nameBtn} />
         <InlineTextarea label="Description" value={entry.description} onSave={(v) => handleSave('description', v)} />
         <InlineField label="First Appearance" value={entry.firstAppearance} onSave={(v) => handleSave('firstAppearance', v)} />
         <InlineTextarea label="Notes" value={entry.notes} onSave={(v) => handleSave('notes', v)} />
@@ -110,6 +144,7 @@ export default function PlaceEntry({ workId, place, onUpdate, onFlagsChange }) {
         entityType="place"
         entityId={entry.id}
         onFlagsChange={onFlagsChange}
+        fallback={nameBtn}
       />
 
       <CodexSuggestPanel workId={workId} entityType="place" entity={entry} />

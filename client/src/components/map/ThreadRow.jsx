@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { THREAD_PALETTE, threadNameError, threadDescriptionError, deleteMessage } from '../../utils/threads.js';
 
 // One plot thread. onSave(fields) resolves true when the server accepted it;
@@ -14,6 +15,12 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
   // Whether each editor is open, readable by a blur that fires while it unmounts
   const nameOpen = useRef(false);
   const descOpen = useRef(false);
+  // Each opener's button; a keyboard close hands focus back to the one that opened the editor
+  const nameBtn = useRef(null);
+  const descBtn = useRef(null);
+  const deleteBtn = useRef(null);
+  const swatchBtn = useRef(null);
+  const returnFocus = useReturnFocus();
 
   const openName = () => {
     nameOpen.current = true;
@@ -37,6 +44,7 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
     saving.current.add(key);
     try {
       if (await onSave(fields)) close();
+      else returnFocus(null);
     } finally {
       saving.current.delete(key);
     }
@@ -50,8 +58,15 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
     commit('name', { name: next }, closeName);
   };
   const onNameKey = (e) => {
-    if (e.key === 'Enter') saveName();
+    if (e.key === 'Enter') {
+      // Claim the key, or this same Enter would click the name button focus returns to
+      e.preventDefault();
+      // A name that will not save keeps the editor open, so there is nothing to return to yet
+      returnFocus(name !== null && !threadNameError(name) ? nameBtn : null);
+      saveName();
+    }
     if (e.key === 'Escape') {
+      returnFocus(nameBtn);
       closeName();
       onCancel?.();
     }
@@ -65,13 +80,21 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
     commit('description', { description: next }, closeDesc);
   };
 
-  const pickColor = (color) => commit('color', { color }, () => setPicking(false));
+  // The palette closes with focus back on the swatch that opened it
+  const closePalette = () => {
+    returnFocus(swatchBtn);
+    setPicking(false);
+  };
+  const pickColor = (color) => commit('color', { color }, closePalette);
+  // The palette opens on the thread's colour, or the first colour when the thread's is not in it
+  const selectedColour = THREAD_PALETTE.includes(thread.color) ? thread.color : THREAD_PALETTE[0];
   const toggleStatus = () => commit('status', { status: thread.status === 'open' ? 'resolved' : 'open' }, () => {});
 
   return (
     <li className={`thread-row thread-row--${thread.status}`}>
       <div className="thread-row-main">
         <button
+          ref={swatchBtn}
           className="thread-swatch"
           style={{ background: thread.color }}
           aria-label="Change colour"
@@ -81,8 +104,33 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
             setPicking(!picking);
           }}
         />
+        {picking && (
+          <div
+            className="thread-palette"
+            onKeyDown={(e) => {
+              if (e.key !== 'Escape') return;
+              e.stopPropagation();
+              closePalette();
+            }}
+          >
+            {THREAD_PALETTE.map((color) => (
+              <button
+                key={color}
+                className={`thread-palette-color${color === thread.color ? ' current' : ''}`}
+                style={{ background: color }}
+                aria-label={`Colour ${color}`}
+                autoFocus={color === selectedColour}
+                onClick={() => pickColor(color)}
+              />
+            ))}
+            <input type="color" aria-label="Custom colour" value={custom} onChange={(e) => setCustom(e.target.value)} />
+            <button className="btn btn-ghost btn-sm" onClick={() => pickColor(custom)}>
+              Use colour
+            </button>
+          </div>
+        )}
         {name === null ? (
-          <button className="thread-name" onClick={openName} title="Rename">
+          <button ref={nameBtn} className="thread-name" onClick={openName} title="Rename">
             {thread.name}
           </button>
         ) : (
@@ -106,30 +154,13 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
           {thread.status === 'open' ? 'Open' : 'Resolved'}
         </button>
         {!confirming && (
-          <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(true)}>
+          <button ref={deleteBtn} className="btn btn-ghost btn-sm" onClick={() => setConfirming(true)}>
             Delete
           </button>
         )}
       </div>
-      {picking && (
-        <div className="thread-palette">
-          {THREAD_PALETTE.map((color) => (
-            <button
-              key={color}
-              className={`thread-palette-color${color === thread.color ? ' current' : ''}`}
-              style={{ background: color }}
-              aria-label={`Colour ${color}`}
-              onClick={() => pickColor(color)}
-            />
-          ))}
-          <input type="color" aria-label="Custom colour" value={custom} onChange={(e) => setCustom(e.target.value)} />
-          <button className="btn btn-ghost btn-sm" onClick={() => pickColor(custom)}>
-            Use colour
-          </button>
-        </div>
-      )}
       {desc === null ? (
-        <button className="thread-desc" onClick={openDesc}>
+        <button ref={descBtn} className="thread-desc" onClick={openDesc}>
           {thread.description ? thread.description.split('\n')[0] : 'Add a description'}
         </button>
       ) : (
@@ -141,6 +172,7 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
           onChange={(e) => setDesc(e.target.value)}
           onKeyDown={(e) => {
             if (e.key !== 'Escape') return;
+            returnFocus(descBtn);
             closeDesc();
             onCancel?.();
           }}
@@ -154,7 +186,14 @@ export default function ThreadRow({ thread, tagCount, error, onSave, onDelete, o
       {confirming && (
         <div className="thread-confirm">
           <p>{deleteMessage(thread.name, tagCount)}</p>
-          <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)}>
+          <button
+            className="btn btn-ghost btn-sm"
+            autoFocus
+            onClick={() => {
+              returnFocus(deleteBtn);
+              setConfirming(false);
+            }}
+          >
             Cancel
           </button>
           <button

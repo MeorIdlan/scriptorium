@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../utils/api.js';
+import { useModal } from '../../hooks/useModal.js';
 import { useWorks } from '../../context/WorksContext.jsx';
 import { useAI } from '../../hooks/useAI.js';
 import { useAiState } from '../../context/AiContext.jsx';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 
 const GENRES = ['fantasy', 'sci-fi', 'literary', 'thriller', 'romance', 'historical', 'other'];
 const POVS = [
@@ -34,6 +37,11 @@ export default function NewWorkWizard({ onClose }) {
   const [selectedHook, setSelectedHook] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const titleRef = useRef(null);
+  const firstHook = useRef(null);
+  const returnFocus = useReturnFocus();
+  const titleId = useId();
+  const { dialogProps, backdropProps } = useModal({ onClose, initialFocusRef: titleRef });
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -48,6 +56,8 @@ export default function NewWorkWizard({ onClose }) {
       protagonist: form.protagonist,
     });
     if (result && result.hooks) {
+      // Generate leaves the page as the hooks arrive; the first hook takes focus
+      returnFocus(firstHook);
       setHooks(result.hooks);
     }
   }
@@ -62,7 +72,8 @@ export default function NewWorkWizard({ onClose }) {
       };
       const work = await api.post('/works', payload);
       addWork(work);
-      navigate(`/work/${work.id}`);
+      // The Main Room focuses the editor once the first chapter is in it
+      navigate(`/work/${work.id}`, { state: { focusEditor: true } });
       onClose();
     } catch (err) {
       setError(err.message);
@@ -76,11 +87,11 @@ export default function NewWorkWizard({ onClose }) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal wizard-modal">
+    <div className="modal-backdrop" {...backdropProps}>
+      <div className="modal wizard-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
-          <h2 className="modal-title">New Work</h2>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <h2 id={titleId} className="modal-title">New Work</h2>
+          <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
         </div>
 
         <div className="wizard-steps">
@@ -100,12 +111,12 @@ export default function NewWorkWizard({ onClose }) {
               <div className="form-group">
                 <label className="form-label">Title *</label>
                 <input
+                  ref={titleRef}
                   className="form-input"
                   type="text"
                   value={form.title}
                   onChange={(e) => update('title', e.target.value)}
                   placeholder="Your work's title"
-                  autoFocus
                 />
               </div>
 
@@ -218,8 +229,8 @@ export default function NewWorkWizard({ onClose }) {
               {aiOn && !hooks.length && (
                 <button
                   className="btn btn-secondary wizard-hooks-btn"
-                  onClick={generateHooks}
-                  disabled={aiLoading}
+                  onClick={guardBusy(aiLoading, generateHooks)}
+                  {...busyProps(aiLoading)}
                 >
                   {aiLoading ? 'Generating…' : '✨ Generate Opening Hooks'}
                 </button>
@@ -229,13 +240,16 @@ export default function NewWorkWizard({ onClose }) {
                 <div className="wizard-hooks">
                   <p className="wizard-hooks-label">Choose an opening hook (optional):</p>
                   {hooks.map((hook, i) => (
-                    <div
+                    <button
                       key={i}
+                      ref={i === 0 ? firstHook : undefined}
+                      type="button"
                       className={`wizard-hook-card${selectedHook === hook ? ' selected' : ''}`}
+                      aria-pressed={selectedHook === hook}
                       onClick={() => setSelectedHook(selectedHook === hook ? null : hook)}
                     >
-                      <p>{hook}</p>
-                    </div>
+                      {hook}
+                    </button>
                   ))}
                 </div>
               )}
@@ -264,8 +278,8 @@ export default function NewWorkWizard({ onClose }) {
             ) : (
               <button
                 className="btn btn-primary"
-                onClick={handleSubmit}
-                disabled={submitting}
+                onClick={guardBusy(submitting, handleSubmit)}
+                {...busyProps(submitting)}
               >
                 {submitting ? 'Creating…' : 'Create Work'}
               </button>

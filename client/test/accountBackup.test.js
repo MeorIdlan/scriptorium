@@ -38,7 +38,7 @@ test('clicking submits once and disables the button (review focus 5)', async () 
   await click(button);
   await click(button);
   assert.equal(submits, 1);
-  assert.equal(button.disabled, true);
+  assert.equal(button.getAttribute('aria-disabled'), 'true');
   assert.equal(/download has started/.test(view.text()), true);
   await view.unmount();
 });

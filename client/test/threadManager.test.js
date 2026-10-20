@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createElement as h } from 'react';
+import { createElement as h, useState } from 'react';
 import { renderApp, HttpError } from './support/app.js';
-import { click, type, press, blur, pressThenBlur } from './support/render.js';
+import { act, click, flush, type, press, blur, pressThenBlur } from './support/render.js';
+import './support/focus.js';
 import ThreadManager from '../src/components/map/ThreadManager.jsx';
 
 const heir = { id: 'thr_1', name: 'The missing heir', color: '#c9a96e', description: 'Who is Ada?', status: 'open', order: 0 };
@@ -50,6 +51,25 @@ test('creates a thread from the new-thread field', async () => {
   assert.deepEqual(view.writes(), [{ method: 'POST', path: '/works/w1/threads', body: { name: 'Lost letter' } }]);
   assert.equal(view.changed(), 1);
   assert.equal(view.query('.thread-new-name'), null);
+  await view.unmount();
+});
+
+test('Esc in the new-thread field returns focus to the New thread button', async () => {
+  const view = await mount();
+  const newButton = view.button('New thread');
+  newButton.focus();
+  await click(newButton);
+  await press(view.query('.thread-new-name'), 'Escape');
+  assert.equal(document.activeElement === view.button('New thread'), true);
+  await view.unmount();
+});
+
+test('Enter creates the thread and returns focus to the New thread button', async () => {
+  const view = await mount({ routes: { 'POST /works/w1/threads': { id: 'thr_2', name: 'Lost letter' } } });
+  await click(view.button('New thread'));
+  await type(view.query('.thread-new-name'), 'Lost letter');
+  await press(view.query('.thread-new-name'), 'Enter');
+  assert.equal(document.activeElement === view.button('New thread'), true);
   await view.unmount();
 });
 
@@ -195,5 +215,92 @@ test('does not call onDeleted for other writes', async () => {
   const view = await mount();
   await click(view.query('.thread-status'));
   assert.equal(view.deleted(), 0);
+  await view.unmount();
+});
+
+test('a new thread the server refuses keeps the field open with focus in it', async () => {
+  const view = await mount({ routes: { 'POST /works/w1/threads': new HttpError(500, 'SERVER_ERROR', 'Could not save') } });
+  await click(view.button('New thread'));
+  const input = view.query('.thread-new-name');
+  await type(input, 'Lost letter');
+  await press(input, 'Enter');
+  assert.equal(view.query('.thread-new-name') === input, true);
+  assert.equal(document.activeElement === input, true);
+  await view.unmount();
+});
+
+// Presses a key and returns the event, so a test can read defaultPrevented
+async function keyDownEvent(el, key) {
+  let event;
+  await act(async () => {
+    event = new window.Event('keydown', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'key', { value: key });
+    el.dispatchEvent(event);
+  });
+  await flush();
+  return event;
+}
+
+test('Enter in the new-thread field claims its keypress, so the New thread button is not clicked again', async () => {
+  const view = await mount();
+  await click(view.button('New thread'));
+  const event = await keyDownEvent(view.query('.thread-new-name'), 'Enter');
+  assert.equal(event.defaultPrevented, true);
+  await view.unmount();
+});
+
+// A list that drops the deleted thread on reload, as the server's list does
+function ListHost({ initial, gone }) {
+  const [threads, setThreads] = useState(initial);
+  return h(ThreadManager, {
+    workId: 'w1',
+    threads,
+    chapters,
+    onChanged: async () => setThreads((list) => list.filter((t) => t.id !== gone.id)),
+    onDeleted: async () => {},
+  });
+}
+
+async function deleteRow(view, index) {
+  const row = view.container.querySelectorAll('.thread-row')[index];
+  await click([...row.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Delete'));
+  await click(view.button('Delete thread'));
+}
+
+function threadAt(id, name) {
+  return { id, name, color: '#c9a96e', description: '', status: 'open', order: 0 };
+}
+
+async function mountList(threads, gone) {
+  const view = await renderApp(h(ListHost, { initial: threads, gone }), {
+    routes: { 'DELETE /works/w1/threads/thr_b': {}, 'DELETE /works/w1/threads/thr_c': {}, 'DELETE /works/w1/threads/thr_a': {} },
+  });
+  return view;
+}
+
+// A neighbour's name is its first action: focus lands on the name, not the colour swatch before it
+const nameOf = (view, index) => view.container.querySelectorAll('.thread-row')[index].querySelector('.thread-name');
+
+test('deleting a thread in the middle moves focus to the next row', async () => {
+  const gone = { id: 'thr_b' };
+  const view = await mountList([threadAt('thr_a', 'A'), threadAt('thr_b', 'B'), threadAt('thr_c', 'C')], gone);
+  await deleteRow(view, 1);
+  assert.equal(document.activeElement === nameOf(view, 1), true);
+  await view.unmount();
+});
+
+test('deleting the last thread moves focus to the previous row', async () => {
+  const gone = { id: 'thr_c' };
+  const view = await mountList([threadAt('thr_a', 'A'), threadAt('thr_b', 'B'), threadAt('thr_c', 'C')], gone);
+  await deleteRow(view, 2);
+  assert.equal(document.activeElement === nameOf(view, 1), true);
+  await view.unmount();
+});
+
+test('deleting the only thread moves focus to New thread', async () => {
+  const gone = { id: 'thr_a' };
+  const view = await mountList([threadAt('thr_a', 'A')], gone);
+  await deleteRow(view, 0);
+  assert.equal(document.activeElement === view.button('New thread'), true);
   await view.unmount();
 });

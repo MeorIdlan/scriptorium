@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, Fragment, useEffect } from 'react';
 import { renderApp, HttpError } from './support/app.js';
-import { flush, click, type } from './support/render.js';
+import { flush, click, press, toggle, type } from './support/render.js';
 import { useUI } from '../src/context/UIContext.jsx';
 import ExportModal from '../src/components/overlays/ExportModal.jsx';
 
@@ -171,6 +171,25 @@ function Reopen() {
   return h('button', { 'data-testid': 'reopen', onClick: () => dispatch({ type: 'OPEN_EXPORT', workId: 'work_a' }) }, 'Reopen');
 }
 
+function optionBox(view, label) {
+  return view.queryAll('label').find((l) => l.textContent.includes(label)).querySelector('input');
+}
+
+test('format and option choices survive a close and reopen', async () => {
+  const view = await renderApp(h(Fragment, null, h(Driver), h(Reopen)));
+  await flush();
+  await click(view.button('DOCX'));
+  await toggle(optionBox(view, 'Include chapter notes'), true);
+  await toggle(optionBox(view, 'Include outline chapters'), true);
+  await click(view.button('Cancel'));
+  assert.equal(view.query('.export-modal'), null);
+  await click(view.query('[data-testid="reopen"]'));
+  assert.equal(view.button('DOCX').classList.contains('active'), true);
+  assert.equal(optionBox(view, 'Include chapter notes').checked, true);
+  assert.equal(optionBox(view, 'Include outline chapters').checked, true);
+  await view.unmount();
+});
+
 test('a saved-details reply that lands after Cancel is not kept for the next open', async () => {
   let replies = 0;
   let late;
@@ -253,5 +272,18 @@ test('picking Manuscript again retries a failed fetch and enables Export once it
   assert.equal(view.query('[data-testid="ms-author"]').value, 'Ada Writer');
   assert.equal(Boolean(view.query('.form-error')), false);
   assert.equal(view.button('Export PDF').hasAttribute('disabled'), false);
+  await view.unmount();
+});
+
+test('the export dialog is a labelled dialog, and Esc on a field inside it closes it', async () => {
+  const view = await renderApp(h(Driver));
+  await flush();
+  const dialog = view.query('[role="dialog"]');
+  assert.ok(dialog);
+  assert.equal(dialog.getAttribute('aria-modal'), 'true');
+  assert.equal(dialog.getAttribute('aria-labelledby'), view.query('.modal-title').id);
+  assert.equal(view.query('.modal-title').textContent, 'Export Work');
+  await press(dialog.querySelector('button'), 'Escape');
+  assert.equal(view.query('[role="dialog"]'), null);
   await view.unmount();
 });

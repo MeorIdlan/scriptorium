@@ -8,6 +8,7 @@ import PasskeyManager from '../components/settings/PasskeyManager.jsx';
 import DailyGoalField from '../components/settings/DailyGoalField.jsx';
 import AccountBackup from '../components/settings/AccountBackup.jsx';
 import { aiSwitchState } from '../utils/aiSwitch.js';
+import { busyProps, guardBusy } from '../utils/busyButton.js';
 import { useAiState } from '../context/AiContext.jsx';
 
 // Pretty display names for known model ids; anything not listed falls back to the id itself
@@ -266,7 +267,8 @@ export default function Settings() {
                 type="checkbox"
                 checked={aiSwitch.checked}
                 disabled={aiSwitch.disabled}
-                onChange={(e) => handleToggleAi(e.target.checked)}
+                {...busyProps(aiSwitch.busy)}
+                onChange={guardBusy(aiSwitch.busy, (e) => handleToggleAi(e.target.checked))}
               />
               <span className="settings-label">AI features</span>
             </label>
@@ -358,8 +360,8 @@ export default function Settings() {
           </button>
           <button
             className="btn btn-secondary"
-            onClick={handleTest}
-            disabled={testing}
+            onClick={guardBusy(testing, handleTest)}
+            {...busyProps(testing)}
           >
             {testing ? 'Testing…' : 'Test Connection'}
           </button>

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useAI } from '../../hooks/useAI.js';
 import { api } from '../../utils/api.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import PacingResult from './PacingResult.jsx';
 import ContextUsed from './ContextUsed.jsx';
@@ -13,13 +14,14 @@ import PolishReviewModal from '../overlays/PolishReviewModal.jsx';
 import { getBlocks, chapterTargets, selectionTargets, batchTargets } from '../../utils/editorBlocks.js';
 import EditorReviewModal from '../overlays/EditorReviewModal.jsx';
 import { sceneAtCaret } from '../../utils/scenes.js';
+import { useModal } from '../../hooks/useModal.js';
 
 function RekindlerCard({ snapshot, lastSessionAt, onDismiss }) {
   return (
     <div className="rekindler-card">
       <div className="rekindler-header">
         <span className="rekindler-label">Where you left off</span>
-        <button className="rekindler-dismiss" onClick={onDismiss}>✕</button>
+        <button className="rekindler-dismiss" aria-label="Dismiss where you left off" onClick={onDismiss}>✕</button>
       </div>
       <p className="rekindler-text">{snapshot.lastScene || 'No summary available.'}</p>
       {snapshot.toneNote && <p className="rekindler-text rekindler-tone">{snapshot.toneNote}</p>}
@@ -36,12 +38,15 @@ function RekindlerCard({ snapshot, lastSessionAt, onDismiss }) {
 }
 
 function RekindlerPromptModal({ onConfirm, onDismiss, loading }) {
+  const titleId = useId();
+  const { dialogProps } = useModal({ onClose: onDismiss });
+
   return createPortal(
     <div className="modal-backdrop">
-      <div className="modal rekindler-prompt-modal">
+      <div className="modal rekindler-prompt-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
-          <span className="modal-title">Rekindle your session?</span>
-          <button className="modal-close" onClick={onDismiss}>✕</button>
+          <span id={titleId} className="modal-title">Rekindle your session?</span>
+          <button className="modal-close" aria-label="Close" onClick={onDismiss}>✕</button>
         </div>
         <div className="modal-body">
           <p className="rekindler-prompt-body">
@@ -49,10 +54,10 @@ function RekindlerPromptModal({ onConfirm, onDismiss, loading }) {
           </p>
         </div>
         <div className="modal-footer rekindler-prompt-footer">
-          <button className="btn btn-ghost" onClick={onDismiss} disabled={loading}>
+          <button className="btn btn-ghost" onClick={guardBusy(loading, onDismiss)} {...busyProps(loading)}>
             Not now
           </button>
-          <button className="btn btn-primary" onClick={onConfirm} disabled={loading}>
+          <button className="btn btn-primary" onClick={guardBusy(loading, onConfirm)} {...busyProps(loading)}>
             {loading ? 'Rekindling…' : 'Yes, rekindle'}
           </button>
         </div>
@@ -77,6 +82,8 @@ export default function QuillTab({ workId }) {
   const [polishSession, setPolishSession] = useState(null);
   const [polishResult, setPolishResult] = useState(null);
   const [editorReview, setEditorReview] = useState(null);
+  // While a review is open over the chapter, Polish waits without losing focus
+  const polishing = loading || Boolean(polishSession);
 
   useEffect(() => {
     if (!workId) return;
@@ -211,22 +218,23 @@ export default function QuillTab({ workId }) {
         <p className="quill-actions-label">AI Assist</p>
         <button
           className="btn btn-ghost quill-ai-btn"
-          onClick={() => handleAI('hooks', 'hooks')}
-          disabled={loading}
+          onClick={guardBusy(loading, () => handleAI('hooks', 'hooks'))}
+          {...busyProps(loading)}
         >
           ✨ Suggest 3 hooks for this scene
         </button>
         <button
           className="btn btn-ghost quill-ai-btn"
-          onClick={() => handleAI('pacing', 'pacing')}
-          disabled={loading}
+          onClick={guardBusy(loading, () => handleAI('pacing', 'pacing'))}
+          {...busyProps(loading)}
         >
           ⟳ How is the story pacing?
         </button>
         <button
           className="btn btn-ghost quill-ai-btn quill-ai-btn--polish"
-          onClick={handlePolish}
-          disabled={loading || Boolean(polishSession) || !editorState.content?.trim()}
+          onClick={guardBusy(polishing, handlePolish)}
+          disabled={!editorState.content?.trim()}
+          {...busyProps(polishing)}
           title="Suggests rewrites you can accept or reject one by one, keeping the story direction unchanged"
         >
           ✦ Polish {editorState.selection ? 'selection' : 'chapter'}
@@ -244,24 +252,27 @@ export default function QuillTab({ workId }) {
         <p className="quill-actions-label">AI Editor</p>
         <button
           className="btn btn-ghost quill-ai-btn quill-ai-btn--editor"
-          onClick={() => handleEditorReview('full')}
-          disabled={loading || !editorState.content?.trim()}
+          onClick={guardBusy(loading, () => handleEditorReview('full'))}
+          disabled={!editorState.content?.trim()}
+          {...busyProps(loading)}
           title="Full editorial read-through: prose, pacing, scene effectiveness, dialogue"
         >
           ◆ Editorial read-through
         </button>
         <button
           className="btn btn-ghost quill-ai-btn quill-ai-btn--editor"
-          onClick={() => handleEditorReview('show-tell')}
-          disabled={loading || !editorState.content?.trim()}
+          onClick={guardBusy(loading, () => handleEditorReview('show-tell'))}
+          disabled={!editorState.content?.trim()}
+          {...busyProps(loading)}
           title="Flags passages that tell rather than show, with rewrite suggestions"
         >
           ◈ Show, don't tell check
         </button>
         <button
           className="btn btn-ghost quill-ai-btn quill-ai-btn--editor"
-          onClick={() => handleEditorReview('voice')}
-          disabled={loading || !editorState.content?.trim()}
+          onClick={guardBusy(loading, () => handleEditorReview('voice'))}
+          disabled={!editorState.content?.trim()}
+          {...busyProps(loading)}
           title="Checks POV consistency, tense, passive voice, adverb overuse"
         >
           ◇ Voice &amp; consistency

@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
+import { useModal } from '../../hooks/useModal.js';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { SUMMARY_STATUS_LABELS } from '../../utils/summaryStatus.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
   const { state, refreshChapters } = useActiveWork();
@@ -10,6 +13,8 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(null); // 'save' | 'regenerate'
   const [error, setError] = useState(null);
+  const editBtn = useRef(null);
+  const returnFocus = useReturnFocus();
 
   // The list's status is computed from saved text, so refresh on open
   useEffect(() => {
@@ -25,6 +30,8 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
     try {
       await request();
       await refreshChapters(workId);
+      // Save leaves the editor; Edit takes focus back from the Save button
+      if (kind === 'save') returnFocus(editBtn);
       setEditing(false);
     } catch (err) {
       setError(
@@ -37,26 +44,29 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
     }
   }
 
+  const titleId = useId();
+  const { dialogProps, backdropProps } = useModal({ onClose: onDismiss });
   const base = `/works/${workId}/chapters/${chapterId}/summary`;
   // Saving unchanged text would only mark the AI's summary as edited by you
+  const stopEditing = () => {
+    returnFocus(editBtn);
+    setEditing(false);
+  };
   const handleSave = () =>
-    draft.trim() === text.trim() ? setEditing(false) : run('save', () => api.put(base, { text: draft }));
+    draft.trim() === text.trim() ? stopEditing() : run('save', () => api.put(base, { text: draft }));
   const handleRegenerate = () => run('regenerate', () => api.post(`${base}/regenerate`, {}));
 
   return (
-    <div
-      className="modal-backdrop draft-polish-backdrop"
-      onClick={(e) => e.target === e.currentTarget && onDismiss()}
-    >
-      <div className="modal chapter-summary-modal">
+    <div className="modal-backdrop draft-polish-backdrop" {...backdropProps}>
+      <div className="modal chapter-summary-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <div className="draft-polish-header-text">
-            <h2 className="modal-title">Chapter Summary</h2>
+            <h2 id={titleId} className="modal-title">Chapter Summary</h2>
             <p className="draft-polish-subtitle">
               AI help uses this to remember what happened in {chapter ? `“${chapter.title}”` : 'this chapter'}.
             </p>
           </div>
-          <button className="modal-close" onClick={onDismiss}>✕</button>
+          <button className="modal-close" aria-label="Close" onClick={onDismiss}>✕</button>
         </div>
 
         <div className="modal-body">
@@ -78,8 +88,9 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
         <div className="modal-footer">
           <button
             className="btn btn-ghost"
-            onClick={handleRegenerate}
-            disabled={Boolean(busy) || !chapter?.wordCount}
+            onClick={guardBusy(busy, handleRegenerate)}
+            disabled={!chapter?.wordCount}
+            {...busyProps(busy)}
             title={chapter?.wordCount ? 'Replace with a fresh AI summary' : 'Write some of this chapter first'}
           >
             {busy === 'regenerate' ? 'Generating…' : text ? 'Regenerate' : 'Generate'}
@@ -87,21 +98,22 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
           <div className="modal-footer-right">
             {editing ? (
               <>
-                <button className="btn btn-ghost" onClick={() => setEditing(false)} disabled={Boolean(busy)}>
+                <button className="btn btn-ghost" onClick={guardBusy(busy, stopEditing)} {...busyProps(busy)}>
                   Cancel
                 </button>
-                <button className="btn btn-primary" onClick={handleSave} disabled={Boolean(busy)}>
+                <button className="btn btn-primary" onClick={guardBusy(busy, handleSave)} {...busyProps(busy)}>
                   {busy === 'save' ? 'Saving…' : 'Save'}
                 </button>
               </>
             ) : (
               <button
+                ref={editBtn}
                 className="btn btn-primary"
-                onClick={() => {
+                onClick={guardBusy(busy, () => {
                   setDraft(text);
                   setEditing(true);
-                }}
-                disabled={Boolean(busy)}
+                })}
+                {...busyProps(busy)}
               >
                 Edit
               </button>

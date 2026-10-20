@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
@@ -12,33 +12,108 @@ const FONTS = ['Georgia', 'Arial', 'Verdana', 'Courier'];
 const SIZES = [12, 14, 16, 18, 20];
 
 export default function Toolbar({ editorRef }) {
-  const { dispatch } = useUI();
+  const { state: uiState, dispatch } = useUI();
   const { workId } = useParams();
   const { state: editorState } = useEditor();
   const { aiOn } = useAiState();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  // The writer's selection inside the editor, kept for the font and size selects
+  const editorRange = useRef(null);
+  // Whether the last input on a select was a mouse press. A mouse pick leaves focus on
+  // the select, so its command goes to the editor; a keyboard pick keeps focus on the select.
+  const pointerPick = useRef(false);
+  const [formats, setFormats] = useState({ bold: false, italic: false, underline: false });
+  const formatsRef = useRef(formats);
 
+  // Whether B, I and U are on at the selection; the browser answers for the caret too
+  function readFormats() {
+    const read = (command) => {
+      try {
+        return document.queryCommandState(command);
+      } catch {
+        return false;
+      }
+    };
+    return { bold: read('bold'), italic: read('italic'), underline: read('underline') };
+  }
+
+  // Sets the state only when B, I or U changed. A functional updater that returns the
+  // previous object still lets React visit the toolbar once per caret move; this does not.
+  function updateFormats() {
+    const next = readFormats();
+    const prev = formatsRef.current;
+    if (prev.bold === next.bold && prev.italic === next.italic && prev.underline === next.underline) return;
+    formatsRef.current = next;
+    setFormats(next);
+  }
+
+  useEffect(() => {
+    function remember() {
+      const root = editorRef.current;
+      const sel = document.getSelection();
+      if (root && sel && sel.rangeCount > 0 && root.contains(sel.anchorNode)) {
+        editorRange.current = sel.getRangeAt(0).cloneRange();
+        updateFormats();
+      }
+    }
+    document.addEventListener('selectionchange', remember);
+    return () => document.removeEventListener('selectionchange', remember);
+  }, [editorRef]);
+
+  // Buttons focus the editor, then run the command on its selection
   function exec(command, value = null) {
     editorRef.current?.focus();
     document.execCommand(command, false, value);
+    updateFormats();
   }
 
-  function setFont(font) {
-    exec('fontName', font);
+  // The selects keep focus, so the command goes to the selection the writer left in the
+  // editor. Adding a range inside the editor focuses it, so the range is only put back when
+  // the selection has left the editor, and focus returns to the select afterwards.
+  function execOnSelection(control, command, value) {
+    if (pointerPick.current) {
+      exec(command, value);
+      return;
+    }
+    const sel = document.getSelection();
+    const root = editorRef.current;
+    if (editorRange.current && sel && !root?.contains(sel.anchorNode)) {
+      sel.removeAllRanges();
+      sel.addRange(editorRange.current);
+    }
+    document.execCommand(command, false, value);
+    control.focus();
   }
 
-  function setSize(size) {
+  function selectPointerDown() {
+    pointerPick.current = true;
+  }
+
+  // Any key but Enter makes the next pick a keyboard pick. Enter commits the pick and
+  // hands focus to the editor, so a change that Enter causes takes the pointer path.
+  function selectKeyDown(e) {
+    pointerPick.current = e.key === 'Enter';
+    if (e.key === 'Enter') editorRef.current?.focus();
+  }
+
+  function setFont(font, control) {
+    execOnSelection(control, 'fontName', font);
+  }
+
+  function setSize(size, control) {
     // execCommand fontSize uses 1-7, map px roughly
     const sizeMap = { 12: 1, 14: 2, 16: 3, 18: 4, 20: 5 };
-    exec('fontSize', sizeMap[size] || 3);
+    execOnSelection(control, 'fontSize', sizeMap[size] || 3);
   }
 
   return (
     <div className="toolbar">
       <select
         className="toolbar-select"
-        onChange={(e) => setFont(e.target.value)}
+        onChange={(e) => setFont(e.target.value, e.target)}
+        onPointerDown={selectPointerDown}
+        onKeyDown={selectKeyDown}
         defaultValue="Georgia"
         title="Font family"
       >
@@ -49,7 +124,9 @@ export default function Toolbar({ editorRef }) {
 
       <select
         className="toolbar-select"
-        onChange={(e) => setSize(Number(e.target.value))}
+        onChange={(e) => setSize(Number(e.target.value), e.target)}
+        onPointerDown={selectPointerDown}
+        onKeyDown={selectKeyDown}
         defaultValue="16"
         title="Font size"
       >
@@ -63,6 +140,7 @@ export default function Toolbar({ editorRef }) {
       <button
         className="toolbar-btn"
         onClick={() => exec('bold')}
+        aria-pressed={formats.bold}
         title="Bold (Ctrl+B)"
       >
         <strong>B</strong>
@@ -70,6 +148,7 @@ export default function Toolbar({ editorRef }) {
       <button
         className="toolbar-btn toolbar-italic"
         onClick={() => exec('italic')}
+        aria-pressed={formats.italic}
         title="Italic (Ctrl+I)"
       >
         <em>I</em>
@@ -77,6 +156,7 @@ export default function Toolbar({ editorRef }) {
       <button
         className="toolbar-btn toolbar-underline"
         onClick={() => exec('underline')}
+        aria-pressed={formats.underline}
         title="Underline (Ctrl+U)"
       >
         <u>U</u>
@@ -88,6 +168,7 @@ export default function Toolbar({ editorRef }) {
         className="toolbar-btn"
         onClick={() => exec('justifyLeft')}
         title="Align left"
+        aria-label="Align left"
       >
         ≡
       </button>
@@ -95,6 +176,7 @@ export default function Toolbar({ editorRef }) {
         className="toolbar-btn"
         onClick={() => exec('justifyCenter')}
         title="Align center"
+        aria-label="Align center"
       >
         ☰
       </button>
@@ -102,6 +184,7 @@ export default function Toolbar({ editorRef }) {
         className="toolbar-btn"
         onClick={() => exec('justifyRight')}
         title="Align right"
+        aria-label="Align right"
       >
         ≡
       </button>
@@ -114,6 +197,7 @@ export default function Toolbar({ editorRef }) {
           if (root) insertSceneBreak(root, rememberedCaret(root));
         }}
         title="Add a scene break (Ctrl+Shift+Enter)"
+        aria-label="Add a scene break"
       >
         ⁂
       </button>
@@ -123,7 +207,13 @@ export default function Toolbar({ editorRef }) {
       {aiOn && (
         <button
           className="toolbar-btn toolbar-spark"
-          onClick={() => dispatch({ type: 'TOGGLE_HOOK_GENERATOR' })}
+          onClick={() => {
+            // The generator lives in the Quill tab: bring that tab forward. When the
+            // generator is already open behind another tab, only the tab changes
+            const quillShowing = uiState.activePanelTab === 'quill';
+            if (!quillShowing) dispatch({ type: 'SET_PANEL_TAB', tab: 'quill' });
+            if (!uiState.hookGeneratorOpen || quillShowing) dispatch({ type: 'TOGGLE_HOOK_GENERATOR' });
+          }}
           title="Open Spark / Hook Generator"
         >
           ✨ Spark

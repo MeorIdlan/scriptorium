@@ -9,16 +9,17 @@
   --bg-card: #1a1a28;
   --bg-input: #12121c;
   --border: #2a2a38;
+  --border-control: #6c6c84;
   --border-focus: #c9a96e;
   --gold: #c9a96e;
-  --gold-dim: #8a6d3b;
+  --gold-dim: #a8874f;
   --gold-hover: #dfc080;
   --text: #e8e3d8;
-  --text-muted: #8a8578;
-  --text-dim: #5a5650;
+  --text-muted: #9a9588;
+  --text-dim: #8a857e;
   --teal: #5dcaa5;
-  --purple: #7f77dd;
-  --coral: #d85a30;
+  --purple: #9690e6;
+  --coral: #e06a40;
   --amber: #e8a030;
   --error: #e07a7a;
   --success: #9fdba0;
@@ -54,6 +55,25 @@ body {
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* Edge items: the ring sits inside, so the sidebar, chapter list, panel tabs, Map blocks and lane toggles, Codex tabs and entries, History rows and scroll regions don't clip it */
+.sidebar-nav-item:focus-visible,
+.chapter-item:focus-visible,
+.panel-tab:focus-visible,
+.chapter-block:focus-visible,
+.codex-tab:focus-visible,
+.content:focus-visible,
+.codex-entity-item:focus-visible,
+.history-item:focus-visible,
+.map-view:focus-visible,
+.thread-lane-label input[type="checkbox"]:focus-visible {
+  outline-offset: -2px;
 }
 
 a {
@@ -257,17 +277,18 @@ a:hover {
   white-space: nowrap;
 }
 
-.btn:disabled {
+.btn:disabled,
+.btn[aria-disabled="true"] {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 .btn-primary {
   background: var(--gold);
-  color: #0e0e16;
+  color: var(--bg);
   font-weight: bold;
 }
-.btn-primary:hover:not(:disabled) {
+.btn-primary:hover:not(:disabled):not([aria-disabled="true"]) {
   background: var(--gold-hover);
 }
 
@@ -276,16 +297,16 @@ a:hover {
   color: var(--gold);
   border: 1px solid var(--gold-dim);
 }
-.btn-secondary:hover:not(:disabled) {
+.btn-secondary:hover:not(:disabled):not([aria-disabled="true"]) {
   background: rgba(201, 169, 110, 0.25);
 }
 
 .btn-ghost {
   background: transparent;
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
 }
-.btn-ghost:hover:not(:disabled) {
+.btn-ghost:hover:not(:disabled):not([aria-disabled="true"]) {
   color: var(--text);
   border-color: var(--text-muted);
   background: rgba(255, 255, 255, 0.04);
@@ -295,7 +316,7 @@ a:hover {
 .btn.danger {
   color: var(--error);
 }
-.btn-ghost.danger:hover:not(:disabled) {
+.btn-ghost.danger:hover:not(:disabled):not([aria-disabled="true"]) {
   background: rgba(224, 122, 122, 0.1);
   border-color: var(--error);
 }
@@ -325,7 +346,7 @@ a:hover {
 .form-select,
 .form-textarea {
   background: var(--bg-input);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
   color: var(--text);
   font-family: Georgia, serif;
@@ -338,7 +359,6 @@ a:hover {
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
-  outline: none;
   border-color: var(--gold);
 }
 
@@ -535,6 +555,12 @@ a:hover {
 }
 
 .wizard-hook-card {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -679,6 +705,17 @@ a:hover {
   margin-bottom: 0.15rem;
 }
 
+/* The title button looks like the plain title it replaces */
+.work-card-title-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .work-card-genre {
   display: inline-block;
   background: rgba(201, 169, 110, 0.1);
@@ -781,8 +818,9 @@ a:hover {
   font-size: 0.9rem;
   padding: 0 0.25rem;
 }
-.backup-reminder-dismiss:hover:not(:disabled) { color: var(--text); }
-.backup-reminder-dismiss:disabled {
+.backup-reminder-dismiss:hover:not(:disabled):not([aria-disabled="true"]) { color: var(--text); }
+.backup-reminder-dismiss:disabled,
+.backup-reminder-dismiss[aria-disabled="true"] {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -855,7 +893,7 @@ a:hover {
 
 .chapter-add-input {
   background: var(--bg-input);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius-sm);
   color: var(--text);
   font-family: Georgia, serif;
@@ -864,7 +902,6 @@ a:hover {
   width: 100%;
 }
 .chapter-add-input:focus {
-  outline: none;
   border-color: var(--gold);
 }
 
@@ -961,12 +998,16 @@ a:hover {
   min-height: 100%;
   max-width: 680px;
   margin: 0 auto;
-  outline: none;
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 1rem;
   line-height: 1.85;
   color: var(--text);
   caret-color: var(--gold);
+}
+
+.editor:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--border-focus);
 }
 
 .editor--loading {
@@ -1036,7 +1077,7 @@ a:hover {
 
 .toolbar-select {
   background: var(--bg-input);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   font-family: Georgia, serif;
@@ -1397,13 +1438,20 @@ a:hover {
 .scene-row.dragging { opacity: 0.5; }
 .scene-row.drop-target { border-color: var(--gold); border-style: dashed; }
 .scene-row-main {
-  all: unset;
+  /* The button's own look, reset by hand: all: unset would also drop the focus ring */
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
-.scene-row-main:focus-visible { outline: 1px solid var(--border-focus); outline-offset: 2px; }
 .scene-row-title { color: var(--text); font-family: Georgia, serif; font-size: 0.95rem; }
 .scene-row-meta, .scene-row-words { color: var(--text-muted); font-size: 0.78rem; }
 .scene-row-line { display: flex; gap: 8px; align-items: center; }
@@ -1455,7 +1503,7 @@ a:hover {
 
 .catch-filter-btn {
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: 999px;
   color: var(--text-muted);
   font-size: 0.72rem;
@@ -1619,7 +1667,8 @@ a:hover {
 .map-pov-filter { display: inline-flex; gap: 8px; align-items: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px; }
 .map-pov-filter .form-select { width: auto; padding: 3px 6px; font-size: 0.8rem; }
 .chapter-block { position: relative; }
-.chapter-block.dimmed { opacity: 0.3; }
+.chapter-block.dimmed { border-style: dashed; }
+.chapter-block.dimmed .chapter-block-num { color: var(--text-dim); }
 .chapter-block-ticks { position: absolute; left: 3px; right: 3px; bottom: 3px; display: flex; gap: 2px; }
 .chapter-block-tick { flex: 1; height: 2px; background: currentColor; opacity: 0.45; border-radius: 1px; }
 .chapter-block-pov-count { position: absolute; top: 2px; left: 4px; line-height: 1; font-size: 0.6rem; color: var(--gold); }
@@ -1654,7 +1703,7 @@ a:hover {
   width: 68px;
   min-height: 24px;
   background: transparent;
-  border: 2px solid #4a4a5e;
+  border: 2px solid var(--border-control);
   border-radius: var(--radius-sm);
   cursor: pointer;
   display: flex;
@@ -1675,6 +1724,7 @@ a:hover {
   font-size: 0.7rem;
   color: var(--text-muted);
 }
+.chapter-block.selected .chapter-block-num { color: var(--text); }
 
 .chapter-block-missing-dot {
   position: absolute;
@@ -1723,16 +1773,17 @@ a:hover {
 .thread-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .thread-row { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
 .thread-row--resolved .thread-name { color: var(--text-muted); text-decoration: line-through; }
-.thread-row-main { display: flex; align-items: center; gap: 8px; }
+.thread-row-main { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .thread-swatch { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--border); padding: 0; cursor: pointer; flex: none; }
 .thread-name { flex: 1; text-align: left; background: none; border: none; color: var(--text); font-family: Georgia, serif; font-size: 0.95rem; cursor: text; padding: 2px 0; }
 .thread-name-input { flex: 1; }
-.thread-status { border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; font-size: 0.75rem; padding: 2px 8px; cursor: pointer; }
+.thread-status { border: 1px solid var(--border-control); border-radius: var(--radius-sm); background: none; font-size: 0.75rem; padding: 2px 8px; cursor: pointer; }
 .thread-status--open { color: var(--gold); border-color: var(--gold-dim); }
 .thread-status--resolved { color: var(--success); }
 .thread-desc { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; background: none; border: none; color: var(--text-muted); font-size: 0.8rem; cursor: text; padding: 0 0 0 24px; }
 .thread-desc-input { margin-left: 24px; width: calc(100% - 24px); }
-.thread-palette { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-left: 24px; }
+/* The palette sits after the swatch in the DOM; order keeps it on its own line below the row */
+.thread-palette { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-left: 24px; flex-basis: 100%; order: 1; }
 .thread-palette-color { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; padding: 0; cursor: pointer; }
 .thread-palette-color.current { border-color: var(--text); }
 .thread-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-muted); }
@@ -2090,7 +2141,7 @@ a:hover {
   margin-bottom: 0.35rem;
 }
 
-.codex-ai-btn:hover:not(:disabled) {
+.codex-ai-btn:hover:not(:disabled):not([aria-disabled="true"]) {
   background: var(--surface-2, rgba(255,255,255,0.04));
   color: var(--text);
 }
@@ -2112,7 +2163,7 @@ a:hover {
   transition: background 0.15s;
 }
 
-.codex-suggest-trigger:hover:not(:disabled) {
+.codex-suggest-trigger:hover:not(:disabled):not([aria-disabled="true"]) {
   background: rgba(201, 169, 110, 0.08);
 }
 
@@ -2346,6 +2397,16 @@ a:hover {
 .inline-field-value:hover {
   border-bottom-color: var(--text-dim);
 }
+/* The value is a button so the keyboard can open it: reset it to the span's look */
+button.inline-field-value {
+  background: none;
+  border: 0;
+  border-bottom: 1px dashed transparent;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  text-align: left;
+}
 
 .inline-field-placeholder {
   color: var(--text-dim);
@@ -2362,7 +2423,6 @@ a:hover {
   font-size: 0.88rem;
   padding: 0.25rem 0.4rem;
 }
-.inline-field-input:focus { outline: none; }
 
 .inline-field-textarea {
   flex: 1;
@@ -2375,7 +2435,6 @@ a:hover {
   padding: 0.25rem 0.4rem;
   resize: vertical;
 }
-.inline-field-textarea:focus { outline: none; }
 
 .inline-field-select {
   flex: 1;
@@ -2387,7 +2446,6 @@ a:hover {
   font-size: 0.88rem;
   padding: 0.25rem 0.4rem;
 }
-.inline-field-select:focus { outline: none; }
 
 /* ============================================================
    Flag List
@@ -2460,6 +2518,14 @@ a:hover {
 }
 .rule-item:hover { border-color: var(--text-dim); }
 .rule-item.editing { cursor: default; }
+/* A rule row is a button: drop the browser button look, keep the card */
+button.rule-item {
+  display: block;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
 
 .rule-category {
   display: inline-block;
@@ -2477,12 +2543,14 @@ a:hover {
 .rule-cat-other { background: rgba(138, 133, 120, 0.12); color: var(--text-muted); }
 
 .rule-text {
+  display: block;
   font-size: 0.88rem;
   color: var(--text);
   line-height: 1.5;
 }
 
 .rule-chapter {
+  display: block;
   font-size: 0.75rem;
   color: var(--text-dim);
   margin-top: 0.25rem;
@@ -2740,7 +2808,8 @@ a:hover {
   cursor: pointer;
 }
 
-.admin-users-table button:disabled {
+.admin-users-table button:disabled,
+.admin-users-table button[aria-disabled="true"] {
   opacity: 0.4;
   cursor: not-allowed;
 }
@@ -2792,7 +2861,7 @@ a:hover {
 .catch-overlay-input {
   width: 100%;
   background: var(--bg-input);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
   color: var(--text);
   font-family: Georgia, serif;
@@ -2802,7 +2871,6 @@ a:hover {
   transition: border-color var(--transition);
 }
 .catch-overlay-input:focus {
-  outline: none;
   border-color: var(--gold);
 }
 
@@ -2894,7 +2962,7 @@ a:hover {
   flex: 1;
   padding: 0.6rem;
   background: var(--bg-card);
-  border: 2px solid var(--border);
+  border: 2px solid var(--border-control);
   border-radius: var(--radius);
   color: var(--text-muted);
   cursor: pointer;
@@ -3062,7 +3130,7 @@ a:hover {
 .history-compare-label select {
   background: var(--bg-input);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius-sm);
   padding: 0.25rem 0.4rem;
   max-width: 100%;
@@ -3101,7 +3169,7 @@ a:hover {
   min-width: 10rem;
   background: var(--bg-input);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius-sm);
   padding: 0.35rem 0.5rem;
 }
@@ -3152,7 +3220,7 @@ a:hover {
   border: 1px solid rgba(224, 122, 122, 0.4);
   color: var(--error);
 }
-.btn-danger:hover:not(:disabled) { background: rgba(224, 122, 122, 0.2); }
+.btn-danger:hover:not(:disabled):not([aria-disabled="true"]) { background: rgba(224, 122, 122, 0.2); }
 
 .chapter-sidebar-actions { display: flex; gap: 0.25rem; }
 
@@ -3204,7 +3272,7 @@ a:hover {
   border-color: rgba(201, 169, 110, 0.25);
   color: var(--gold);
 }
-.quill-ai-btn--polish:hover:not(:disabled) {
+.quill-ai-btn--polish:hover:not(:disabled):not([aria-disabled="true"]) {
   background: rgba(201, 169, 110, 0.08);
   border-color: var(--gold);
 }
@@ -3213,7 +3281,7 @@ a:hover {
   border-color: rgba(93, 202, 165, 0.2);
   color: var(--teal);
 }
-.quill-ai-btn--editor:hover:not(:disabled) {
+.quill-ai-btn--editor:hover:not(:disabled):not([aria-disabled="true"]) {
   background: rgba(93, 202, 165, 0.07);
   border-color: var(--teal);
 }
@@ -3444,7 +3512,7 @@ a:hover {
 .auth-card input {
   padding: 0.5rem;
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: 4px;
   color: var(--text);
 }
@@ -3459,7 +3527,8 @@ a:hover {
   font-weight: 600;
 }
 
-.auth-card button:disabled {
+.auth-card button:disabled,
+.auth-card button[aria-disabled="true"] {
   opacity: 0.6;
   cursor: default;
 }
@@ -3508,7 +3577,7 @@ a:hover {
   cursor: pointer;
 }
 .context-used-line:disabled { cursor: default; }
-.context-used-line:not(:disabled):hover { color: var(--text-muted); }
+.context-used-line:not(:disabled):not([aria-disabled="true"]):hover { color: var(--text-muted); }
 
 .context-used-warning {
   margin-top: 0.2rem;
@@ -3609,7 +3678,7 @@ a:hover {
   font-size: 0.7rem;
   line-height: 1;
   padding: 0.15rem 0.35rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--bg-card);
   color: var(--text-muted);
@@ -3631,9 +3700,10 @@ a:hover {
 .chapter-threads-title { margin: 0; font-family: Georgia, serif; color: var(--gold); font-size: 0.9rem; font-weight: normal; }
 .thread-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .thread-chip { border: 1px solid var(--thread-color, var(--border)); border-radius: 999px; background: transparent; color: var(--text-muted); font-size: 0.78rem; padding: 2px 10px; cursor: pointer; }
-.thread-chip.on { background: var(--thread-color, var(--gold)); color: #0e0e16; }
-.thread-chip.resolved:not(.on) { opacity: 0.55; text-decoration: line-through; }
-.thread-chip:disabled { cursor: default; opacity: 0.6; }
+.thread-chip.on { background: var(--thread-color, var(--gold)); color: var(--bg); }
+.thread-chip.resolved:not(.on) { color: var(--text-dim); text-decoration: line-through; }
+.thread-chip:disabled,
+.thread-chip[aria-disabled="true"] { cursor: default; opacity: 0.6; }
 .thread-markers { display: inline-flex; gap: 4px; align-items: center; }
 .thread-marker { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .scene-card-threads { display: flex; flex-direction: column; gap: 4px; font-size: 0.75rem; color: var(--text-muted); }

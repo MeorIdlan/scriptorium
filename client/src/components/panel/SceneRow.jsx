@@ -1,14 +1,20 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { ThreadChips, ThreadMarkers } from './ThreadChips.jsx';
 import { toggleTag, tagList } from '../../utils/threads.js';
 import { SCENE_STATUSES, STATUS_LABELS, SCENE_LIMITS, sceneFieldError, sceneLabel } from '../../utils/scenes.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 const FIELDS = ['title', 'pov', 'location', 'summary'];
 
-export default function SceneRow({ scene, threads = [], current, characters, places, onJump, onSave, onRemove, children, dragProps, dragging, dropTarget, busy, error }) {
+export default function SceneRow({ scene, rowKey, threads = [], current, characters, places, onJump, onSave, onRemove, children, dragProps, dragging, dropTarget, busy, error }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
   const [confirming, setConfirming] = useState(false);
+  // Each opener's button; a close hands focus back to the one that opened the card or the confirmation
+  const editBtn = useRef(null);
+  const removeBtn = useRef(null);
+  const returnFocus = useReturnFocus();
 
   const startEdit = () => {
     setDraft({ title: scene.title, pov: scene.pov, location: scene.location, status: scene.status, summary: scene.summary, threadIds: tagList(scene.threadIds) });
@@ -19,15 +25,19 @@ export default function SceneRow({ scene, threads = [], current, characters, pla
   const save = () => {
     if (blocked) return;
     onSave(draft);
+    returnFocus(editBtn);
     setEditing(false);
   };
   const onKeyDown = (e) => {
-    if (e.key === 'Escape') setEditing(false);
+    if (e.key !== 'Escape') return;
+    returnFocus(editBtn);
+    setEditing(false);
   };
   const meta = [scene.pov, scene.location].filter((v) => v && v.trim()).join(' · ');
 
   return (
     <li
+      data-scene-key={rowKey}
       className={`scene-row${current ? ' current' : ''}${dragging ? ' dragging' : ''}${dropTarget ? ' drop-target' : ''}`}
       {...dragProps}
     >
@@ -45,16 +55,25 @@ export default function SceneRow({ scene, threads = [], current, characters, pla
             {scene.summary && <span className="scene-row-summary">{scene.summary.split('\n')[0]}</span>}
           </button>
           <div className="scene-row-actions">
-            <button className="btn btn-ghost btn-sm" onClick={startEdit} disabled={busy}>Edit card</button>
+            <button ref={editBtn} className="btn btn-ghost btn-sm" onClick={guardBusy(busy, startEdit)} {...busyProps(busy)}>Edit card</button>
             {scene.id && !confirming && (
-              <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(true)} disabled={busy}>Remove break</button>
+              <button ref={removeBtn} className="btn btn-ghost btn-sm" onClick={guardBusy(busy, () => setConfirming(true))} {...busyProps(busy)}>Remove break</button>
             )}
             {children}
           </div>
           {confirming && (
             <div className="scene-row-confirm">
               <p>Remove this scene break? The text joins the scene before it and this card is deleted.</p>
-              <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)}>Cancel</button>
+              <button
+                className="btn btn-ghost btn-sm"
+                autoFocus
+                onClick={() => {
+                  returnFocus(removeBtn);
+                  setConfirming(false);
+                }}
+              >
+                Cancel
+              </button>
               <button
                 className="btn btn-danger btn-sm"
                 onClick={() => {
@@ -113,7 +132,15 @@ export default function SceneRow({ scene, threads = [], current, characters, pla
             {places.map((n) => <option key={n} value={n} />)}
           </datalist>
           <div className="scene-card-buttons">
-            <button className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>Cancel</button>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                returnFocus(editBtn);
+                setEditing(false);
+              }}
+            >
+              Cancel
+            </button>
             <button className="btn btn-primary btn-sm" onClick={save} disabled={blocked}>Save</button>
           </div>
         </div>

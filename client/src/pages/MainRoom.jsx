@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useReturnFocus } from '../hooks/useReturnFocus.js';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useActiveWork } from '../context/ActiveWorkContext.jsx';
 import { useEditor } from '../context/EditorContext.jsx';
 import { api } from '../utils/api.js';
@@ -23,6 +24,10 @@ export default function MainRoom() {
   const editorRef = useRef(null);
   const [chapterContent, setChapterContent] = useState({ id: null, text: '', html: '' });
   const [addingChapter, setAddingChapter] = useState(false);
+  // Closing the add-chapter field unmounts it with focus in it; a keyboard close
+  // hands focus back to the + that opened it
+  const addChapterBtn = useRef(null);
+  const returnFocus = useReturnFocus();
   const [newChapterTitle, setNewChapterTitle] = useState('');
   const [milestonesOpen, setMilestonesOpen] = useState(false);
   const [loadingChapterId, setLoadingChapterId] = useState(null);
@@ -38,6 +43,7 @@ export default function MainRoom() {
   // from an earlier visit or another work)
   const loadedChapterIdRef = useRef(chapterContent.id);
   loadedChapterIdRef.current = chapterContent.id;
+  const location = useLocation();
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
   const loaderRef = useRef(null);
@@ -104,6 +110,20 @@ export default function MainRoom() {
     else loaderRef.current.cancel();
   }, [state.chapters, state.work, workId, urlChapterId, chapterContent.id, retryCount]);
 
+  // Create Work arrives with focusEditor in its state. Once the first chapter has settled
+  // (in the editor, failed to load, or none to load), focus the editor, or the add-chapter
+  // button when the work has no chapters, then clear the state so no history entry keeps it
+  useEffect(() => {
+    if (!location.state?.focusEditor) return;
+    const noChapters = state.work?.id === workId && state.chapters?.length === 0;
+    const loaded = loadingChapterId === null && chapterContent.id !== null && chapterContent.id === editorState.chapterId;
+    const failed = failedChapterId !== null;
+    if (!noChapters && !loaded && !failed) return;
+    if (loaded) editorRef.current?.focus();
+    else if (noChapters) addChapterBtn.current?.focus();
+    navigate(location.pathname + location.search, { replace: true, state: null });
+  }, [location, state.work, state.chapters, workId, loadingChapterId, chapterContent.id, editorState.chapterId, failedChapterId, navigate]);
+
   // Changing the URL is enough: the effect above loads the chapter
   function handleChapterSelect(chId) {
     if (chId === (urlChapterId || editorState.chapterId)) {
@@ -114,7 +134,7 @@ export default function MainRoom() {
   }
 
   async function handleAddChapter() {
-    if (!newChapterTitle.trim()) return;
+    if (!newChapterTitle.trim()) return returnFocus(null);
     try {
       const chapter = await api.post(`/works/${workId}/chapters`, {
         title: newChapterTitle.trim(),
@@ -124,6 +144,7 @@ export default function MainRoom() {
       setAddingChapter(false);
       handleChapterSelect(chapter.id);
     } catch (err) {
+      returnFocus(null); // the field stays open for another try
       console.error('Failed to add chapter:', err);
     }
   }
@@ -152,13 +173,16 @@ export default function MainRoom() {
                 className="chapter-add-btn"
                 onClick={() => setMilestonesOpen(true)}
                 title="Milestones — save and compare the whole book"
+                aria-label="Milestones"
               >
                 ◆
               </button>
               <button
                 className="chapter-add-btn"
+                ref={addChapterBtn}
                 onClick={() => setAddingChapter((v) => !v)}
                 title="Add chapter"
+                aria-label="Add chapter"
               >
                 +
               </button>
@@ -175,11 +199,27 @@ export default function MainRoom() {
                 placeholder="Chapter title"
                 autoFocus
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAddChapter();
-                  if (e.key === 'Escape') setAddingChapter(false);
+                  if (e.key === 'Enter') {
+                    // Claim the key, or this same Enter would click the + focus returns to
+                    e.preventDefault();
+                    returnFocus(addChapterBtn);
+                    handleAddChapter();
+                  }
+                  if (e.key === 'Escape') {
+                    returnFocus(addChapterBtn);
+                    setAddingChapter(false);
+                  }
                 }}
               />
-              <button className="btn btn-primary btn-sm" onClick={handleAddChapter}>Add</button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => {
+                  returnFocus(addChapterBtn);
+                  handleAddChapter();
+                }}
+              >
+                Add
+              </button>
             </div>
           )}
 

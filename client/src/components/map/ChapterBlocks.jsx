@@ -8,7 +8,7 @@ const ACT_COLORS = {
 };
 
 function getActColor(act) {
-  return ACT_COLORS[act] || '#4a4a5e';
+  return ACT_COLORS[act] || 'var(--border-control)';
 }
 
 function heightForWordCount(wc) {
@@ -39,10 +39,11 @@ export default function ChapterBlocks({ chapters, pov = '' }) {
               style={{
                 height: `${blockHeight}px`,
                 borderColor: color,
-                background: isSelected ? `${color}33` : 'transparent',
+                background: isSelected ? `color-mix(in srgb, ${color} 20%, transparent)` : 'transparent',
               }}
               onClick={() => dispatch({ type: 'SET_MAP_CHAPTER', chapterId: ch.id })}
               title={`Ch. ${ch.number}: ${ch.title}`}
+              aria-label={`Ch. ${ch.number}: ${ch.title}`}
             >
               <span className="chapter-block-num">
                 {ch.number}

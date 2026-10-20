@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../utils/api.js';
 import { useAI } from '../../hooks/useAI.js';
@@ -10,6 +10,7 @@ import { useUI } from '../../context/UIContext.jsx';
 import { scenesForPov } from '../../utils/sceneMap.js';
 import { STATUS_LABELS, sceneLabel } from '../../utils/scenes.js';
 import { SUMMARY_STATUS_LABELS, summaryRefreshPending } from '../../utils/summaryStatus.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 const FRAMEWORK_BEATS = [
   'Inciting Incident',
@@ -23,6 +24,8 @@ const FRAMEWORK_BEATS = [
 ];
 
 const ACTS = ['Act I', 'Act II', 'Act III'];
+// The keys that move the tension slider; any other key release leaves it alone
+const TENSION_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown']);
 
 function MetricCard({ label, value }) {
   return (
@@ -42,6 +45,8 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
   const chapter = chapters.find((ch) => ch.id === chapterId);
 
   const [tension, setTension] = useState(chapter?.tensionScore ?? 50);
+  // The last tension the server has, so a key release that changes nothing saves nothing
+  const savedTension = useRef(chapter?.tensionScore ?? 50);
   const [beat, setBeat] = useState(chapter?.beat ?? '');
   const [act, setAct] = useState(chapter?.act ?? '');
   const [notes, setNotes] = useState(chapter?.notes ?? '');
@@ -50,6 +55,7 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
   useEffect(() => {
     if (chapter) {
       setTension(chapter.tensionScore ?? 50);
+      savedTension.current = chapter.tensionScore ?? 50;
       setBeat(chapter.beat ?? '');
       setAct(chapter.act ?? '');
       setNotes(chapter.notes ?? '');
@@ -64,13 +70,16 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
     );
   }
 
+  // Resolves true when the server accepted the update
   async function save(updates) {
     setSaving(true);
     try {
       await api.put(`/works/${workId}/map/chapters/${chapterId}`, updates);
       onSaved?.();
+      return true;
     } catch (err) {
       console.error('Save chapter map data failed:', err);
+      return false;
     } finally {
       setSaving(false);
     }
@@ -78,7 +87,8 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
 
   async function handleTensionChange(val) {
     setTension(val);
-    await save({ tensionScore: val });
+    // Only a value the server has counts as saved, so a refused one is sent again
+    if (await save({ tensionScore: val })) savedTension.current = val;
   }
 
   async function handleBeatChange(val) {
@@ -123,6 +133,12 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
             onChange={(e) => setTension(Number(e.target.value))}
             onMouseUp={(e) => handleTensionChange(Number(e.target.value))}
             onTouchEnd={(e) => handleTensionChange(Number(e.target.value))}
+            // Arrow keys change the value without a mouse-up: save when the key is released
+            onKeyUp={(e) => {
+              if (!TENSION_KEYS.has(e.key)) return;
+              const val = Number(e.currentTarget.value);
+              if (val !== savedTension.current) handleTensionChange(val);
+            }}
           />
         </div>
 
@@ -224,8 +240,8 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
           {aiOn && (
             <button
               className="btn btn-secondary"
-              onClick={handleAnalysePacing}
-              disabled={aiLoading}
+              onClick={guardBusy(aiLoading, handleAnalysePacing)}
+              {...busyProps(aiLoading)}
             >
               {aiLoading
                 ? summaryRefreshPending(chapters, chapterId, 'all')

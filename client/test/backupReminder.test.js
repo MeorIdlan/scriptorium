@@ -260,7 +260,7 @@ function holdRequest(reply) {
   return { release, reply: () => gate.then(reply) };
 }
 
-test('while a backup is running, Later and Dismiss are disabled', async () => {
+test('while a backup is running, Later and Dismiss are marked busy', async () => {
   const downloads = captureDownloads();
   const held = holdRequest(
     () =>
@@ -276,9 +276,9 @@ test('while a backup is running, Later and Dismiss are disabled', async () => {
     const view = await renderShelf(DUE_12);
     stubBackup(held.reply);
     await click(view.button('Back up now'));
-    assert.ok(view.button('Backing up')?.hasAttribute('disabled'));
-    assert.ok(view.button('Later').hasAttribute('disabled'));
-    assert.ok(view.query('button[aria-label="Dismiss"]').hasAttribute('disabled'));
+    assert.equal(view.button('Backing up')?.getAttribute('aria-disabled'), 'true');
+    assert.equal(view.button('Later').getAttribute('aria-disabled'), 'true');
+    assert.equal(view.query('button[aria-label="Dismiss"]').getAttribute('aria-disabled'), 'true');
     held.release();
     await flush();
     await view.unmount();
@@ -287,7 +287,7 @@ test('while a backup is running, Later and Dismiss are disabled', async () => {
   }
 });
 
-test('while a snooze is running, every reminder button is disabled', async () => {
+test('while a snooze is running, every reminder button is marked busy', async () => {
   const held = holdRequest(() => ({
     backupReminder: { due: false, lastBackupAt: DUE_12.lastBackupAt, daysSinceBackup: 12 },
   }));
@@ -295,9 +295,9 @@ test('while a snooze is running, every reminder button is disabled', async () =>
     'POST /works/w1/backup-reminder': held.reply,
   });
   await click(view.button('Later'));
-  assert.ok(view.button('Back up now').hasAttribute('disabled'));
-  assert.ok(view.button('Later').hasAttribute('disabled'));
-  assert.ok(view.query('button[aria-label="Dismiss"]').hasAttribute('disabled'));
+  assert.equal(view.button('Back up now').getAttribute('aria-disabled'), 'true');
+  assert.equal(view.button('Later').getAttribute('aria-disabled'), 'true');
+  assert.equal(view.query('button[aria-label="Dismiss"]').getAttribute('aria-disabled'), 'true');
   held.release();
   await flush();
   await view.unmount();
@@ -315,7 +315,7 @@ test('two quick clicks on Later send one request', async () => {
     },
   });
   const later = view.button('Later');
-  // Both clicks land before React re-renders, so the buttons aren't disabled yet
+  // Both clicks land before React re-renders, so the buttons aren't marked busy yet
   await act(async () => {
     later.dispatchEvent(new globalThis.window.Event('click', { bubbles: true }));
     later.dispatchEvent(new globalThis.window.Event('click', { bubbles: true }));
@@ -326,15 +326,15 @@ test('two quick clicks on Later send one request', async () => {
   await view.unmount();
 });
 
-test('a failed snooze re-enables the buttons', async () => {
+test('a failed snooze clears the busy state', async () => {
   const view = await renderShelf(DUE_12, {
     'POST /works/w1/backup-reminder': () => new HttpError(500, 'SERVER', 'Could not snooze'),
   });
   await click(view.button('Later'));
   await flush();
-  assert.equal(view.button('Back up now').hasAttribute('disabled'), false);
-  assert.equal(view.button('Later').hasAttribute('disabled'), false);
-  assert.equal(view.query('button[aria-label="Dismiss"]').hasAttribute('disabled'), false);
+  assert.equal(view.button('Back up now').getAttribute('aria-disabled'), null);
+  assert.equal(view.button('Later').getAttribute('aria-disabled'), null);
+  assert.equal(view.query('button[aria-label="Dismiss"]').getAttribute('aria-disabled'), null);
   assert.match(view.query('.form-error').textContent, /Could not snooze/);
   await view.unmount();
 });

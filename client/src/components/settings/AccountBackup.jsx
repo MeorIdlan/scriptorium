@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 // Whole-account backup. The archive downloads through a hidden form that posts
 // into a hidden iframe, so the browser streams the file to disk and the tab
@@ -33,8 +34,8 @@ export default function AccountBackup() {
           type="button"
           className="btn btn-secondary"
           data-testid="account-backup-button"
-          onClick={handleClick}
-          disabled={started}
+          onClick={guardBusy(started, handleClick)}
+          {...busyProps(started)}
         >
           Back up everything (.zip)
         </button>

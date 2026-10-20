@@ -1,11 +1,20 @@
-import { useState, useEffect, useRef } from 'react';
+import { useId, useState, useEffect, useRef } from 'react';
 import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { api } from '../../utils/api.js';
 import { chapterLabel, catchLengthError } from '../../utils/catchGroups.js';
+import { useModal } from '../../hooks/useModal.js';
+import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
+// Mounted only while open, so the dialog's focus handling runs per open
 export default function CatchOverlay() {
+  const { state } = useUI();
+  if (!state.catchOverlayOpen) return null;
+  return <CatchDialog />;
+}
+
+function CatchDialog() {
   const { state, dispatch } = useUI();
   const { state: editorState } = useEditor();
   const { state: workState, refreshCatches } = useActiveWork();
@@ -15,6 +24,23 @@ export default function CatchOverlay() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef(null);
+  // A corner panel, not a modal: Tab leaves it for the editor
+  const titleId = useId();
+  const { dialogProps } = useModal({
+    onClose: () => dispatch({ type: 'CLOSE_CATCH' }),
+    initialFocusRef: inputRef,
+    trap: false,
+  });
+
+  // Esc closes from anywhere in the window, as before the panel used the hook.
+  // A press inside the panel is already handled (preventDefault) and skipped
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.key === 'Escape' && !e.defaultPrevented) dispatch({ type: 'CLOSE_CATCH' });
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [dispatch]);
 
   const workId = workState.work?.id;
 
@@ -24,20 +50,8 @@ export default function CatchOverlay() {
       setText('');
       setError('');
       setChapterTag(editorState.chapterId || '');
-      setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [state.catchOverlayOpen, editorState.chapterId]);
-
-  // Escape to close
-  useEffect(() => {
-    function handleKey(e) {
-      if (e.key === 'Escape' && state.catchOverlayOpen) {
-        dispatch({ type: 'CLOSE_CATCH' });
-      }
-    }
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [state.catchOverlayOpen, dispatch]);
 
   async function handleSubmit() {
     if (!text.trim() || !workId || catchLengthError(text)) return;
@@ -70,14 +84,12 @@ export default function CatchOverlay() {
   const chapters = workState.chapters || [];
   const currentChapter = chapters.find((ch) => ch.id === editorState.chapterId);
 
-  if (!state.catchOverlayOpen) return null;
-
   return (
-    <div className="catch-overlay">
+    <div className="catch-overlay" aria-labelledby={titleId} {...dialogProps}>
       <div className="catch-overlay-header">
-        <span className="catch-overlay-title">Catch an Idea</span>
+        <span id={titleId} className="catch-overlay-title">Catch an Idea</span>
         <button
-          className="catch-overlay-close"
+          className="catch-overlay-close" aria-label="Close"
           onClick={() => dispatch({ type: 'CLOSE_CATCH' })}
         >
           ✕
@@ -114,8 +126,9 @@ export default function CatchOverlay() {
 
         <button
           className="btn btn-primary btn-sm"
-          onClick={handleSubmit}
-          disabled={submitting || !text.trim() || Boolean(catchLengthError(text))}
+          onClick={guardBusy(submitting, handleSubmit)}
+          disabled={!text.trim() || Boolean(catchLengthError(text))}
+          {...busyProps(submitting)}
         >
           {submitting ? 'Catching…' : 'Catch it'}
         </button>

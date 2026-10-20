@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useId, useLayoutEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../utils/api.js';
 import { useAI } from '../hooks/useAI.js';
@@ -7,6 +7,8 @@ import PlaceEntry from '../components/codex/PlaceEntry.jsx';
 import RuleDetail from '../components/codex/RuleDetail.jsx';
 import CodexAuditModal from '../components/overlays/CodexAuditModal.jsx';
 import { useAiState } from '../context/AiContext.jsx';
+import { useModal } from '../hooks/useModal.js';
+import { busyProps, guardBusy } from '../utils/busyButton.js';
 
 const TABS = [
   { id: 'characters', label: 'Characters' },
@@ -20,21 +22,26 @@ function AddEntityModal({ type, onConfirm, onClose }) {
   const [name, setName] = useState('');
   const inputRef = useRef(null);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
-
   function handleKeyDown(e) {
-    if (e.key === 'Enter' && name.trim()) onConfirm(name.trim());
-    if (e.key === 'Escape') onClose();
+    if (e.key === 'Enter' && name.trim()) {
+      // Claim the key: focus returns to the opener on confirm, and Chrome would
+      // otherwise click it again for this same Enter
+      e.preventDefault();
+      onConfirm(name.trim());
+    }
   }
+
+  const titleId = useId();
+  const { dialogProps, backdropProps } = useModal({ onClose, initialFocusRef: inputRef });
 
   const label = type === 'character' ? 'Character' : 'Place';
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop" {...backdropProps}>
+      <div className="modal" style={{ maxWidth: 380 }} aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
-          <span className="modal-title">New {label}</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <span id={titleId} className="modal-title">New {label}</span>
+          <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
           <div className="form-group">
@@ -42,6 +49,7 @@ function AddEntityModal({ type, onConfirm, onClose }) {
             <input
               ref={inputRef}
               className="form-input"
+              type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -71,14 +79,15 @@ function AddRuleModal({ onConfirm, onClose }) {
   const [ruleText, setRuleText] = useState('');
   const textareaRef = useRef(null);
 
-  useEffect(() => { textareaRef.current?.focus(); }, []);
+  const titleId = useId();
+  const { dialogProps, backdropProps } = useModal({ onClose, initialFocusRef: textareaRef });
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop" {...backdropProps}>
+      <div className="modal" style={{ maxWidth: 460 }} aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
-          <span className="modal-title">New World Rule</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <span id={titleId} className="modal-title">New World Rule</span>
+          <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
           <div className="form-group">
@@ -100,7 +109,6 @@ function AddRuleModal({ onConfirm, onClose }) {
               className="form-textarea"
               value={ruleText}
               onChange={(e) => setRuleText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
               placeholder="Describe the rule…"
               rows={4}
             />
@@ -199,7 +207,8 @@ export default function CodexView() {
     }
   }
 
-  if (loading) {
+  // Only the first load replaces the page; a refresh keeps it up, so focus survives it
+  if (loading && !codex) {
     return <div className="loading-page"><p className="loading-text">Loading codex…</p></div>;
   }
   if (error) {
@@ -368,8 +377,8 @@ export default function CodexView() {
             <p className="codex-ai-title">AI Assist</p>
             <button
               className="btn btn-ghost codex-ai-btn"
-              onClick={handleAudit}
-              disabled={aiLoading}
+              onClick={guardBusy(aiLoading, handleAudit)}
+              {...busyProps(aiLoading)}
               title="Analyse all characters, places, and world rules for completeness and consistency"
             >
               {aiLoading ? 'Auditing…' : '◈ Codex Audit'}

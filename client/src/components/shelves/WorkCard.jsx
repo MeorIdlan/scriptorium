@@ -37,6 +37,7 @@ export default function WorkCard({ work, onDelete, onExport }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const menuRef = useRef(null);
+  const menuBtnRef = useRef(null);
 
   const wordCount = work.wordCount || 0;
   const target = work.targetWordCount || TARGET_WORD_COUNT;
@@ -93,12 +94,21 @@ export default function WorkCard({ work, onDelete, onExport }) {
 
   function handleExport(e) {
     e.stopPropagation();
+    // The menu item unmounts with the menu, so the export dialog would have no
+    // opener to return focus to; the menu button is the one that stays put
+    menuBtnRef.current?.focus();
     setMenuOpen(false);
     uiDispatch({ type: 'OPEN_EXPORT', workId: work.id });
   }
 
   function handleCardClick() {
     navigate(`/work/${work.id}`);
+  }
+
+  function handleTitleClick(e) {
+    // The click would also reach the card and open the work a second time
+    e.stopPropagation();
+    handleCardClick();
   }
 
   const coverColor = work.coverColor || '#2a2a3e';
@@ -109,6 +119,7 @@ export default function WorkCard({ work, onDelete, onExport }) {
         <span className="work-card-color-swatch" style={{ background: coverColor }} />
         <div className="work-card-menu-wrap" ref={menuRef} onClick={(e) => e.stopPropagation()}>
           <button
+            ref={menuBtnRef}
             className="work-card-menu-btn"
             onClick={() => setMenuOpen((v) => !v)}
             aria-label="Work options"
@@ -133,7 +144,11 @@ export default function WorkCard({ work, onDelete, onExport }) {
       </div>
 
       <div className="work-card-body">
-        <h3 className="work-card-title">{work.title}</h3>
+        <h3 className="work-card-title">
+          <button type="button" className="work-card-title-btn" onClick={handleTitleClick}>
+            {work.title}
+          </button>
+        </h3>
         {work.genre && <span className="work-card-genre">{work.genre}</span>}
         <p className="work-card-meta">
           {formatNumber(wordCount)} words · {relativeDate(work.updatedAt || work.lastTouched)}
