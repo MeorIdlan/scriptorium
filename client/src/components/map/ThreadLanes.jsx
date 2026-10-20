@@ -118,10 +118,11 @@ export default function ThreadLanes({ workId, threads = [], chapters = [] }) {
   const { dispatch: uiDispatch } = useUI();
   const { isHidden, setShown } = useHiddenLanes(workId);
 
-  const openChapter = (chapter) => navigate(`/work/${workId}/chapter/${chapter.id}`);
+  // Like Create Work, the Main Room takes focus into the editor once the chapter is in it
+  const openChapter = (chapter) => navigate(`/work/${workId}/chapter/${chapter.id}`, { state: { focusEditor: true } });
   const openScene = (chapter, sceneIndex) => {
     uiDispatch({ type: 'OPEN_SCENE', chapterId: chapter.id, sceneIndex });
-    navigate(`/work/${workId}/chapter/${chapter.id}`);
+    navigate(`/work/${workId}/chapter/${chapter.id}`, { state: { focusEditor: true } });
   };
 
   return (

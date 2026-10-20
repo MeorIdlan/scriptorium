@@ -34,8 +34,14 @@ function Probe() {
   return h('output', { 'data-probe': true }, `${pathname}|${state.pendingScene ? `${state.pendingScene.chapterId}#${state.pendingScene.sceneIndex}` : 'none'}`);
 }
 
+// Shows the location state a click carried (the Main Room reads focusEditor from it)
+function StateProbe() {
+  const { state } = useLocation();
+  return h('output', { 'data-state': true }, JSON.stringify(state ?? null));
+}
+
 function mount({ threads = [heir, heist], chs = chapters } = {}) {
-  return renderApp(h('div', null, h(ThreadLanes, { workId: 'w1', threads, chapters: chs }), h(Probe)));
+  return renderApp(h('div', null, h(ThreadLanes, { workId: 'w1', threads, chapters: chs }), h(Probe), h(StateProbe)));
 }
 
 const lane = (view, id) => view.query(`[data-thread-id="${id}"]`);
@@ -92,6 +98,21 @@ test('a chapter dot opens the chapter without picking a scene', async () => {
   const view = await mount();
   await click(lane(view, 'thr_1').querySelector('[data-chapter="c1"]:not([data-scene])'));
   assert.equal(view.query('[data-probe]').textContent, '/work/w1/chapter/c1|none');
+  await view.unmount();
+});
+
+// Create Work hands the editor focus to the Main Room through this state; a dot does the same
+test('a chapter dot arrives in the Main Room asking for the editor to take focus', async () => {
+  const view = await mount();
+  await click(lane(view, 'thr_1').querySelector('[data-chapter="c1"]:not([data-scene])'));
+  assert.equal(view.query('[data-state]').textContent, '{"focusEditor":true}');
+  await view.unmount();
+});
+
+test('a scene dot arrives in the Main Room asking for the editor to take focus', async () => {
+  const view = await mount();
+  await click(lane(view, 'thr_1').querySelector('[data-chapter="c2"][data-scene="1"]'));
+  assert.equal(view.query('[data-state]').textContent, '{"focusEditor":true}');
   await view.unmount();
 });
 
