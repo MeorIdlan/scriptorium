@@ -51,3 +51,14 @@ test('no rule resets every property with all: unset, which would also drop the f
   const resetters = blocks.filter((block) => /(?:^|;)\s*all:\s*unset\s*(?:;|$)/.test(block.body));
   assert.deepEqual(resetters.map((block) => block.selector), [], 'replace all: unset with the properties the element needs');
 });
+
+// Items that sit against the edge of a scroll container or the sidebar: a 2px ring drawn outside
+// them is cut off there, so the ring is drawn inside for these
+test('edge items draw their focus ring inside the element so the container does not clip it', () => {
+  const rule = blocks.find((block) => block.selector.includes('.chapter-item:focus-visible'));
+  assert.ok(rule, 'an edge-item focus rule is missing from index.css');
+  for (const item of ['.sidebar-nav-item', '.chapter-item', '.panel-tab', '.chapter-block', '.codex-tab']) {
+    assert.ok(rule.selector.includes(`${item}:focus-visible`), `${item}:focus-visible is not in the edge-item rule`);
+  }
+  assert.match(rule.body, /(?:^|;)\s*outline-offset:\s*-2px\s*(?:;|$)/, 'the edge-item rule sets outline-offset: -2px');
+});
