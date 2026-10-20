@@ -17,6 +17,10 @@ const routes = {
   [`PATCH ${base}/s2`]: {},
   [`POST ${base}/s1/restore`]: { id: 'c1', content: 'Newer text.', contentHtml: '<div>Newer text.</div>', threadIds: [] },
   'GET /works/w1/chapters': [{ id: 'c1', title: 'One', threadIds: [] }],
+  [`DELETE ${base}/s2`]: () => {
+    versions = versions.filter((v) => v.id !== 's2');
+    return {};
+  },
 };
 
 function reset() {
@@ -116,13 +120,10 @@ test('a confirmed delete leaves focus on the selected version', async () => {
     await flush();
     await pressButton(dialogButton('Delete…'));
     // The server drops the version; the list reloads without it
-    routes[`DELETE ${base}/s2`] = () => {
-      versions = versions.filter((v) => v.id !== 's2');
-      return {};
-    };
     await pressButton(dialogButton('Delete'));
     await flush();
     const active = document.querySelector('.history-item.active');
+    assert.match(active.textContent, /Autosave/);
     assert.equal(document.activeElement === active, true);
   });
 });
