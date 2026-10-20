@@ -47,8 +47,9 @@ async function pressButton(el) {
 }
 
 // Runs a scenario on a fresh modal; unmounts even when an assertion fails
-async function scenario(run) {
+async function scenario(run, { only = false } = {}) {
   reset();
+  if (only) milestones = milestones.slice(0, 1);
   const view = await renderApp(h(MilestonesModal, { workId: 'w1', onDismiss() {} }), { routes });
   try {
     await flush();
@@ -135,4 +136,17 @@ test('a confirmed delete leaves focus on the selected milestone', async () => {
     assert.match(document.querySelector('.history-item.active').textContent, /Empty/);
     assert.equal(document.activeElement === document.querySelector('.history-item.active'), true);
   });
+});
+
+test('deleting the only milestone returns focus to New milestone', async () => {
+  await scenario(async () => {
+    await click(document.querySelectorAll('.history-item')[0]);
+    await flush();
+    await pressButton(dialogButton('Delete…'));
+    await pressButton(dialogButton('Delete'));
+    await flush();
+    // No milestone is left to select, so focus goes to the control that makes one
+    assert.equal(document.querySelector('.history-item.active'), null);
+    assert.equal(document.activeElement === dialogButton('New milestone…'), true);
+  }, { only: true });
 });

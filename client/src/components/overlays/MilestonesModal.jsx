@@ -41,10 +41,11 @@ export default function MilestonesModal({ workId, onDismiss }) {
   });
   const returnFocus = useReturnFocus();
   const namingTrigger = { new: newBtn, rename: renameBtn };
-  // The selected milestone's list item, read when focus lands (the list reloads first)
+  // The selected milestone's list item, read when focus lands (the list reloads first);
+  // with no milestone left, focus goes to New milestone
   const selectedItem = {
     get current() {
-      return listRef.current?.querySelector('.history-item.active') ?? null;
+      return listRef.current?.querySelector('.history-item.active') ?? newBtn.current;
     },
   };
 
