@@ -101,7 +101,8 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
         await api.patch(`${base}/${selectedId}`, { name });
         await load(selectedId);
       }
-      returnFocus(namingTrigger[naming.mode]);
+      // A kept version is named now, so Rename is the control that stays
+      returnFocus(naming.mode === 'keep' ? renameBtn : namingTrigger[naming.mode]);
       setNaming(null);
     });
 

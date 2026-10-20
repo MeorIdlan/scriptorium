@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { renderApp } from './support/app.js';
-import { click, flush, press, type } from './support/render.js';
+import { act, click, flush, press } from './support/render.js';
 import './support/focus.js';
 import ChapterHistoryModal from '../src/components/overlays/ChapterHistoryModal.jsx';
 
@@ -15,6 +15,11 @@ const routes = {
   [`GET ${base}/s2`]: { content: 'Older text.' },
   [`POST ${base}`]: { id: 's3' },
   [`PATCH ${base}/s2`]: {},
+  // Naming an automatic version keeps it: the server makes it named
+  [`PATCH ${base}/s1`]: (body) => {
+    versions = versions.map((v) => (v.id === 's1' ? { ...v, kind: 'named', name: body.name } : v));
+    return versions.find((v) => v.id === 's1');
+  },
   [`POST ${base}/s1/restore`]: { id: 'c1', content: 'Newer text.', contentHtml: '<div>Newer text.</div>', threadIds: [] },
   'GET /works/w1/chapters': [{ id: 'c1', title: 'One', threadIds: [] }],
   [`DELETE ${base}/s2`]: () => {
@@ -28,6 +33,14 @@ function reset() {
     { id: 's1', kind: 'auto', name: null, note: '', milestoneId: null, wordCount: 2, createdAt: '2026-10-19T10:00:00.000Z' },
     { id: 's2', kind: 'named', name: 'Draft one', note: '', milestoneId: null, wordCount: 2, createdAt: '2026-10-18T10:00:00.000Z' },
   ];
+}
+
+// Types into a portalled field: the synthetic input event doesn't reach the
+// naming state in linkedom, so set the value and run the field's change handler
+async function typeName(input, value) {
+  input.value = value;
+  const key = Object.keys(input).find((k) => k.startsWith('__reactProps'));
+  await act(async () => input[key].onChange({ target: input }));
 }
 
 const dialogButton = (label) => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === label);
@@ -125,5 +138,18 @@ test('a confirmed delete leaves focus on the selected version', async () => {
     const active = document.querySelector('.history-item.active');
     assert.match(active.textContent, /Autosave/);
     assert.equal(document.activeElement === active, true);
+  });
+});
+
+test('Enter on a Keep name returns focus to Rename, which replaces Keep', async () => {
+  await scenario(async () => {
+    await pressButton(dialogButton('Keep this version…'));
+    const input = document.querySelector('.history-name-input');
+    await typeName(input, 'Kept');
+    await press(input, 'Enter');
+    await flush();
+    // The version is named now, so Keep is gone and Rename is in its place
+    assert.equal(dialogButton('Keep this version…'), undefined);
+    assert.equal(document.activeElement === dialogButton('Rename…'), true);
   });
 });
