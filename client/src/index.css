@@ -18,7 +18,7 @@
   --text-muted: #9a9588;
   --text-dim: #8a857e;
   --teal: #5dcaa5;
-  --purple: #7f77dd;
+  --purple: #9690e6;
   --coral: #e06a40;
   --amber: #e8a030;
   --error: #e07a7a;
@@ -1661,7 +1661,8 @@ a:hover {
 .map-pov-filter { display: inline-flex; gap: 8px; align-items: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px; }
 .map-pov-filter .form-select { width: auto; padding: 3px 6px; font-size: 0.8rem; }
 .chapter-block { position: relative; }
-.chapter-block.dimmed { opacity: 0.3; }
+.chapter-block.dimmed { border-style: dashed; }
+.chapter-block.dimmed .chapter-block-num { color: var(--text-dim); }
 .chapter-block-ticks { position: absolute; left: 3px; right: 3px; bottom: 3px; display: flex; gap: 2px; }
 .chapter-block-tick { flex: 1; height: 2px; background: currentColor; opacity: 0.45; border-radius: 1px; }
 .chapter-block-pov-count { position: absolute; top: 2px; left: 4px; line-height: 1; font-size: 0.6rem; color: var(--gold); }
@@ -3693,7 +3694,7 @@ button.rule-item {
 .thread-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .thread-chip { border: 1px solid var(--thread-color, var(--border)); border-radius: 999px; background: transparent; color: var(--text-muted); font-size: 0.78rem; padding: 2px 10px; cursor: pointer; }
 .thread-chip.on { background: var(--thread-color, var(--gold)); color: var(--bg); }
-.thread-chip.resolved:not(.on) { opacity: 0.55; text-decoration: line-through; }
+.thread-chip.resolved:not(.on) { color: var(--text-dim); text-decoration: line-through; }
 .thread-chip:disabled,
 .thread-chip[aria-disabled="true"] { cursor: default; opacity: 0.6; }
 .thread-markers { display: inline-flex; gap: 4px; align-items: center; }

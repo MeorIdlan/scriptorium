@@ -58,10 +58,59 @@ test('text hierarchy is preserved', () => {
 });
 
 function ruleBody(selector) {
-  const blocks = [...css.matchAll(new RegExp(`(?:^|\\n)${selector.replace(/[.]/g, '\\.')}\\s*\\{([^}]*)\\}`, 'g'))];
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const blocks = [...css.matchAll(new RegExp(`(?:^|\\n)${escaped}\\s*\\{([^}]*)\\}`, 'g'))];
   assert.ok(blocks.length, `${selector} rule is missing from index.css`);
   return blocks.map((m) => m[1]).join('\n');
 }
+
+// Paints an rgba() tint or a hex colour at its alpha over a solid background, as the browser does
+function paint(colour, bgHex) {
+  const rgba = colour.match(/rgba?\(([^)]*)\)/);
+  const [r, g, b, a = 1] = rgba ? rgba[1].split(',').map(Number) : [...hexChannels(colour), 1];
+  const bg = hexChannels(bgHex);
+  const mixed = [r, g, b].map((c, i) => Math.round(c * a + bg[i] * (1 - a)));
+  return `#${mixed.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function hexChannels(hex) {
+  return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+}
+
+test('rule category badges meet AA on their tint, on every background', () => {
+  const badges = [...css.matchAll(/\n\.(rule-cat-[\w-]+)\s*\{([^}]*)\}/g)];
+  assert.equal(badges.length, 5, 'expected one badge rule per category');
+  for (const [, name, body] of badges) {
+    const tint = body.match(/background:\s*(rgba\([^)]*\))/);
+    const text = body.match(/color:\s*var\(--([\w-]+)\)/);
+    assert.ok(tint && text, `.${name} needs a tint background and a colour token`);
+    for (const bg of BACKGROUNDS) {
+      const ratio = contrast(paint(token(text[1]), token(bg)), paint(tint[1], token(bg)));
+      assert.ok(ratio >= 4.5, `.${name} text on its tint over --${bg} is ${ratio.toFixed(2)}:1, needs 4.5:1`);
+    }
+  }
+});
+
+// Text that is dimmed with a token and no opacity; the browser paints the element's opacity over its background
+const DIMMED_TEXT = ['.thread-chip.resolved:not(.on)', '.chapter-block.dimmed .chapter-block-num'];
+
+test('dimmed text meets AA on every background, with no opacity', () => {
+  for (const selector of DIMMED_TEXT) {
+    const body = ruleBody(selector);
+    const text = body.match(/color:\s*var\(--([\w-]+)\)/);
+    assert.ok(text, `${selector} needs a colour token`);
+    const alpha = Number((body.match(/opacity:\s*([\d.]+)/) || [])[1] ?? 1);
+    assert.equal(alpha, 1, `${selector} dims with opacity ${alpha}; use a text token instead`);
+    for (const bg of BACKGROUNDS) {
+      const ratio = contrast(paint(token(text[1]), token(bg)), token(bg));
+      assert.ok(ratio >= 4.5, `${selector} on --${bg} is ${ratio.toFixed(2)}:1, needs 4.5:1`);
+    }
+  }
+});
+
+test('a dimmed chapter block recedes without opacity', () => {
+  assert.doesNotMatch(ruleBody('.chapter-block.dimmed'), /opacity\s*:/);
+});
 
 test('clickable map controls use the control border token (not the divider)', () => {
   for (const selector of ['.thread-status', '.chapter-block']) {
@@ -79,6 +128,21 @@ test('no hard-coded text colours outside :root', () => {
     .map((m) => m[1].trim())
     .filter((value) => hardCoded.test(value));
   assert.deepEqual(offenders, [], `hard-coded text colours in index.css: ${offenders.join(', ')}`);
+});
+
+test('no hard-coded border colours in jsx inline styles', () => {
+  const jsxFiles = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) walk(path);
+      else if (name.endsWith('.jsx')) jsxFiles.push(path);
+    }
+  };
+  walk(srcDir);
+  const inlineBorder = /border(?:Color)?\s*:\s*['"`][^'"`]*#[0-9a-fA-F]{3,8}\b/i;
+  const offenders = jsxFiles.filter((file) => inlineBorder.test(readFileSync(file, 'utf8')));
+  assert.deepEqual(offenders.map((file) => file.slice(srcDir.length + 1)), [], 'inline hex border colours in jsx');
 });
 
 test('no hard-coded text colours in jsx inline styles', () => {
