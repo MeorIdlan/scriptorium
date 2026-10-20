@@ -179,7 +179,7 @@ test('B, I and U show whether their format is on at the selection', async () => 
   document.queryCommandState = (command) => command === 'bold';
   try {
     const view = await renderApp(h(Toolbar, { editorRef: { current: env.editor } }), { ai: false, path: '/work/w1/chapter/c1', route: '/work/:workId/chapter/:chapterId' });
-    document.dispatchEvent(new window.Event('selectionchange'));
+    await act(async () => document.dispatchEvent(new window.Event('selectionchange')));
     await flush();
     const pressed = (title) => view.query(`button[title="${title}"]`).getAttribute('aria-pressed');
     assert.equal(pressed('Bold (Ctrl+B)'), 'true');
