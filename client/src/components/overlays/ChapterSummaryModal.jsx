@@ -1,7 +1,8 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { useModal } from '../../hooks/useModal.js';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { SUMMARY_STATUS_LABELS } from '../../utils/summaryStatus.js';
 import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
@@ -12,6 +13,8 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(null); // 'save' | 'regenerate'
   const [error, setError] = useState(null);
+  const editBtn = useRef(null);
+  const returnFocus = useReturnFocus();
 
   // The list's status is computed from saved text, so refresh on open
   useEffect(() => {
@@ -27,6 +30,8 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
     try {
       await request();
       await refreshChapters(workId);
+      // Save leaves the editor; Edit takes focus back from the Save button
+      if (kind === 'save') returnFocus(editBtn);
       setEditing(false);
     } catch (err) {
       setError(
@@ -43,8 +48,12 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
   const { dialogProps, backdropProps } = useModal({ onClose: onDismiss });
   const base = `/works/${workId}/chapters/${chapterId}/summary`;
   // Saving unchanged text would only mark the AI's summary as edited by you
+  const stopEditing = () => {
+    returnFocus(editBtn);
+    setEditing(false);
+  };
   const handleSave = () =>
-    draft.trim() === text.trim() ? setEditing(false) : run('save', () => api.put(base, { text: draft }));
+    draft.trim() === text.trim() ? stopEditing() : run('save', () => api.put(base, { text: draft }));
   const handleRegenerate = () => run('regenerate', () => api.post(`${base}/regenerate`, {}));
 
   return (
@@ -89,7 +98,7 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
           <div className="modal-footer-right">
             {editing ? (
               <>
-                <button className="btn btn-ghost" onClick={guardBusy(busy, () => setEditing(false))} {...busyProps(busy)}>
+                <button className="btn btn-ghost" onClick={guardBusy(busy, stopEditing)} {...busyProps(busy)}>
                   Cancel
                 </button>
                 <button className="btn btn-primary" onClick={guardBusy(busy, handleSave)} {...busyProps(busy)}>
@@ -98,6 +107,7 @@ export default function ChapterSummaryModal({ workId, chapterId, onDismiss }) {
               </>
             ) : (
               <button
+                ref={editBtn}
                 className="btn btn-primary"
                 onClick={guardBusy(busy, () => {
                   setDraft(text);
