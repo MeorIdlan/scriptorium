@@ -207,7 +207,8 @@ export default function CodexView() {
     }
   }
 
-  if (loading) {
+  // Only the first load replaces the page; a refresh keeps it up, so focus survives it
+  if (loading && !codex) {
     return <div className="loading-page"><p className="loading-text">Loading codex…</p></div>;
   }
   if (error) {
