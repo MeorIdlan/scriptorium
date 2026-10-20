@@ -1,11 +1,8 @@
 import Work from '../models/Work.js';
+import { DAY_MS } from '../utils/time.js';
 
 export const REMINDER_DAYS = 7;
 export const SNOOZE_DAYS = 3;
-// Fields the client can't set: PUT /api/works/:workId strips them from the body
-export const SERVER_OWNED_FIELDS = ['lastBackupAt', 'contentChangedAt', 'reminderState', 'backupReminder'];
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 function toDate(value) {
   return value ? new Date(value) : null;

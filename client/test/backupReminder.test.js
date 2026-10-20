@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import { createElement as h, Fragment } from 'react';
 import { useLocation } from 'react-router-dom';
 import { renderApp, HttpError } from './support/app.js';
-import { flush, click } from './support/render.js';
+import { act, flush, click } from './support/render.js';
 import Shelves from '../src/pages/Shelves.jsx';
 import BackupReminder from '../src/components/backup/BackupReminder.jsx';
 import MainRoom from '../src/pages/MainRoom.jsx';
+import TopBar from '../src/components/layout/TopBar.jsx';
 import ExportModal from '../src/components/overlays/ExportModal.jsx';
 
 const DUE_12 = { due: true, lastBackupAt: '2026-10-07T09:00:00.000Z', daysSinceBackup: 12 };
@@ -250,6 +251,94 @@ test('a failed snooze keeps the strip and shows the error', async () => {
   await view.unmount();
 });
 
+// A request that waits until release() is called, so a test can see the UI mid-request
+function holdRequest(reply) {
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  return { release, reply: () => gate.then(reply) };
+}
+
+test('while a backup is running, Later and Dismiss are marked busy', async () => {
+  const downloads = captureDownloads();
+  const held = holdRequest(
+    () =>
+      new Response('zip-bytes', {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': 'attachment; filename="the-long-night-backup.zip"',
+        },
+      })
+  );
+  try {
+    const view = await renderShelf(DUE_12);
+    stubBackup(held.reply);
+    await click(view.button('Back up now'));
+    assert.equal(view.button('Backing up')?.getAttribute('aria-disabled'), 'true');
+    assert.equal(view.button('Later').getAttribute('aria-disabled'), 'true');
+    assert.equal(view.query('button[aria-label="Dismiss"]').getAttribute('aria-disabled'), 'true');
+    held.release();
+    await flush();
+    await view.unmount();
+  } finally {
+    downloads.restore();
+  }
+});
+
+test('while a snooze is running, every reminder button is marked busy', async () => {
+  const held = holdRequest(() => ({
+    backupReminder: { due: false, lastBackupAt: DUE_12.lastBackupAt, daysSinceBackup: 12 },
+  }));
+  const view = await renderShelf(DUE_12, {
+    'POST /works/w1/backup-reminder': held.reply,
+  });
+  await click(view.button('Later'));
+  assert.equal(view.button('Back up now').getAttribute('aria-disabled'), 'true');
+  assert.equal(view.button('Later').getAttribute('aria-disabled'), 'true');
+  assert.equal(view.query('button[aria-label="Dismiss"]').getAttribute('aria-disabled'), 'true');
+  held.release();
+  await flush();
+  await view.unmount();
+});
+
+test('two quick clicks on Later send one request', async () => {
+  let posts = 0;
+  const held = holdRequest(() => ({
+    backupReminder: { due: false, lastBackupAt: DUE_12.lastBackupAt, daysSinceBackup: 12 },
+  }));
+  const view = await renderShelf(DUE_12, {
+    'POST /works/w1/backup-reminder': () => {
+      posts++;
+      return held.reply();
+    },
+  });
+  const later = view.button('Later');
+  // Both clicks land before React re-renders, so the buttons aren't marked busy yet
+  await act(async () => {
+    later.dispatchEvent(new globalThis.window.Event('click', { bubbles: true }));
+    later.dispatchEvent(new globalThis.window.Event('click', { bubbles: true }));
+  });
+  assert.equal(posts, 1);
+  held.release();
+  await flush();
+  await view.unmount();
+});
+
+test('a failed snooze clears the busy state', async () => {
+  const view = await renderShelf(DUE_12, {
+    'POST /works/w1/backup-reminder': () => new HttpError(500, 'SERVER', 'Could not snooze'),
+  });
+  await click(view.button('Later'));
+  await flush();
+  assert.equal(view.button('Back up now').getAttribute('aria-disabled'), null);
+  assert.equal(view.button('Later').getAttribute('aria-disabled'), null);
+  assert.equal(view.query('button[aria-label="Dismiss"]').getAttribute('aria-disabled'), null);
+  assert.match(view.query('.form-error').textContent, /Could not snooze/);
+  await view.unmount();
+});
+
 test('clicking inside the strip doesn\'t open the work', async () => {
   const view = await renderShelf(DUE_12, {
     'POST /works/w1/backup-reminder': () => ({
@@ -279,22 +368,11 @@ test('the banner variant shows the banner copy and buttons', async () => {
   await view.unmount();
 });
 
-// The Main Room's editor writes innerText, which linkedom only has as a getter
-Object.defineProperty(Object.getPrototypeOf(document.createElement('div')), 'innerText', {
-  configurable: true,
-  get() {
-    return this.textContent;
-  },
-  set(text) {
-    this.textContent = text;
-  },
-});
-
-// Main Room with one work from GET /works/w1
+// Main Room with one work from GET /works/w1, under the TopBar as App mounts it
 const DUE_9 = { due: true, lastBackupAt: '2026-10-10T09:00:00.000Z', daysSinceBackup: 9 };
 
 async function renderMainRoom(reminder, routes = {}) {
-  return renderApp(h(MainRoom), {
+  return renderApp(h(Fragment, null, h(TopBar), h(MainRoom)), {
     path: '/work/w1',
     route: '/work/:workId',
     routes: {
@@ -330,5 +408,18 @@ test('Remind me later hides the banner', async () => {
   const post = view.fetch.calls.find((c) => c.path === '/works/w1/backup-reminder');
   assert.deepEqual(post.body, { action: 'snooze' });
   assert.equal(view.query('[data-testid="backup-reminder"]'), null);
+  await view.unmount();
+});
+
+test('Remind me later in the Main Room keeps the work\'s other fields', async () => {
+  const view = await renderMainRoom(DUE_9, {
+    'POST /works/w1/backup-reminder': () => ({
+      backupReminder: { due: false, lastBackupAt: null, daysSinceBackup: null },
+    }),
+  });
+  await click(view.button('Remind me later'));
+  await flush();
+  assert.equal(view.query('[data-testid="backup-reminder"]'), null);
+  assert.equal(view.query('.topbar-title').textContent, 'The Long Night');
   await view.unmount();
 });

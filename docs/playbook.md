@@ -1,6 +1,6 @@
 # scriptorium playbook
 
-playbook-template: v4
+playbook-template: v5
 Base branch: `main`
 Required checks: none
 
@@ -12,6 +12,7 @@ How agents work on this repo. Every gate is a hard stop: don't start the next ga
 - **PRs**: draft by default, target `main`, title is a Conventional Commit summary, body links the card.
 - **Design artifacts** (architectural track): spec at `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`, plan at `docs/superpowers/plans/YYYY-MM-DD-<topic>.md`, both committed on the task branch.
 - **TDD** always: failing test first, for every task.
+- **Questions to the dev** always go through the `AskUserQuestion` tool, never as plain text in a reply. This covers every gate and every skill (including superpowers `brainstorming`, whose "ask questions one at a time" means one `AskUserQuestion` call per question). Give 2–4 options, put the recommended one first with `(Recommended)` on its label; the dev can always pick "Other" for a free-form answer. Open-ended questions with no natural options still use the tool, with your best guesses as the options. Approvals (design, spec, plan, execution method) are asked the same way. Subagents can't reach the dev: they report the question back and the orchestrator asks it.
 
 ## Gates
 Each gate pass is recorded as a card comment `[gate:<n>] <summary>` (`<n>` = `0`–`6`, `verify`, `merged`, `closed`), posted only for approvals the dev actually gave. A new session resumes from the latest tag, checked against the branch, files and checklist. After each approval in Gates 3–5 and every few completed tasks, sync the card (`/task-sync` when available).
@@ -33,7 +34,7 @@ Offer **git worktree (strongly recommended)** or a plain branch. If a branch for
 **Pass:** workspace exists, is clean, and you are working inside it.
 
 ### 3. Design (superpowers `brainstorming`)
-Ask the dev questions one at a time, propose approaches with a recommendation; build on discovery rather than re-asking. Bounded: short design in chat. Architectural: sectioned design, then the spec file, committed. Hidden complexity upgrades bounded → architectural (stop and say so); never downgrade.
+Ask the dev questions one at a time, each with `AskUserQuestion` (see Conventions), propose approaches with a recommendation; build on discovery rather than re-asking. Bounded: short design in chat. Architectural: sectioned design, then the spec file, committed. Hidden complexity upgrades bounded → architectural (stop and say so); never downgrade.
 **Pass:** dev explicitly approves the design (bounded) or the written spec (architectural). Comment `Design approved` (+ spec path) on the card.
 
 ### 4. Plan (superpowers `writing-plans`)

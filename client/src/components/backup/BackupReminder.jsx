@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { api } from '../../utils/api.js';
 import { saveFile } from '../../utils/saveFile.js';
 import { backedUpNow } from '../../utils/backupReminder.js';
@@ -11,12 +11,15 @@ function daysText(days) {
 // Nudges the writer to download a full backup of a work that is due one.
 // `card` sits at the bottom of a Shelves card; `banner` is the Main Room strip.
 export default function BackupReminder({ work, variant, onChange }) {
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState(null);
   const [error, setError] = useState(null);
+  // A ref, not `pending`: two clicks in one batch both see the render's stale `pending`
+  const inFlight = useRef(false);
 
   const reminder = work.backupReminder;
   if (!reminder?.due) return null;
 
+  const busy = pending !== null;
   const banner = variant === 'banner';
   const never = !reminder.lastBackupAt;
   const days = reminder.daysSinceBackup;
@@ -29,28 +32,35 @@ export default function BackupReminder({ work, variant, onChange }) {
     text = never ? 'Never backed up' : `Not backed up in ${daysText(days)}`;
   }
 
-  async function backUp() {
-    setBusy(true);
+  // Runs one request at a time; every reminder button is marked busy meanwhile
+  async function run(kind, request) {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setPending(kind);
     setError(null);
     try {
-      const { blob, filename } = await api.download(`/works/${work.id}/backup`, {}, 'backup.zip');
-      saveFile(blob, filename);
-      onChange(backedUpNow());
+      await request();
     } catch (err) {
       setError(err.message);
     } finally {
-      setBusy(false);
+      inFlight.current = false;
+      setPending(null);
     }
   }
 
-  async function respond(action) {
-    setError(null);
-    try {
+  function backUp() {
+    return run('backup', async () => {
+      const { blob, filename } = await api.download(`/works/${work.id}/backup`, {}, 'backup.zip');
+      saveFile(blob, filename);
+      onChange(backedUpNow());
+    });
+  }
+
+  function respond(action) {
+    return run(action, async () => {
       const res = await api.post(`/works/${work.id}/backup-reminder`, { action });
       onChange(res.backupReminder);
-    } catch (err) {
-      setError(err.message);
-    }
+    });
   }
 
   return (
@@ -62,12 +72,17 @@ export default function BackupReminder({ work, variant, onChange }) {
       <p className="backup-reminder-text">{text}</p>
       <div className="backup-reminder-actions">
         <button className="btn btn-secondary" onClick={guardBusy(busy, backUp)} {...busyProps(busy)}>
-          {busy ? 'Backing up…' : 'Back up now'}
+          {pending === 'backup' ? 'Backing up…' : 'Back up now'}
         </button>
-        <button className="btn btn-ghost" onClick={() => respond('snooze')}>
+        <button className="btn btn-ghost" onClick={guardBusy(busy, () => respond('snooze'))} {...busyProps(busy)}>
           {banner ? 'Remind me later' : 'Later'}
         </button>
-        <button className="backup-reminder-dismiss" aria-label="Dismiss" onClick={() => respond('dismiss')}>
+        <button
+          className="backup-reminder-dismiss"
+          aria-label="Dismiss"
+          onClick={guardBusy(busy, () => respond('dismiss'))}
+          {...busyProps(busy)}
+        >
           {banner ? 'Dismiss' : '✕'}
         </button>
       </div>

@@ -10,7 +10,7 @@ router.use(loadWork);
 // POST /api/works/:workId/backup
 router.post('/', async (req, res, next) => {
   const startedAt = new Date().toISOString();
-  const date = new Date().toISOString().slice(0, 10);
+  const date = startedAt.slice(0, 10);
   const filename = `${exportBasename(req.work.title)}-backup-${date}.zip`;
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader('Content-Disposition', contentDisposition(filename));
