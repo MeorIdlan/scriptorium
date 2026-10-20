@@ -153,3 +153,16 @@ test('Enter on a Keep name returns focus to Rename, which replaces Keep', async 
     assert.equal(document.activeElement === dialogButton('Rename…'), true);
   });
 });
+
+test('the Changes and Full text toggles show which view is on', async () => {
+  await scenario(async () => {
+    const changes = dialogButton('Changes');
+    const full = dialogButton('Full text');
+    assert.equal(changes.getAttribute('aria-pressed'), 'true');
+    assert.equal(full.getAttribute('aria-pressed'), 'false');
+    await pressButton(full);
+    assert.equal(changes.getAttribute('aria-pressed'), 'false');
+    assert.equal(full.getAttribute('aria-pressed'), 'true');
+  });
+});
+

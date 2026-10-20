@@ -255,8 +255,8 @@ export default function ChapterHistoryModal({ workId, chapterId, onDismiss }) {
                         </select>
                       </label>
                       <div className="history-view-toggle">
-                        <button className={`btn btn-ghost btn-sm${view === 'changes' ? ' active' : ''}`} onClick={() => setView('changes')}>Changes</button>
-                        <button className={`btn btn-ghost btn-sm${view === 'full' ? ' active' : ''}`} onClick={() => setView('full')}>Full text</button>
+                        <button className={`btn btn-ghost btn-sm${view === 'changes' ? ' active' : ''}`} aria-pressed={view === 'changes'} onClick={() => setView('changes')}>Changes</button>
+                        <button className={`btn btn-ghost btn-sm${view === 'full' ? ' active' : ''}`} aria-pressed={view === 'full'} onClick={() => setView('full')}>Full text</button>
                       </div>
                     </div>
                     <div className="history-pane">
