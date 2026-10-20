@@ -54,31 +54,35 @@ export default function Toolbar({ editorRef }) {
     setFormats(readFormats());
   }
 
-  // The selects keep focus, so the command goes to the selection the writer left in the editor
-  function execOnSelection(command, value) {
+  // The selects keep focus, so the command goes to the selection the writer left in the
+  // editor. Adding a range inside the editor focuses it, so the range is only put back when
+  // the selection has left the editor, and focus returns to the select afterwards.
+  function execOnSelection(control, command, value) {
     const sel = document.getSelection();
-    if (editorRange.current && sel) {
+    const root = editorRef.current;
+    if (editorRange.current && sel && !root?.contains(sel.anchorNode)) {
       sel.removeAllRanges();
       sel.addRange(editorRange.current);
     }
     document.execCommand(command, false, value);
+    control.focus();
   }
 
-  function setFont(font) {
-    execOnSelection('fontName', font);
+  function setFont(font, control) {
+    execOnSelection(control, 'fontName', font);
   }
 
-  function setSize(size) {
+  function setSize(size, control) {
     // execCommand fontSize uses 1-7, map px roughly
     const sizeMap = { 12: 1, 14: 2, 16: 3, 18: 4, 20: 5 };
-    execOnSelection('fontSize', sizeMap[size] || 3);
+    execOnSelection(control, 'fontSize', sizeMap[size] || 3);
   }
 
   return (
     <div className="toolbar">
       <select
         className="toolbar-select"
-        onChange={(e) => setFont(e.target.value)}
+        onChange={(e) => setFont(e.target.value, e.target)}
         defaultValue="Georgia"
         title="Font family"
       >
@@ -89,7 +93,7 @@ export default function Toolbar({ editorRef }) {
 
       <select
         className="toolbar-select"
-        onChange={(e) => setSize(Number(e.target.value))}
+        onChange={(e) => setSize(Number(e.target.value), e.target)}
         defaultValue="16"
         title="Font size"
       >

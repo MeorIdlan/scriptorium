@@ -7,8 +7,9 @@ import './support/focus.js';
 import Toolbar from '../src/components/editor/Toolbar.jsx';
 
 // linkedom has no selection or execCommand. The toolbar reads the selection
-// inside the editor and runs the command on it, so both are stubbed
-function stubSelection(anchor) {
+// inside the editor and runs the command on it, so both are stubbed. As in
+// Chrome, adding a range inside an editor focuses the editor.
+function stubSelection(anchor, editor) {
   const range = { cloneRange() { return this; } };
   const sel = {
     rangeCount: 1,
@@ -17,6 +18,7 @@ function stubSelection(anchor) {
     removeAllRanges() {},
     addRange(r) {
       sel.added = r;
+      editor.focus();
     },
   };
   document.getSelection = () => sel;
@@ -32,7 +34,7 @@ function setup() {
   editor.className = 'editor';
   editor.innerHTML = '<p>The lamp would not stay lit.</p>';
   document.body.appendChild(editor);
-  const { sel, range } = stubSelection(editor.firstChild);
+  const { sel, range } = stubSelection(editor.firstChild, editor);
   const restore = () => {
     document.execCommand = originalExec;
     document.getSelection = originalSelection;
@@ -42,10 +44,11 @@ function setup() {
 }
 
 // Chooses an option: linkedom's select value can't be set, so this runs the
-// select's React change handler with the chosen value
+// select's React change handler with the chosen value and the select as target
 async function change(select, value) {
   const key = Object.keys(select).find((k) => k.startsWith('__reactProps'));
-  await act(async () => select[key].onChange({ target: { value } }));
+  const target = { value, focus: () => select.focus() };
+  await act(async () => select[key].onChange({ target }));
   await flush();
 }
 
@@ -60,7 +63,8 @@ test('a font change keeps focus on the select and applies it to the saved select
     await change(font, 'Arial');
     assert.equal(document.activeElement === font, true);
     assert.deepEqual(env.calls, [['fontName', 'Arial']]);
-    assert.equal(env.sel.added, env.range);
+    // The selection is still in the editor, so it is not moved
+    assert.equal(env.sel.added, undefined);
     await view.unmount();
   } finally {
     env.restore();
@@ -117,3 +121,26 @@ test('B, I and U show whether their format is on at the selection', async () => 
     env.restore();
   }
 });
+
+test('when the selection has left the editor, the command still applies to the saved one and focus stays on the select', async () => {
+  const env = setup();
+  try {
+    const view = await renderApp(h(Toolbar, { editorRef: { current: env.editor } }), { ai: false, path: '/work/w1/chapter/c1', route: '/work/:workId/chapter/:chapterId' });
+    document.dispatchEvent(new window.Event('selectionchange'));
+    // Something else took the selection, outside the editor
+    const elsewhere = document.createElement('input');
+    document.body.appendChild(elsewhere);
+    env.sel.anchorNode = elsewhere;
+    const font = view.query('select[title="Font family"]');
+    font.focus();
+    await change(font, 'Verdana');
+    assert.equal(env.sel.added, env.range);
+    assert.deepEqual(env.calls, [['fontName', 'Verdana']]);
+    assert.equal(document.activeElement === font, true);
+    elsewhere.remove();
+    await view.unmount();
+  } finally {
+    env.restore();
+  }
+});
+
