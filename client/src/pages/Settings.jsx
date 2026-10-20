@@ -267,7 +267,8 @@ export default function Settings() {
                 type="checkbox"
                 checked={aiSwitch.checked}
                 disabled={aiSwitch.disabled}
-                onChange={(e) => handleToggleAi(e.target.checked)}
+                {...busyProps(aiSwitch.busy)}
+                onChange={guardBusy(aiSwitch.busy, (e) => handleToggleAi(e.target.checked))}
               />
               <span className="settings-label">AI features</span>
             </label>
