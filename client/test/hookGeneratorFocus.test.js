@@ -87,3 +87,14 @@ test('Spark with the generator open behind another tab only brings the Quill tab
   await view.unmount();
 });
 
+test('closing after the hooks re-render still returns focus to Spark', async () => {
+  const view = await openSpark();
+  await press(view.button('Spark'));
+  await press(view.button('Generate 3 Hooks'));
+  await flush();
+  // The generator has re-rendered with its hooks; the opener is still Spark
+  await press(view.query('.hook-generator-close'));
+  assert.equal(document.activeElement === view.button('Spark'), true);
+  await view.unmount();
+});
+

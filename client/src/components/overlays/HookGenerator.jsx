@@ -13,8 +13,8 @@ export default function HookGenerator({ workId }) {
   const [hooks, setHooks] = useState([]);
   const [generated, setGenerated] = useState(false);
   const [context, setContext] = useState(null);
-  // Spark (the opener) had focus when the generator mounted
-  const opener = useRef(document.activeElement);
+  // Spark (the opener) had focus when the generator mounted; read once, not per render
+  const [opener] = useState(() => document.activeElement);
   const generateBtn = useRef(null);
   const firstUse = useRef(null);
   const returnFocus = useReturnFocus();
@@ -35,7 +35,7 @@ export default function HookGenerator({ workId }) {
   }
 
   function handleClose() {
-    opener.current?.focus();
+    opener?.focus();
     dispatch({ type: 'TOGGLE_HOOK_GENERATOR' });
   }
 
