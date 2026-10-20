@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../utils/api.js';
 import { useEditor } from '../../context/EditorContext.jsx';
@@ -8,6 +8,7 @@ import { formatNumber } from '../../utils/wordCount.js';
 import { defaultMilestoneName, flushOpenChapter } from '../../utils/versionHistory.js';
 import VersionDiff from './VersionDiff.jsx';
 import { busyProps, guardBusy } from '../../utils/busyButton.js';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 
 const STATE_LABELS = { changed: 'Changed', unchanged: 'Unchanged', deleted: 'Deleted since', new: 'New since' };
 const dateOf = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -24,6 +25,28 @@ export default function MilestonesModal({ workId, onDismiss }) {
   const [compare, setCompare] = useState(null); // { row, before, after }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  // Each editor, comparison or confirmation hands focus back to the control that opened it
+  const newBtn = useRef(null);
+  const renameBtn = useRef(null);
+  const deleteBtn = useRef(null);
+  const listRef = useRef(null);
+  const rowBtns = useRef({});
+  const rowRef = (key) => (el) => {
+    rowBtns.current[key] = el;
+  };
+  const rowTarget = (key) => ({
+    get current() {
+      return rowBtns.current[key] ?? null;
+    },
+  });
+  const returnFocus = useReturnFocus();
+  const namingTrigger = { new: newBtn, rename: renameBtn };
+  // The selected milestone's list item, read when focus lands (the list reloads first)
+  const selectedItem = {
+    get current() {
+      return listRef.current?.querySelector('.history-item.active') ?? null;
+    },
+  };
 
   async function loadList(selectId) {
     const list = await api.get(base);
@@ -74,8 +97,19 @@ export default function MilestonesModal({ workId, onDismiss }) {
         await api.patch(`${base}/${selectedId}`, { name });
         await loadList(selectedId);
       }
+      returnFocus(namingTrigger[naming.mode]);
       setNaming(null);
     });
+
+  function closeNaming() {
+    returnFocus(namingTrigger[naming.mode]);
+    setNaming(null);
+  }
+
+  function stopConfirming(trigger) {
+    returnFocus(trigger);
+    setConfirming(null);
+  }
 
   const openCompare = (row) =>
     run(async () => {
@@ -94,6 +128,8 @@ export default function MilestonesModal({ workId, onDismiss }) {
       const { chapter } = await api.post(`${base}/${selectedId}/chapters/${row.chapterId}/restore`);
       if (chapter.id === editorState.chapterId) replaceContent(chapter.content || '', chapter.contentHtml || '');
       await refreshChapters(workId);
+      // The restored row leaves the confirmation's button; focus goes to the milestone list
+      returnFocus(selectedItem);
       setConfirming(null);
       setCompare(null);
       setDetail(await api.get(`${base}/${selectedId}`));
@@ -102,8 +138,9 @@ export default function MilestonesModal({ workId, onDismiss }) {
   const removeMilestone = () =>
     run(async () => {
       await api.delete(`${base}/${selectedId}`);
-      setConfirming(null);
       await loadList();
+      returnFocus(selectedItem);
+      setConfirming(null);
     });
 
   const selected = milestones?.find((m) => m.id === selectedId);
@@ -121,7 +158,7 @@ export default function MilestonesModal({ workId, onDismiss }) {
         <button className="btn btn-primary btn-sm" onClick={guardBusy(busy, () => restore(row))} {...busyProps(busy)}>
           {row.state === 'deleted' ? 'Bring back' : 'Restore'}
         </button>
-        <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(null)}>Cancel</button>
+        <button autoFocus className="btn btn-ghost btn-sm" onClick={() => stopConfirming(rowTarget(`restore:${row.chapterId}`))}>Cancel</button>
       </div>
     );
   } else if (confirming?.type === 'delete') {
@@ -129,7 +166,7 @@ export default function MilestonesModal({ workId, onDismiss }) {
       <div className="history-actions history-confirm">
         <span>Delete the milestone “{selected?.name}”? Your chapters aren't affected.</span>
         <button className="btn btn-danger btn-sm" onClick={guardBusy(busy, removeMilestone)} {...busyProps(busy)}>Delete</button>
-        <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(null)}>Cancel</button>
+        <button autoFocus className="btn btn-ghost btn-sm" onClick={() => stopConfirming(deleteBtn)}>Cancel</button>
       </div>
     );
   }
@@ -154,7 +191,7 @@ export default function MilestonesModal({ workId, onDismiss }) {
           {!milestones && !error && <p className="panel-loading">Loading milestones…</p>}
           {milestones && (
             <>
-              <ul className="history-list">
+              <ul ref={listRef} className="history-list">
                 {milestones.length === 0 && <li className="history-empty">No milestones yet.</li>}
                 {milestones.map((m) => (
                   <li key={m.id}>
@@ -182,13 +219,13 @@ export default function MilestonesModal({ workId, onDismiss }) {
                       onChange={(e) => setNaming({ ...naming, value: e.target.value })}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') submitName();
-                        if (e.key === 'Escape') { setNaming(null); e.stopPropagation(); }
+                        if (e.key === 'Escape') { closeNaming(); e.stopPropagation(); }
                       }}
                     />
                     <button className="btn btn-primary btn-sm" onClick={guardBusy(busy, submitName)} disabled={!naming.value.trim()} {...busyProps(busy)}>
                       {naming.mode === 'new' ? 'Create' : 'Save'}
                     </button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setNaming(null)}>Cancel</button>
+                    <button className="btn btn-ghost btn-sm" onClick={closeNaming}>Cancel</button>
                   </div>
                 )}
 
@@ -199,7 +236,7 @@ export default function MilestonesModal({ workId, onDismiss }) {
                 {selectedId && compare && (
                   <>
                     <div className="history-compare-bar">
-                      <button className="btn btn-ghost btn-sm" onClick={() => setCompare(null)}>← All chapters</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => { returnFocus(rowTarget(`compare:${compare.row.chapterId}`)); setCompare(null); }}>← All chapters</button>
                       <span className="history-compare-label">“{compare.row.title}”: milestone → now</span>
                     </div>
                     <div className="history-pane">
@@ -237,12 +274,12 @@ export default function MilestonesModal({ workId, onDismiss }) {
                               <td className="milestone-row-actions">
                                 {row.state === 'changed' && (
                                   <>
-                                    <button className="btn btn-ghost btn-sm" onClick={guardBusy(busy, () => openCompare(row))} {...busyProps(busy)}>Compare</button>
-                                    <button className="btn btn-ghost btn-sm" onClick={guardBusy(busy, () => setConfirming({ type: 'restore', row }))} {...busyProps(busy)}>Restore chapter</button>
+                                    <button ref={rowRef(`compare:${row.chapterId}`)} className="btn btn-ghost btn-sm" onClick={guardBusy(busy, () => openCompare(row))} {...busyProps(busy)}>Compare</button>
+                                    <button ref={rowRef(`restore:${row.chapterId}`)} className="btn btn-ghost btn-sm" onClick={guardBusy(busy, () => setConfirming({ type: 'restore', row }))} {...busyProps(busy)}>Restore chapter</button>
                                   </>
                                 )}
                                 {row.state === 'deleted' && (
-                                  <button className="btn btn-ghost btn-sm" onClick={guardBusy(busy, () => setConfirming({ type: 'restore', row }))} {...busyProps(busy)}>Bring back</button>
+                                  <button ref={rowRef(`restore:${row.chapterId}`)} className="btn btn-ghost btn-sm" onClick={guardBusy(busy, () => setConfirming({ type: 'restore', row }))} {...busyProps(busy)}>Bring back</button>
                                 )}
                               </td>
                             </tr>
@@ -257,8 +294,8 @@ export default function MilestonesModal({ workId, onDismiss }) {
 
                 {selectedId && !naming && !confirming && (
                   <div className="history-actions">
-                    <button className="btn btn-ghost btn-sm" onClick={() => setNaming({ mode: 'rename', value: selected?.name || '' })}>Rename…</button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setConfirming({ type: 'delete' })}>Delete…</button>
+                    <button ref={renameBtn} className="btn btn-ghost btn-sm" onClick={() => setNaming({ mode: 'rename', value: selected?.name || '' })}>Rename…</button>
+                    <button ref={deleteBtn} className="btn btn-ghost btn-sm" onClick={() => setConfirming({ type: 'delete' })}>Delete…</button>
                   </div>
                 )}
               </div>
@@ -269,6 +306,7 @@ export default function MilestonesModal({ workId, onDismiss }) {
 
         <div className="modal-footer">
           <button
+            ref={newBtn}
             className="btn btn-primary"
             onClick={guardBusy(busy, () => setNaming({ mode: 'new', value: defaultMilestoneName() }))}
             disabled={!milestones}
