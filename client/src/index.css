@@ -62,13 +62,17 @@ body {
   outline-offset: 2px;
 }
 
-/* Edge items: the ring sits inside, so the sidebar, chapter list, panel tabs, Map blocks, Codex tabs and the page content (Firefox focuses it as a scroll region) don't clip it */
+/* Edge items: the ring sits inside, so the sidebar, chapter list, panel tabs, Map blocks and lane toggles, Codex tabs and entries, History rows and scroll regions don't clip it */
 .sidebar-nav-item:focus-visible,
 .chapter-item:focus-visible,
 .panel-tab:focus-visible,
 .chapter-block:focus-visible,
 .codex-tab:focus-visible,
-.content:focus-visible {
+.content:focus-visible,
+.codex-entity-item:focus-visible,
+.history-item:focus-visible,
+.map-view:focus-visible,
+.thread-lane-label input[type="checkbox"]:focus-visible {
   outline-offset: -2px;
 }
 
