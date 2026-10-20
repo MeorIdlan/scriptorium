@@ -21,6 +21,7 @@ export default function Toolbar({ editorRef }) {
   // The writer's selection inside the editor, kept for the font and size selects
   const editorRange = useRef(null);
   const [formats, setFormats] = useState({ bold: false, italic: false, underline: false });
+  const formatsRef = useRef(formats);
 
   // Whether B, I and U are on at the selection; the browser answers for the caret too
   function readFormats() {
@@ -34,13 +35,23 @@ export default function Toolbar({ editorRef }) {
     return { bold: read('bold'), italic: read('italic'), underline: read('underline') };
   }
 
+  // Sets the state only when B, I or U changed. A functional updater that returns the
+  // previous object still lets React visit the toolbar once per caret move; this does not.
+  function updateFormats() {
+    const next = readFormats();
+    const prev = formatsRef.current;
+    if (prev.bold === next.bold && prev.italic === next.italic && prev.underline === next.underline) return;
+    formatsRef.current = next;
+    setFormats(next);
+  }
+
   useEffect(() => {
     function remember() {
       const root = editorRef.current;
       const sel = document.getSelection();
       if (root && sel && sel.rangeCount > 0 && root.contains(sel.anchorNode)) {
         editorRange.current = sel.getRangeAt(0).cloneRange();
-        setFormats(readFormats());
+        updateFormats();
       }
     }
     document.addEventListener('selectionchange', remember);
@@ -51,7 +62,7 @@ export default function Toolbar({ editorRef }) {
   function exec(command, value = null) {
     editorRef.current?.focus();
     document.execCommand(command, false, value);
-    setFormats(readFormats());
+    updateFormats();
   }
 
   // The selects keep focus, so the command goes to the selection the writer left in the

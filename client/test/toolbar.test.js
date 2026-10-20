@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createElement as h } from 'react';
+import { createElement as h, Profiler } from 'react';
 import { act, click, flush } from './support/render.js';
 import { renderApp } from './support/app.js';
 import './support/focus.js';
@@ -115,6 +115,32 @@ test('B, I and U show whether their format is on at the selection', async () => 
     assert.equal(pressed('Bold (Ctrl+B)'), 'true');
     assert.equal(pressed('Italic (Ctrl+I)'), 'false');
     assert.equal(pressed('Underline (Ctrl+U)'), 'false');
+    await view.unmount();
+  } finally {
+    document.queryCommandState = originalQuery;
+    env.restore();
+  }
+});
+
+// The caret moves far more often than B, I and U change, so an unchanged selection must not re-render the toolbar
+test('a selection change that leaves B, I and U as they were does not re-render the toolbar', async () => {
+  const env = setup();
+  const originalQuery = document.queryCommandState;
+  document.queryCommandState = (command) => command === 'bold';
+  let commits = 0;
+  try {
+    const view = await renderApp(
+      h(Profiler, { id: 'toolbar', onRender: () => commits++ }, h(Toolbar, { editorRef: { current: env.editor } })),
+      { ai: false, path: '/work/w1/chapter/c1', route: '/work/:workId/chapter/:chapterId' }
+    );
+    await act(async () => document.dispatchEvent(new window.Event('selectionchange')));
+    const before = commits;
+    await act(async () => document.dispatchEvent(new window.Event('selectionchange')));
+    assert.equal(commits, before);
+    // A change that does flip a format still re-renders
+    document.queryCommandState = (command) => command === 'italic';
+    await act(async () => document.dispatchEvent(new window.Event('selectionchange')));
+    assert.equal(commits > before, true);
     await view.unmount();
   } finally {
     document.queryCommandState = originalQuery;
