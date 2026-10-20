@@ -108,6 +108,28 @@ test('dimmed text meets AA on every background, with no opacity', () => {
   }
 });
 
+// The selected block paints its act colour at 20% over --bg-card; its number must read on that tint
+test('selected chapter block number meets AA on each act tint', () => {
+  const blocksSource = readFileSync(join(srcDir, 'components', 'map', 'ChapterBlocks.jsx'), 'utf8');
+  const actColours = [...blocksSource.matchAll(/'Act [IVX]+':\s*'(#[0-9a-fA-F]{6})'/g)].map((m) => m[1]);
+  assert.equal(actColours.length, 3, 'expected one colour per act in ChapterBlocks.jsx');
+  // An unknown act falls back to the control border token
+  actColours.push(token('border-control'));
+  const body = ruleBody('.chapter-block.selected .chapter-block-num');
+  const text = body.match(/color:\s*var\(--([\w-]+)\)/);
+  assert.ok(text, '.chapter-block.selected .chapter-block-num needs a colour token');
+  for (const act of actColours) {
+    const tint = paint(`rgba(${hexChannels(act).join(',')}, 0.2)`, token('bg-card'));
+    const ratio = contrast(token(text[1]), tint);
+    assert.ok(ratio >= 4.5, `selected chapter number on the ${act} tint is ${ratio.toFixed(2)}:1, needs 4.5:1`);
+  }
+  // The selected rule must come after the dimmed one, or a dimmed selected block keeps the dim colour
+  assert.ok(
+    css.lastIndexOf('.chapter-block.selected .chapter-block-num') > css.indexOf('.chapter-block.dimmed .chapter-block-num'),
+    'selected number rule must follow the dimmed rule'
+  );
+});
+
 test('a dimmed chapter block recedes without opacity', () => {
   assert.doesNotMatch(ruleBody('.chapter-block.dimmed'), /opacity\s*:/);
 });

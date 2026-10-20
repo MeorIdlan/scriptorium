@@ -1718,6 +1718,7 @@ a:hover {
   font-size: 0.7rem;
   color: var(--text-muted);
 }
+.chapter-block.selected .chapter-block-num { color: var(--text); }
 
 .chapter-block-missing-dot {
   position: absolute;
