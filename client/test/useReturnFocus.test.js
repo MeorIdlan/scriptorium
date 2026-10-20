@@ -40,6 +40,21 @@ test('returns focus to the target when focus was lost with the editor', async ()
   await view.unmount();
 });
 
+// A container that holds the target keeps focus when the editor closes: Safari and
+// Firefox focus .content and the dialog on click, so the writer has not moved on
+test('returns focus when focus sits on a container that holds the target', async () => {
+  const { api, view, opener, focused } = await mount();
+  await act(async () => api.open(true));
+  view.container.focus();
+  await act(async () => {
+    api.returnFocus(api.button);
+    api.open(false);
+  });
+  await flush();
+  assert.equal(focused(opener()), true);
+  await view.unmount();
+});
+
 test('does not take focus from an element the writer moved to', async () => {
   const { api, view, focused } = await mount();
   await act(async () => api.open(true));

@@ -43,7 +43,7 @@ export default function ScenesTab({ workId }) {
     };
     const other = pending.label === 'Move up' ? 'Move down' : 'Move up';
     const next = enabled(pending.label) || enabled(other);
-    if (next && (!document.activeElement || document.activeElement === document.body)) next.focus();
+    if (next && (!document.activeElement || document.activeElement === document.body || document.activeElement.contains(next))) next.focus();
   });
   const [notice, setNotice] = useState('');
   const [dragFrom, setDragFrom] = useState(null);

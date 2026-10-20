@@ -12,9 +12,10 @@ export function useReturnFocus() {
     const el = target.current?.current;
     if (!el) return;
     // Focus is still in the editor, or the writer has moved on: keep the target
-    // until focus is lost with the editor, which is when it is due
+    // until focus is lost with the editor, which is when it is due. A container
+    // that holds the target counts as lost: browsers focus .content and dialogs on click
     const active = document.activeElement;
-    if (active && active !== document.body) return;
+    if (active && active !== document.body && !active.contains(el)) return;
     target.current = null;
     el.focus();
   });
