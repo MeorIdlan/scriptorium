@@ -171,9 +171,11 @@ export default function Toolbar({ editorRef }) {
         <button
           className="toolbar-btn toolbar-spark"
           onClick={() => {
-            // The generator opens in the Quill tab, so bring that tab forward
-            if (!uiState.hookGeneratorOpen) dispatch({ type: 'SET_PANEL_TAB', tab: 'quill' });
-            dispatch({ type: 'TOGGLE_HOOK_GENERATOR' });
+            // The generator lives in the Quill tab: bring that tab forward. When the
+            // generator is already open behind another tab, only the tab changes
+            const quillShowing = uiState.activePanelTab === 'quill';
+            if (!quillShowing) dispatch({ type: 'SET_PANEL_TAB', tab: 'quill' });
+            if (!uiState.hookGeneratorOpen || quillShowing) dispatch({ type: 'TOGGLE_HOOK_GENERATOR' });
           }}
           title="Open Spark / Hook Generator"
         >

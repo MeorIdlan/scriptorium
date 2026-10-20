@@ -73,3 +73,17 @@ test('Try again returns focus to Generate', async () => {
   assert.equal(document.activeElement === view.button('Generate 3 Hooks'), true);
   await view.unmount();
 });
+
+test('Spark with the generator open behind another tab only brings the Quill tab forward', async () => {
+  const view = await openSpark();
+  await press(view.button('Spark'));
+  assert.ok(view.query('.hook-generator'));
+  await press(byText(view, 'Scenes'));
+  assert.equal(view.query('.hook-generator'), null);
+  await press(view.button('Spark'));
+  // The generator is still open: Spark shows it again and does not close it
+  assert.equal(view.query('.panel-tab.active').textContent, 'Quill');
+  assert.ok(view.query('.hook-generator'));
+  await view.unmount();
+});
+
