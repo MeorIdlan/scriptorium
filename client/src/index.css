@@ -62,12 +62,13 @@ body {
   outline-offset: 2px;
 }
 
-/* Edge items: the ring sits inside, so the sidebar, chapter list, panel tabs, Map blocks and Codex tabs don't clip it */
+/* Edge items: the ring sits inside, so the sidebar, chapter list, panel tabs, Map blocks, Codex tabs and the page content (Firefox focuses it as a scroll region) don't clip it */
 .sidebar-nav-item:focus-visible,
 .chapter-item:focus-visible,
 .panel-tab:focus-visible,
 .chapter-block:focus-visible,
-.codex-tab:focus-visible {
+.codex-tab:focus-visible,
+.content:focus-visible {
   outline-offset: -2px;
 }
 

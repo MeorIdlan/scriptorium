@@ -57,7 +57,7 @@ test('no rule resets every property with all: unset, which would also drop the f
 test('edge items draw their focus ring inside the element so the container does not clip it', () => {
   const rule = blocks.find((block) => block.selector.includes('.chapter-item:focus-visible'));
   assert.ok(rule, 'an edge-item focus rule is missing from index.css');
-  for (const item of ['.sidebar-nav-item', '.chapter-item', '.panel-tab', '.chapter-block', '.codex-tab']) {
+  for (const item of ['.sidebar-nav-item', '.chapter-item', '.panel-tab', '.chapter-block', '.codex-tab', '.content']) {
     assert.ok(rule.selector.includes(`${item}:focus-visible`), `${item}:focus-visible is not in the edge-item rule`);
   }
   assert.match(rule.body, /(?:^|;)\s*outline-offset:\s*-2px\s*(?:;|$)/, 'the edge-item rule sets outline-offset: -2px');
