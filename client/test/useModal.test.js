@@ -148,15 +148,36 @@ test('a dialog with no focusable children keeps focus on itself when Tab is pres
   await view.unmount();
 });
 
+// Presses the mouse button down on an element; a click follows the press
+async function mouseDown(el) {
+  await act(async () => {
+    el.dispatchEvent(new window.Event('mousedown', { bubbles: true }));
+  });
+  await flush();
+}
+
 test('backdrop click closes; click inside the dialog does not', async () => {
   let closes = 0;
   const view = await render(h(Modal, { onClose: () => closes++ },
     h('button', { id: 'first' }, 'First')));
+  await mouseDown(view.container.querySelector('#first'));
   await click(view.container.querySelector('#first'));
   assert.equal(closes, 0);
 
+  await mouseDown(view.container.querySelector('.modal-backdrop'));
   await click(view.container.querySelector('.modal-backdrop'));
   assert.equal(closes, 1);
+  await view.unmount();
+});
+
+// Selecting text inside the dialog and releasing over the backdrop makes the click land on the backdrop
+test('a drag that starts inside the dialog and ends on the backdrop does not close', async () => {
+  let closes = 0;
+  const view = await render(h(Modal, { onClose: () => closes++ },
+    h('p', { id: 'text' }, 'Some text to select')));
+  await mouseDown(view.container.querySelector('#text'));
+  await click(view.container.querySelector('.modal-backdrop'));
+  assert.equal(closes, 0);
   await view.unmount();
 });
 

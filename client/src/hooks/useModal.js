@@ -18,6 +18,8 @@ const FOCUSABLE = [
 // return-focus behave the same.
 export function useModal({ onClose, initialFocusRef, trap = true } = {}) {
   const dialogRef = useRef(null);
+  // Whether the last mouse press began on the backdrop itself
+  const pressedBackdrop = useRef(false);
 
   useEffect(() => {
     const opener = document.activeElement;
@@ -67,8 +69,14 @@ export function useModal({ onClose, initialFocusRef, trap = true } = {}) {
       onKeyDown,
     },
     backdropProps: {
+      onMouseDown(e) {
+        pressedBackdrop.current = e.target === e.currentTarget;
+      },
+      // A text selection that starts inside the dialog and ends on the backdrop clicks the backdrop too
       onClick(e) {
-        if (e.target === e.currentTarget) onClose?.();
+        const closes = pressedBackdrop.current && e.target === e.currentTarget;
+        pressedBackdrop.current = false;
+        if (closes) onClose?.();
       },
     },
   };
