@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { api } from '../../utils/api.js';
 import CodexSuggestPanel from './CodexSuggestPanel.jsx';
@@ -168,6 +168,8 @@ function InlineField({ label, value, onSave }) {
 
 export default function RuleDetail({ workId, rule, onUpdate }) {
   const [r, setR] = useState(rule);
+  // The Codex refetches after a flag or edit; show what the server now holds
+  useEffect(() => setR(rule), [rule]);
 
   const handleSave = useCallback(async (field, value) => {
     try {

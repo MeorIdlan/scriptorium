@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../utils/api.js';
 
 const CATEGORIES = ['magic', 'politics', 'geography', 'society', 'other'];
@@ -68,6 +68,8 @@ export default function WorldRules({ workId, rules, onRulesChange }) {
   const [adding, setAdding] = useState(false);
   const [newRule, setNewRule] = useState({ category: 'other', rule: '', establishedIn: '' });
   const [localRules, setLocalRules] = useState(rules || []);
+  // The Codex refetches after a change; show what the server now holds
+  useEffect(() => setLocalRules(rules || []), [rules]);
 
   async function handleAdd() {
     if (!newRule.rule.trim()) return;

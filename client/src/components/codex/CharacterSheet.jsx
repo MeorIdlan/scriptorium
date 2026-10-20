@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useReturnFocus } from '../../hooks/useReturnFocus.js';
 import { api } from '../../utils/api.js';
 import FlagList from './FlagList.jsx';
@@ -107,6 +107,8 @@ function InlineTextarea({ label, value, onSave }) {
 
 export default function CharacterSheet({ workId, character, onUpdate, onFlagsChange }) {
   const [char, setChar] = useState(character);
+  // The Codex refetches after a flag or edit; show what the server now holds
+  useEffect(() => setChar(character), [character]);
 
   const handleSave = useCallback(async (field, value) => {
     const updates = { [field]: value };
