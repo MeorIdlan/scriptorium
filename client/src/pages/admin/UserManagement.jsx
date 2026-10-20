@@ -1,7 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { api } from '../../utils/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { busyProps, guardBusy } from '../../utils/busyButton.js';
+import { useReturnFocus } from '../../hooks/useReturnFocus.js';
+import { rowLeaveFocus } from '../../utils/rowLeave.js';
 
 export default function UserManagement() {
   const { user: currentUser } = useAuth();
@@ -10,6 +12,8 @@ export default function UserManagement() {
   const [error, setError] = useState(null);
   const [confirmingId, setConfirmingId] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const tbody = useRef(null);
+  const returnFocus = useReturnFocus();
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -29,11 +33,13 @@ export default function UserManagement() {
 
   const adminCount = users.filter((u) => u.isAdmin).length;
 
-  async function handleDelete(u) {
+  async function handleDelete(u, index) {
     if (confirmingId !== u.id) {
       setConfirmingId(u.id);
       return;
     }
+    // The row leaves: focus goes to the next row's enabled Delete, else the previous one
+    returnFocus(rowLeaveFocus([...tbody.current.children], index, null, (row) => row.querySelector('button:not([disabled])')));
     setBusyId(u.id);
     setError(null);
     try {
@@ -41,6 +47,7 @@ export default function UserManagement() {
       setUsers((prev) => prev.filter((x) => x.id !== u.id));
     } catch (err) {
       setError(err.message);
+      returnFocus(null);
     } finally {
       setBusyId(null);
       setConfirmingId(null);
@@ -76,8 +83,8 @@ export default function UserManagement() {
             <th></th>
           </tr>
         </thead>
-        <tbody>
-          {users.map((u) => {
+        <tbody ref={tbody}>
+          {users.map((u, index) => {
             const disabledReason = deleteDisabledReason(u);
             const isConfirming = confirmingId === u.id;
             return (
@@ -93,7 +100,7 @@ export default function UserManagement() {
                     disabled={!!disabledReason}
                     {...busyProps(busyId === u.id)}
                     title={disabledReason}
-                    onClick={guardBusy(busyId === u.id, () => handleDelete(u))}
+                    onClick={guardBusy(busyId === u.id, () => handleDelete(u, index))}
                   >
                     {busyId === u.id ? 'Deleting…' : isConfirming ? 'Confirm Delete?' : 'Delete'}
                   </button>
