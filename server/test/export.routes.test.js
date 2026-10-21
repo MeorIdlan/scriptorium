@@ -5,10 +5,12 @@ import request from 'supertest';
 import { startDb, clearDb } from './support/http.js';
 import { unzip } from './support/zip.js';
 import { parsePdf } from './support/pdf.js';
-import exportRouter from '../src/routes/export.js';
+import { epubcheck, HAS_EPUBCHECK } from './support/epubcheck.js';
+import exportRouter, { exportBasename } from '../src/routes/export.js';
 import { errorHandler } from '../src/middleware/errorHandler.js';
 import Work from '../src/models/Work.js';
 import Chapter from '../src/models/Chapter.js';
+import MapModel from '../src/models/Map.js';
 import Settings from '../src/models/Settings.js';
 import User from '../src/models/User.js';
 
@@ -303,4 +305,95 @@ test('a blank line between paragraphs leaves a larger gap than a line break', as
   assert.equal(twoParagraphs.status, 200);
   const double = gapOf(pdfRuns(twoParagraphs));
   assert.ok(double > single, `a blank line between a and b makes the gap larger (${double} vs ${single})`);
+});
+
+// Special characters in the title, genre, logline, author name, chapter title, prose and notes
+const SPECIAL = {
+  title: 'Tea & <Cake> "Ünï" \'x\'',
+  genre: 'A & B',
+  logline: '<x> & "y"',
+  author: 'Ann & Bo <C>',
+  chapterTitle: 'Bread & <Butter>',
+  notes: 'n & <m>',
+  prose: '<div>1 &amp; 2 &lt; 3 &gt; 0 "q" \'a\' — café</div>',
+};
+
+async function useSpecialCharacters() {
+  await User.updateOne({ _id: 'user_a' }, { name: SPECIAL.author });
+  await Work.updateOne({ _id: 'work_a' }, { title: SPECIAL.title, genre: SPECIAL.genre, logline: SPECIAL.logline });
+  await Chapter.updateOne({ _id: 'ch1' }, { title: SPECIAL.chapterTitle, contentHtml: SPECIAL.prose, notes: '' });
+  await MapModel.create({ _id: 'map_a', workId: 'work_a', chapters: { ch1: { notes: SPECIAL.notes } } });
+}
+
+const zipEntry = (files, ext) => [...files.entries()].find(([name]) => name.endsWith(ext))?.[1].toString('utf8');
+
+test('export filename comes from the title', async () => {
+  await useSpecialCharacters();
+  assert.equal(exportBasename(SPECIAL.title), 'Tea-Cake-Ünï-x');
+  for (const ext of ['pdf', 'epub', 'docx']) {
+    const res = await exportAs({ format: ext });
+    assert.equal(res.status, 200);
+    // The ASCII fallback replaces each non-ASCII character with _; filename* carries the UTF-8 name
+    assert.equal(
+      res.headers['content-disposition'],
+      `attachment; filename="Tea-Cake-_n_-x.${ext}"; filename*=UTF-8''Tea-Cake-%C3%9Cn%C3%AF-x.${ext}`
+    );
+  }
+});
+
+test('EPUB metadata and chapter text are escaped and well-formed', async () => {
+  await useSpecialCharacters();
+  const res = await exportAs({ format: 'epub', includeNotes: true });
+  assert.equal(res.status, 200);
+  const files = await unzip(res.body);
+
+  const opf = zipEntry(files, '.opf');
+  assert.ok(opf, 'the EPUB has a package document');
+  assert.ok(opf.includes('<dc:title>Tea &amp; &lt;Cake&gt; &quot;Ünï&quot; &#39;x&#39;</dc:title>'), 'title is escaped');
+  assert.ok(opf.includes('>Ann &amp; Bo &lt;C&gt;</dc:creator>'), 'author is escaped');
+  assert.ok(!opf.includes('<Cake>') && !opf.includes('<C>'), 'no raw markup from the title or author');
+
+  const chapter = [...files.values()].map((data) => data.toString('utf8')).find((text) => text.includes('<h1>'));
+  assert.ok(chapter, 'a chapter file has the heading');
+  assert.ok(chapter.includes('<h1>Bread &amp; &lt;Butter&gt;</h1>'), 'chapter title is escaped');
+  assert.ok(chapter.includes('1 &amp; 2 &lt; 3 &gt; 0'), 'prose is escaped');
+  assert.ok(chapter.includes('&quot;q&quot; &#39;a&#39;'), 'quotes are escaped');
+  assert.ok(chapter.includes('café'), 'accented text is kept');
+  assert.ok(chapter.includes('<em>Notes: n &amp; &lt;m&gt;</em>'), 'notes are escaped');
+  for (const text of [opf, chapter]) {
+    assert.doesNotMatch(text, /&(?!(?:amp|lt|gt|quot|#\d+);)/, 'no bare ampersand');
+  }
+});
+
+test('DOCX holds the literal title, author and prose', async () => {
+  await useSpecialCharacters();
+  const res = await exportAs({ format: 'docx', includeNotes: true });
+  assert.equal(res.status, 200);
+  const xml = await documentXml(res);
+  // The docx library writes quotes as &quot; and &apos; in text nodes; both are valid XML
+  assert.ok(xml.includes('Tea &amp; &lt;Cake&gt; &quot;Ünï&quot; &apos;x&apos;'), 'title');
+  assert.ok(xml.includes('Ann &amp; Bo &lt;C&gt;'), 'author');
+  assert.ok(xml.includes('Bread &amp; &lt;Butter&gt;'), 'chapter title');
+  assert.ok(xml.includes('1 &amp; 2 &lt; 3 &gt; 0 &quot;q&quot; &apos;a&apos; — café'), 'prose');
+  assert.ok(xml.includes('Notes: n &amp; &lt;m&gt;'), 'notes');
+});
+
+test('PDF holds the literal title, author and prose', async () => {
+  await useSpecialCharacters();
+  const res = await exportAs({ format: 'pdf', includeNotes: true });
+  assert.equal(res.status, 200);
+  const text = pdfRuns(res).map((run) => run.text).join(' ');
+  assert.ok(text.includes('Tea & <Cake> "Ünï" \'x\''), 'title');
+  assert.ok(text.includes('Ann & Bo <C>'), 'author');
+  assert.ok(text.includes('Bread & <Butter>'), 'chapter title');
+  assert.ok(text.includes('1 & 2 < 3 > 0'), 'prose');
+  assert.ok(text.includes('café'), 'accented prose');
+});
+
+test('generated EPUB passes epubcheck', { skip: !HAS_EPUBCHECK }, async () => {
+  await useSpecialCharacters();
+  const res = await exportAs({ format: 'epub', includeNotes: true, includeOutline: true });
+  assert.equal(res.status, 200);
+  const result = epubcheck(res.body);
+  assert.ok(result.ok, result.output);
 });
