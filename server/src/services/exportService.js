@@ -134,21 +134,28 @@ function buildPDF(meta, chapters) {
 }
 
 // Each run continues its line; a line break ends the line. pdfkit never gets a line
-// break or an empty string, and the paragraph gap comes after the last line
+// break or an empty string, and the paragraph gap comes after the last line. A blank
+// line still takes a line of height. The regular font is set again at the end, so
+// text written after the paragraph (the scene break) is not styled
 function writePDFParagraph(doc, runs) {
   const lines = runLines(runs);
   lines.forEach((line, l) => {
+    const endOfParagraph = l === lines.length - 1;
+    if (line.length === 0) {
+      doc.font(READING_FONTS.regular).text(' ', { lineGap: 4, paragraphGap: endOfParagraph ? 8 : 0 });
+      return;
+    }
     line.forEach((run, r) => {
       const endOfLine = r === line.length - 1;
-      const endOfParagraph = endOfLine && l === lines.length - 1;
       doc.font(pdfFont(READING_FONTS, run)).text(run.text, {
         continued: !endOfLine,
         underline: run.underline,
         lineGap: 4,
-        paragraphGap: endOfParagraph ? 8 : 0,
+        paragraphGap: endOfLine && endOfParagraph ? 8 : 0,
       });
     });
   });
+  doc.font(READING_FONTS.regular);
 }
 
 // ─── EPUB ────────────────────────────────────────────────────────────────────

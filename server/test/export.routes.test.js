@@ -280,3 +280,27 @@ test('EPUB chapter keeps <strong> and <em>, and escapes the styled text', async 
   assert.ok(chapter.includes('<strong>bold &amp; &lt;x&gt;</strong>'));
   assert.ok(chapter.includes('<em>ital</em>'));
 });
+
+test('the scene break after a scene that ends in bold is in the regular font', async () => {
+  await addStyledChapter('<p>first <b>end</b></p><hr data-scene="s1" data-status="draft" /><p>second</p>');
+  const res = await exportAs({ format: 'pdf' }, 'work_b');
+  assert.equal(res.status, 200);
+  const runs = pdfRuns(res);
+  assert.equal(runs.find((run) => run.text === '* * *')?.font, 'Helvetica');
+  assert.equal(runs.find((run) => run.text.trim() === 'second')?.font, 'Helvetica');
+});
+
+test('a blank line between paragraphs leaves a larger gap than a line break', async () => {
+  await addStyledChapter('<div>a<br>b</div>');
+  const oneParagraph = await exportAs({ format: 'pdf' }, 'work_b');
+  assert.equal(oneParagraph.status, 200);
+  const gapOf = (runs) => runs.find((run) => run.text.trim() === 'b').y - runs.find((run) => run.text.trim() === 'a').y;
+  const single = gapOf(pdfRuns(oneParagraph));
+
+  await Chapter.deleteOne({ _id: 'styled' });
+  await addStyledChapter('<div>a<br><br>b</div>');
+  const twoParagraphs = await exportAs({ format: 'pdf' }, 'work_b');
+  assert.equal(twoParagraphs.status, 200);
+  const double = gapOf(pdfRuns(twoParagraphs));
+  assert.ok(double > single, `a blank line between a and b makes the gap larger (${double} vs ${single})`);
+});
