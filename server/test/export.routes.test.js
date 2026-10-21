@@ -307,6 +307,31 @@ test('a blank line between paragraphs leaves a larger gap than a line break', as
   assert.ok(double > single, `a blank line between a and b makes the gap larger (${double} vs ${single})`);
 });
 
+// An outline chapter with no prose sits in work_b beside a chapter that has prose
+const addOutlineChapter = () =>
+  Chapter.create({ _id: 'sketch', workId: 'work_b', title: 'Lantern Sketch', order: 2, status: 'outline', wordCount: 0, contentHtml: '' });
+
+test('an outline chapter with no prose is left out of a DOCX unless includeOutline is set', async () => {
+  await addStyledChapter('<p>Prose here.</p>');
+  await addOutlineChapter();
+  const left = await exportAs({ format: 'docx' }, 'work_b');
+  assert.equal(left.status, 200);
+  assert.ok(!(await documentXml(left)).includes('Lantern Sketch'), 'left out by default');
+  const kept = await exportAs({ format: 'docx', includeOutline: true }, 'work_b');
+  assert.equal(kept.status, 200);
+  assert.ok((await documentXml(kept)).includes('Lantern Sketch'), 'included with includeOutline');
+});
+
+test('an outline chapter with no prose is left out of an EPUB unless includeOutline is set', async () => {
+  await addStyledChapter('<p>Prose here.</p>');
+  await addOutlineChapter();
+  const epubText = async (res) => [...(await unzip(res.body)).values()].map((data) => data.toString('utf8')).join('\n');
+  const left = await exportAs({ format: 'epub' }, 'work_b');
+  assert.ok(!(await epubText(left)).includes('Lantern Sketch'), 'left out by default');
+  const kept = await exportAs({ format: 'epub', includeOutline: true }, 'work_b');
+  assert.ok((await epubText(kept)).includes('Lantern Sketch'), 'included with includeOutline');
+});
+
 // Special characters in the title, genre, logline, author name, chapter title, prose and notes
 const SPECIAL = {
   title: 'Tea & <Cake> "Ünï" \'x\'',
@@ -351,6 +376,8 @@ test('EPUB metadata and chapter text are escaped and well-formed', async () => {
   assert.ok(opf, 'the EPUB has a package document');
   assert.ok(opf.includes('<dc:title>Tea &amp; &lt;Cake&gt; &quot;Ünï&quot; &#39;x&#39;</dc:title>'), 'title is escaped');
   assert.ok(opf.includes('>Ann &amp; Bo &lt;C&gt;</dc:creator>'), 'author is escaped');
+  assert.ok(opf.includes('<dc:description>&lt;x&gt; &amp; &quot;y&quot;</dc:description>'), 'logline is escaped');
+  assert.ok(opf.includes('<dc:subject>A &amp; B</dc:subject>'), 'genre is escaped');
   assert.ok(!opf.includes('<Cake>') && !opf.includes('<C>'), 'no raw markup from the title or author');
 
   const chapter = [...files.values()].map((data) => data.toString('utf8')).find((text) => text.includes('<h1>'));
@@ -435,14 +462,15 @@ test('two EPUB exports at the same time both succeed with their own content', as
     contentHtml: '<p>B one text.</p>',
   });
 
-  // nodepub keeps document state on a shared module, so overlapping builds could mix the books.
-  // Three rounds of two simultaneous exports give that race room to show up.
+  // nodepub keeps document state on a shared module. It reads all of that state synchronously
+  // before its first await, so overlapping builds should not mix the books. This test pins the
+  // outcome, not the queue: three rounds of two simultaneous exports each get their own content.
   for (let round = 0; round < 3; round++) {
     const [alpha, beta] = await Promise.all([
       exportAs({ format: 'epub' }, 'work_a'),
       exportAs({ format: 'epub' }, 'work_b'),
     ]);
-    await assertOwnEpub(alpha, { title: 'Alpha', own: 'A one', other: 'B one' });
-    await assertOwnEpub(beta, { title: 'Beta', own: 'B one', other: 'A one' });
+    await assertOwnEpub(alpha, { title: 'Alpha', own: 'A one text.', other: 'B one text.' });
+    await assertOwnEpub(beta, { title: 'Beta', own: 'B one text.', other: 'A one text.' });
   }
 });
