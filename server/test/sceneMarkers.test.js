@@ -120,6 +120,29 @@ test('inline font-weight and font-style set the flags, normal clears them', () =
   ]);
 });
 
+test('every inline bold, underline and normal value is read', () => {
+  const html =
+    '<div><span style="text-decoration: underline">u</span>|<span style="font-weight: bold">b</span>|<span style="font-weight: 600">c</span>|<span style="font-weight: bolder">d</span>|<span style="text-decoration: underline overline">e</span>|<b>k<span style="font-weight: 400">l</span></b></div>';
+  assert.deepEqual(exportScenes({ contentHtml: html }), [
+    [
+      [
+        run('u', { underline: true }),
+        run('|'),
+        run('b', { bold: true }),
+        run('|'),
+        run('c', { bold: true }),
+        run('|'),
+        run('d', { bold: true }),
+        run('|'),
+        run('e', { underline: true }),
+        run('|'),
+        run('k', { bold: true }),
+        run('l'),
+      ],
+    ],
+  ]);
+});
+
 test('plain text of styled paragraphs matches the old paragraph strings', () => {
   const fixtures = [
     '<div>One two.</div><div>Three.</div>',
