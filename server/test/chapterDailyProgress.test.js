@@ -4,6 +4,7 @@ import request from 'supertest';
 import { startDb, clearDb, buildApp } from './support/http.js';
 import Work from '../src/models/Work.js';
 import Chapter from '../src/models/Chapter.js';
+import Snapshot from '../src/models/Snapshot.js';
 import { getDailyWords } from '../src/services/progressService.js';
 
 const app = buildApp();
@@ -74,6 +75,24 @@ test('a missing or invalid X-Timezone still saves and counts under UTC (review f
   assert.equal((await save('one two', {})).status, 200);
   assert.equal((await save('one two three', { 'X-Timezone': 'Mars/Olympus' })).status, 200);
   assert.equal(await getDailyWords('user_a', todayUtc()), 3);
+});
+
+test('a chapter deleted mid-save returns 404 and adds nothing', async () => {
+  await Chapter.updateOne({ _id: 'ch_1' }, { content: 'old text', wordCount: 2 }); // an auto-snapshot would be due
+  const realFindOneAndUpdate = Chapter.findOneAndUpdate;
+  const stub = mock.method(Chapter, 'findOneAndUpdate', async (...args) => {
+    await Chapter.deleteOne({ _id: 'ch_1' }); // the chapter disappears between the read and the atomic write
+    return realFindOneAndUpdate.apply(Chapter, args);
+  });
+  let res;
+  try {
+    res = await save('one two three four five');
+  } finally {
+    stub.mock.restore();
+  }
+  assert.equal(res.status, 404);
+  assert.equal(await getDailyWords('user_a', todayUtc()), 0);
+  assert.equal(await Snapshot.countDocuments({ chapterId: 'ch_1' }), 0);
 });
 
 test('a save at 23:59 and 00:01 in Kathmandu lands on different days (A3, review focus 5)', async () => {
