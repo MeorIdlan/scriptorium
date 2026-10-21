@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { buildManuscriptPDF } from '../src/services/manuscriptExport.js';
 import { parsePdf } from './support/pdf.js';
 
+const plain = (text) => ({ text, bold: false, italic: false, underline: false });
+
 const BASE = {
   title: 'The Glass Orchard',
   details: {
@@ -14,8 +16,8 @@ const BASE = {
   },
   wordCount: 87420,
   chapters: [
-    { title: 'One', scenes: [['A1', 'A2 line\nbreak'], ['B1']] },
-    { title: 'Two', scenes: [['C1']] },
+    { title: 'One', scenes: [[[plain('A1')], [plain('A2 line\nbreak')]], [[plain('B1')]]] },
+    { title: 'Two', scenes: [[[plain('C1')]]] },
   ],
 };
 
@@ -23,9 +25,9 @@ const BASE = {
 const LONG = {
   title: 'Three',
   scenes: [
-    Array.from({ length: 60 }, (_, p) =>
-      Array.from({ length: 80 }, (_, w) => `p${p}w${w}`).join(' ')
-    ),
+    Array.from({ length: 60 }, (_, p) => [
+      plain(Array.from({ length: 80 }, (_, w) => `p${p}w${w}`).join(' ')),
+    ]),
   ],
 };
 
@@ -70,6 +72,64 @@ test('body text stays inside 1 inch margins', async () => {
     assert.ok(run.x >= 71.5, `x ${run.x} for "${run.text}"`);
     assert.ok(run.y >= 71.5 && run.y <= 720.5, `y ${run.y} for "${run.text}"`);
   }
+});
+
+test('manuscript PDF prints bold as Times-Bold', async () => {
+  const chapters = [{ title: 'Four', scenes: [[[{ ...plain('heavy'), bold: true }]]] }];
+  assert.equal(findRun(await build({ chapters }), 'heavy').font, 'Times-Bold');
+});
+
+test('manuscript PDF prints italic as Times-Italic, and Courier-Oblique for mono', async () => {
+  const chapters = [{ title: 'Four', scenes: [[[{ ...plain('slant'), italic: true }]]] }];
+  assert.equal(findRun(await build({ chapters }), 'slant').font, 'Times-Italic');
+  const mono = await build({ chapters, details: { ...BASE.details, font: 'mono' } });
+  assert.equal(findRun(mono, 'slant').font, 'Courier-Oblique');
+});
+
+test('a styled paragraph keeps the first-line indent and its exceptions', async () => {
+  const pdf = await build({
+    chapters: [
+      {
+        title: 'Four',
+        scenes: [
+          [[plain('A1')], [{ ...plain('Bold'), bold: true }, plain(' tail')]],
+          [[{ ...plain('B1'), italic: true }]],
+        ],
+      },
+    ],
+  });
+  assert.ok(Math.abs(findRun(pdf, 'Bold').x - 108) < 0.5, `bold x ${findRun(pdf, 'Bold').x}`);
+  assert.equal(findRun(pdf, 'Bold').font, 'Times-Bold');
+  // The rest of the line follows the bold run, with no second indent
+  assert.ok(Math.abs(findRun(pdf, ' tail').x - 132) < 0.5, `tail x ${findRun(pdf, ' tail').x}`);
+  assert.ok(Math.abs(findRun(pdf, 'B1').x - 72) < 0.5, `B1 x ${findRun(pdf, 'B1').x}`);
+  assert.equal(findRun(pdf, 'B1').font, 'Times-Italic');
+});
+
+test('a <br> inside an italic run starts an unindented line and stays italic', async () => {
+  const pdf = await build({
+    chapters: [{ title: 'Four', scenes: [[[plain('A1')], [{ ...plain('first\nsecond'), italic: true }]]] }],
+  });
+  assert.ok(Math.abs(findRun(pdf, 'first').x - 108) < 0.5, `first x ${findRun(pdf, 'first').x}`);
+  assert.ok(Math.abs(findRun(pdf, 'second').x - 72) < 0.5, `second x ${findRun(pdf, 'second').x}`);
+  assert.equal(findRun(pdf, 'first').font, 'Times-Italic');
+  assert.equal(findRun(pdf, 'second').font, 'Times-Italic');
+});
+
+test('the scene break, END and running header after a styled run are in the regular font', async () => {
+  const pdf = await build({
+    chapters: [
+      {
+        title: 'Four',
+        scenes: [[[{ ...plain('end of scene'), bold: true }]], [[{ ...plain('end of book'), italic: true }]]],
+      },
+    ],
+  });
+  assert.equal(findRun(pdf, '#').font, 'Times-Roman');
+  assert.equal(findRun(pdf, 'END').font, 'Times-Roman');
+  const headers = allRuns(pdf).filter(isHeader);
+  assert.ok(headers.length > 0, 'there are running headers');
+  for (const header of headers) assert.equal(header.font, 'Times-Roman', header.text);
 });
 
 test('wrapped lines are double spaced: 24 pt baseline to baseline', async () => {
@@ -178,7 +238,7 @@ test('a work with no exportable chapters still builds: about 100 words, then END
 });
 
 test('non-Latin text builds without throwing', async () => {
-  const pdf = await build({ chapters: [{ title: 'Four', scenes: [['“Ægir” — 東京']] }] });
+  const pdf = await build({ chapters: [{ title: 'Four', scenes: [[[plain('“Ægir” — 東京')]]] }] });
   assert.ok(allRuns(pdf).some((run) => run.text.includes('gir')));
 });
 

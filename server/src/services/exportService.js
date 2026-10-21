@@ -9,11 +9,8 @@ import Chapter from '../models/Chapter.js';
 import MapModel from '../models/Map.js';
 import User from '../models/User.js';
 import { exportScenes } from './sceneMarkers.js';
-import { paragraphText, runLines, escapeXml, runsHTML, docxTextRuns, pdfFont } from './exportRuns.js';
+import { runLines, escapeXml, runsHTML, docxTextRuns, pdfFont } from './exportRuns.js';
 import { buildManuscriptDOCX, buildManuscriptPDF } from './manuscriptExport.js';
-
-// Paragraph strings per scene, for the manuscript layout until it renders styles
-const plainScenes = (ch) => exportScenes(ch).map((scene) => scene.map(paragraphText));
 
 export async function exportWork(workId, format, options = {}) {
   const { includeNotes = false, includeOutline = false, layout = 'reading', manuscript } = options;
@@ -58,7 +55,7 @@ export async function exportWork(workId, format, options = {}) {
 function exportManuscript(meta, chapterDocs, format, details) {
   const input = {
     title: meta.title || 'Untitled',
-    chapters: chapterDocs.map((ch) => ({ title: ch.title || 'Untitled', scenes: plainScenes(ch) })),
+    chapters: chapterDocs.map((ch) => ({ title: ch.title || 'Untitled', scenes: exportScenes(ch) })),
     details,
     wordCount: chapterDocs.reduce((sum, ch) => sum + (ch.wordCount || 0), 0),
   };
