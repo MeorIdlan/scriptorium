@@ -116,6 +116,23 @@ test('a <br> inside an italic run starts an unindented line and stays italic', a
   assert.equal(findRun(pdf, 'second').font, 'Times-Italic');
 });
 
+test('three or more runs on a line continue it, and the next paragraph is one line down', async () => {
+  const pdf = await build({
+    chapters: [
+      {
+        title: 'Four',
+        scenes: [[[plain('She said '), { ...plain('no'), italic: true }, plain(' and left.')], [plain('next')]]],
+      },
+    ],
+  });
+  const no = findRun(pdf, 'no');
+  const rest = findRun(pdf, ' and left.');
+  assert.ok(Math.abs(rest.y - no.y) < 0.5, `rest y ${rest.y} on the line of "no" ${no.y}`);
+  assert.ok(rest.x > no.x, `rest x ${rest.x} after "no" x ${no.x}`);
+  const start = findRun(pdf, 'She said ');
+  assert.ok(Math.abs(findRun(pdf, 'next').y - start.y - 24) < 0.5, `next y ${findRun(pdf, 'next').y}`);
+});
+
 test('the scene break, END and running header after a styled run are in the regular font', async () => {
   const pdf = await build({
     chapters: [

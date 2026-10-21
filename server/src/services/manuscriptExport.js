@@ -243,10 +243,12 @@ function paragraphPDF(doc, runs, indent, lineGap, fonts) {
       return;
     }
     line.forEach((run, r) => {
-      const first = r === 0;
-      doc.font(pdfFont(fonts, run)).text(run.text, first ? PDF_MARGIN : undefined, undefined, {
+      // An explicit x on a continued chain breaks it from the third run on (pdfkit 0.15),
+      // so the margin is set on the document and the text takes no x or y.
+      if (r === 0) doc.x = PDF_MARGIN;
+      doc.font(pdfFont(fonts, run)).text(run.text, {
         width: PDF_TEXT_WIDTH,
-        indent: first && l === 0 ? indent : 0,
+        indent: r === 0 && l === 0 ? indent : 0,
         continued: r < line.length - 1,
         underline: run.underline,
         lineGap,
