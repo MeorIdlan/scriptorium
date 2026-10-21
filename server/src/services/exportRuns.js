@@ -45,7 +45,12 @@ export function runsHTML(runs) {
 export function docxTextRuns(runs) {
   const out = [];
   for (const run of runs) {
-    const style = { bold: run.bold, italics: run.italic, ...(run.underline ? { underline: {} } : {}) };
+    // Only the flags that are set go into the XML, so a plain run takes its bold and italic from the style
+    const style = {
+      ...(run.bold ? { bold: true } : {}),
+      ...(run.italic ? { italics: true } : {}),
+      ...(run.underline ? { underline: {} } : {}),
+    };
     run.text.split('\n').forEach((piece, i) => {
       if (i > 0 || piece) out.push(new TextRun({ text: piece, break: i > 0 ? 1 : 0, ...style }));
     });

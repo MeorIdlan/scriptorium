@@ -160,6 +160,21 @@ test('wrapped lines are double spaced: 24 pt baseline to baseline', async () => 
   }
 });
 
+test('wrapped bold and italic lines are double spaced too: 24 pt apart in each style', async () => {
+  for (const style of ['bold', 'italic']) {
+    const words = Array.from({ length: 80 }, (_, w) => `${style}${w}`).join(' ');
+    const chapters = [{ title: 'Four', scenes: [[[{ ...plain(words), [style]: true }]]] }];
+    const pdf = await build({ chapters });
+    const font = style === 'bold' ? 'Times-Bold' : 'Times-Italic';
+    const lines = bodyRuns(pdf).filter((run) => run.font === font);
+    assert.ok(lines.length > 5, `${style} lines ${lines.length}`);
+    for (let i = 1; i < lines.length; i++) {
+      const gap = lines[i].y - lines[i - 1].y;
+      assert.ok(Math.abs(gap - 24) <= 0.1, `${style} gap ${gap} between "${lines[i - 1].text}" and "${lines[i].text}"`);
+    }
+  }
+});
+
 test('first line of a paragraph is indented; chapter openers and the paragraph after a break are not', async () => {
   const pdf = await build();
   assert.ok(Math.abs(findRun(pdf, 'A2 line').x - 108) < 0.5);

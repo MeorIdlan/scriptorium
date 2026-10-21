@@ -177,12 +177,16 @@ export function buildManuscriptPDF({ title, chapters, details, wordCount }, { co
     doc.on('error', reject);
 
     const fonts = MANUSCRIPT_PDF_FONTS[details.font] || MANUSCRIPT_PDF_FONTS.serif;
-    doc.font(fonts.regular).fontSize(12);
-    // pdfkit adds lineGap to the font's own line height; this makes each line 24 pt.
-    const lineGap = PDF_LINE - doc.currentLineHeight(true);
+    doc.fontSize(12);
+    // pdfkit adds lineGap to each font's own line height, and the four styles differ, so
+    // each font gets its own gap that makes its lines 24 pt.
+    const lineGaps = {};
+    for (const name of Object.values(fonts)) lineGaps[name] = PDF_LINE - doc.font(name).currentLineHeight(true);
+    doc.font(fonts.regular);
+    const lineGap = lineGaps[fonts.regular];
 
     manuscriptTitlePagePDF(doc, { title, details, wordCount }, lineGap);
-    for (const chapter of chapters) manuscriptChapterPDF(doc, chapter, lineGap, fonts);
+    for (const chapter of chapters) manuscriptChapterPDF(doc, chapter, lineGap, fonts, lineGaps);
     blankLinePDF(doc, PDF_LINE);
     doc.text('END', PDF_MARGIN, undefined, { width: PDF_TEXT_WIDTH, align: 'center', lineGap });
 
@@ -214,7 +218,7 @@ function manuscriptTitlePagePDF(doc, { title, details, wordCount }, lineGap) {
 
 // A chapter opens on a new page, a third down, then one blank line. Its first paragraph
 // and the first paragraph after a scene break have no first-line indent; the rest do.
-function manuscriptChapterPDF(doc, { title, scenes }, lineGap, fonts) {
+function manuscriptChapterPDF(doc, { title, scenes }, lineGap, fonts, lineGaps) {
   const centred = { width: PDF_TEXT_WIDTH, align: 'center', lineGap };
   doc.addPage();
   doc.text(title, PDF_MARGIN, PDF_CHAPTER_Y, centred);
@@ -227,7 +231,7 @@ function manuscriptChapterPDF(doc, { title, scenes }, lineGap, fonts) {
       canIndent = false;
     }
     for (const p of paragraphs) {
-      paragraphPDF(doc, p, canIndent ? PDF_INDENT : 0, lineGap, fonts);
+      paragraphPDF(doc, p, canIndent ? PDF_INDENT : 0, lineGaps, fonts);
       canIndent = true;
     }
   });
@@ -236,7 +240,7 @@ function manuscriptChapterPDF(doc, { title, scenes }, lineGap, fonts) {
 // Each run continues its line, and a line break ends the line. Only the paragraph's first
 // line takes the indent. An empty line keeps the blank-line step. The regular font is set
 // again at the end, so the scene break, END and the running header are not styled.
-function paragraphPDF(doc, runs, indent, lineGap, fonts) {
+function paragraphPDF(doc, runs, indent, lineGaps, fonts) {
   runLines(runs).forEach((line, l) => {
     if (line.length === 0) {
       blankLinePDF(doc, PDF_LINE);
@@ -246,12 +250,13 @@ function paragraphPDF(doc, runs, indent, lineGap, fonts) {
       // An explicit x on a continued chain breaks it from the third run on (pdfkit 0.15),
       // so the margin is set on the document and the text takes no x or y.
       if (r === 0) doc.x = PDF_MARGIN;
-      doc.font(pdfFont(fonts, run)).text(run.text, {
+      const font = pdfFont(fonts, run);
+      doc.font(font).text(run.text, {
         width: PDF_TEXT_WIDTH,
         indent: r === 0 && l === 0 ? indent : 0,
         continued: r < line.length - 1,
         underline: run.underline,
-        lineGap,
+        lineGap: lineGaps[font],
       });
     });
   });
