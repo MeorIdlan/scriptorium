@@ -146,6 +146,8 @@ router.put('/:chapterId', async (req, res, next) => {
     const snapshotNeeded = contentChanged && chapter.content && (await autoSnapshotDue(chapterId, now));
     // new: false returns the pre-update document, so the daily gain is measured in this same atomic write
     const before = await Chapter.findOneAndUpdate({ _id: chapterId, workId }, { $set: setFields }, { new: false });
+    // null here means the chapter was deleted between the first read and this write
+    if (!before) return next(httpError(404, 'NOT_FOUND', 'Chapter not found'));
     const updated = await Chapter.findById(chapterId);
 
     // `chapter` is the pre-save document, so this keeps the text being replaced.
@@ -168,7 +170,7 @@ router.put('/:chapterId', async (req, res, next) => {
 
     // A failed progress write is logged and never fails the save
     try {
-      await addDailyWords(req.user.id, dayKeyForRequest(req), gainFor(before?.wordCount ?? 0, words));
+      await addDailyWords(req.user.id, dayKeyForRequest(req), gainFor(before.wordCount ?? 0, words));
     } catch (progressErr) {
       console.error('Daily progress error:', progressErr);
     }
