@@ -2,8 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, createRef } from 'react';
 import { click, press, render, type } from './support/render.js';
+import { renderApp } from './support/app.js';
 import './support/focus.js';
 import { InlineField, InlineSelect, InlineTextarea } from '../src/components/codex/InlineFields.jsx';
+import CodexView from '../src/pages/CodexView.jsx';
 
 test('a shared textarea defaults to 4 rows and takes a rows prop', async () => {
   const view = await render(h(InlineTextarea, { label: 'Notes', value: 'Old', onSave() {} }));
@@ -15,6 +17,37 @@ test('a shared textarea defaults to 4 rows and takes a rows prop', async () => {
   await click(taller.container.querySelector('button.inline-field-value'));
   assert.equal(taller.container.querySelector('textarea.inline-field-textarea').getAttribute('rows'), '5');
   await taller.unmount();
+});
+
+const codex = {
+  characters: [{ id: 'ch1', name: 'Mara', flags: [], notes: 'Keeps the lamp lit' }],
+  worldRules: [{ id: 'r1', rule: 'Magic costs blood', category: 'magic', flags: [] }],
+};
+
+const fieldButton = (view, label) => view.queryAll('button.inline-field-value')
+  .find((b) => b.getAttribute('aria-label').startsWith(`${label}:`));
+
+test('the Codex sheets keep their textarea heights: 5 rows for a rule, 4 for a character', async () => {
+  const view = await renderApp(h(CodexView), {
+    path: '/work/w1/codex',
+    route: '/work/:workId/codex',
+    routes: { 'GET /works/w1/codex': codex },
+  });
+  await click(view.button('World Rules'));
+  await click(view.button('Magic costs blood'));
+  await click(fieldButton(view, 'Description'));
+  assert.equal(view.query('textarea.inline-field-textarea').getAttribute('rows'), '5');
+  await view.unmount();
+
+  const second = await renderApp(h(CodexView), {
+    path: '/work/w1/codex',
+    route: '/work/:workId/codex',
+    routes: { 'GET /works/w1/codex': codex },
+  });
+  await click(second.button('Mara'));
+  await click(fieldButton(second, 'Notes'));
+  assert.equal(second.query('textarea.inline-field-textarea').getAttribute('rows'), '4');
+  await second.unmount();
 });
 
 test('a shared field uses a passed valueRef as its value button', async () => {
