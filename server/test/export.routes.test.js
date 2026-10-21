@@ -397,3 +397,52 @@ test('generated EPUB passes epubcheck', { skip: !HAS_EPUBCHECK }, async () => {
   const result = epubcheck(res.body);
   assert.ok(result.ok, result.output);
 });
+
+// One EPUB export holds its own work's title and chapter text, and nothing from the other work
+async function assertOwnEpub(res, { title, own, other }) {
+  assert.equal(res.status, 200);
+  const files = await unzip(res.body);
+  assert.ok(zipEntry(files, '.opf')?.includes(`<dc:title>${title}</dc:title>`), `${title}: OPF title`);
+  const text = [...files.values()].map((data) => data.toString('utf8')).join('\n');
+  assert.ok(text.includes(own), `${title}: has "${own}"`);
+  assert.ok(!text.includes(other), `${title}: no "${other}"`);
+  if (HAS_EPUBCHECK) {
+    const result = epubcheck(res.body);
+    assert.ok(result.ok, result.output);
+  }
+}
+
+test('two EPUB exports at the same time both succeed with their own content', async () => {
+  await Work.updateOne({ _id: 'work_a' }, { title: 'Alpha' });
+  await Work.updateOne({ _id: 'work_b' }, { title: 'Beta' });
+  await Chapter.deleteMany({ workId: 'work_a' });
+  await Chapter.create({
+    _id: 'alpha1',
+    workId: 'work_a',
+    title: 'A one',
+    order: 1,
+    status: 'drafting',
+    wordCount: 3,
+    contentHtml: '<p>A one text.</p>',
+  });
+  await Chapter.create({
+    _id: 'beta1',
+    workId: 'work_b',
+    title: 'B one',
+    order: 1,
+    status: 'drafting',
+    wordCount: 3,
+    contentHtml: '<p>B one text.</p>',
+  });
+
+  // nodepub keeps document state on a shared module, so overlapping builds could mix the books.
+  // Three rounds of two simultaneous exports give that race room to show up.
+  for (let round = 0; round < 3; round++) {
+    const [alpha, beta] = await Promise.all([
+      exportAs({ format: 'epub' }, 'work_a'),
+      exportAs({ format: 'epub' }, 'work_b'),
+    ]);
+    await assertOwnEpub(alpha, { title: 'Alpha', own: 'A one', other: 'B one' });
+    await assertOwnEpub(beta, { title: 'Beta', own: 'B one', other: 'A one' });
+  }
+});
