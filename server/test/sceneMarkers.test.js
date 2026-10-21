@@ -7,8 +7,11 @@ import {
   chapterText,
   exportScenes,
 } from '../src/services/sceneMarkers.js';
+import { paragraphText } from '../src/services/exportRuns.js';
 
 const hr = (id, extra = '') => `<hr data-scene="${id}" data-status="draft"${extra} />`;
+const run = (text, flags = {}) => ({ text, bold: false, italic: false, underline: false, ...flags });
+const plainTexts = (scenes) => scenes.map((scene) => scene.map(paragraphText));
 
 test('newSceneId has the scn_<ms>_<6 hex> shape', () => {
   assert.match(newSceneId(1791700000000), /^scn_1791700000000_[0-9a-f]{6}$/);
@@ -86,8 +89,73 @@ test('chapterText joins scenes with a blank line', () => {
 });
 
 test('exportScenes reads HTML when present and plain text otherwise', () => {
-  assert.deepEqual(exportScenes({ contentHtml: `<div>A.</div>${hr('scn_a')}<div>B.</div>`, content: 'ignored' }), [['A.'], ['B.']]);
-  assert.deepEqual(exportScenes({ contentHtml: '', content: 'One.\n\nTwo.\nmore' }), [['One.', 'Two.\nmore']]);
+  assert.deepEqual(plainTexts(exportScenes({ contentHtml: `<div>A.</div>${hr('scn_a')}<div>B.</div>`, content: 'ignored' })), [['A.'], ['B.']]);
+  assert.deepEqual(plainTexts(exportScenes({ contentHtml: '', content: 'One.\n\nTwo.\nmore' })), [['One.', 'Two.\nmore']]);
   assert.deepEqual(exportScenes({ contentHtml: '', content: '' }), []);
-  assert.deepEqual(exportScenes({ contentHtml: `${hr('scn_a')}<div><br /></div>${hr('scn_b')}<div>B.</div>` }), [['B.']]);
+  assert.deepEqual(plainTexts(exportScenes({ contentHtml: `${hr('scn_a')}<div><br /></div>${hr('scn_b')}<div>B.</div>` })), [['B.']]);
+});
+
+test('exportScenes keeps bold, italic and underline as run flags', () => {
+  const html = '<div>a <b>b</b> <i>c</i> <u>d</u> <strong><em>e</em></strong></div>';
+  assert.deepEqual(exportScenes({ contentHtml: html }), [
+    [
+      [
+        run('a '),
+        run('b', { bold: true }),
+        run(' '),
+        run('c', { italic: true }),
+        run(' '),
+        run('d', { underline: true }),
+        run(' '),
+        run('e', { bold: true, italic: true }),
+      ],
+    ],
+  ]);
+});
+
+test('inline font-weight and font-style set the flags, normal clears them', () => {
+  const html = '<div><span style="font-weight: 700">x</span><span style="font-style: italic">y</span><b>z<span style="font-weight: normal">w</span></b></div>';
+  assert.deepEqual(exportScenes({ contentHtml: html }), [
+    [[run('x', { bold: true }), run('y', { italic: true }), run('z', { bold: true }), run('w')]],
+  ]);
+});
+
+test('plain text of styled paragraphs matches the old paragraph strings', () => {
+  const fixtures = [
+    '<div>One two.</div><div>Three.</div>',
+    '',
+    `<div>Opening.</div>${hr('scn_a', ' data-title="The well"')}<div>Second scene.</div>`,
+    `<div><br /></div>${hr('scn_a')}<div>Only.</div>`,
+    '<div>Before<hr data-scene="scn_x" />after</div>',
+    'First line<div>Div one</div><p>Para</p><div>Line a<br />Line b</div><div>Outer<div>Inner</div>tail</div>',
+    'Para one.<br /><br />Para two.<br />Still two.',
+    '<div>Tom &amp; Jerry &lt;3</div>',
+    `<div>Open here.</div>${hr('scn_a')}<div>One two three.</div>`,
+    `${hr('scn_a')}<div><br /></div>${hr('scn_b')}<div>B.</div>`,
+    `<div>A one.</div>${hr('scn_a')}<div>B one.</div><div>B two.</div>`,
+  ];
+  for (const html of fixtures) {
+    const expected = parseScenes(html)
+      .map((s) => s.paragraphs)
+      .filter((p) => p.length);
+    assert.deepEqual(plainTexts(exportScenes({ contentHtml: html })), expected, html);
+  }
+});
+
+test('a bold span across a blank-line split stays bold in both paragraphs', () => {
+  assert.deepEqual(exportScenes({ contentHtml: '<div><b>one<br><br>two</b></div>' }), [
+    [[run('one', { bold: true })], [run('two', { bold: true })]],
+  ]);
+});
+
+test('edge whitespace runs are trimmed away', () => {
+  assert.deepEqual(exportScenes({ contentHtml: '<div><i> </i>text<b> </b></div>' }), [[[run('text')]]]);
+});
+
+test('a <br> inside a styled run is kept as \\n with the style', () => {
+  assert.deepEqual(exportScenes({ contentHtml: '<div><i>a<br>b</i></div>' }), [[[run('a\nb', { italic: true })]]]);
+});
+
+test('legacy plain content gives unstyled runs', () => {
+  assert.deepEqual(exportScenes({ contentHtml: '', content: 'One.\n\nTwo.' }), [[[run('One.')], [run('Two.')]]]);
 });

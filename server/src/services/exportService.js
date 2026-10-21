@@ -9,7 +9,11 @@ import Chapter from '../models/Chapter.js';
 import MapModel from '../models/Map.js';
 import User from '../models/User.js';
 import { exportScenes } from './sceneMarkers.js';
+import { paragraphText } from './exportRuns.js';
 import { buildManuscriptDOCX, buildManuscriptPDF } from './manuscriptExport.js';
+
+// Paragraph strings per scene; the formats don't render styles yet
+const plainScenes = (ch) => exportScenes(ch).map((scene) => scene.map(paragraphText));
 
 export async function exportWork(workId, format, options = {}) {
   const { includeNotes = false, includeOutline = false, layout = 'reading', manuscript } = options;
@@ -30,7 +34,7 @@ export async function exportWork(workId, format, options = {}) {
 
   const chapters = exported.map((ch) => ({
     title: ch.title || 'Untitled',
-    scenes: exportScenes(ch),
+    scenes: plainScenes(ch),
     // The Map's notes field is the one the UI edits
     notes: includeNotes ? (map?.chapters?.[ch._id]?.notes || ch.notes || '').trim() : '',
   }));
@@ -54,7 +58,7 @@ export async function exportWork(workId, format, options = {}) {
 function exportManuscript(meta, chapterDocs, format, details) {
   const input = {
     title: meta.title || 'Untitled',
-    chapters: chapterDocs.map((ch) => ({ title: ch.title || 'Untitled', scenes: exportScenes(ch) })),
+    chapters: chapterDocs.map((ch) => ({ title: ch.title || 'Untitled', scenes: plainScenes(ch) })),
     details,
     wordCount: chapterDocs.reduce((sum, ch) => sum + (ch.wordCount || 0), 0),
   };

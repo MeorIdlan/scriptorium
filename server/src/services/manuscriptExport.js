@@ -49,8 +49,9 @@ export function resolveManuscriptDetails({ settings, work, userName }) {
 // ─── DOCX ────────────────────────────────────────────────────────────────────
 
 // Standard manuscript layout: US Letter, 1 in margins, 12 pt double-spaced, running
-// header from the second page on. `chapters` is [{ title, scenes }] as exportScenes
-// builds it; chapter notes are never printed.
+// header from the second page on. `chapters` is [{ title, scenes }] with each paragraph
+// as a string (exportService maps exportScenes through paragraphText); chapter notes
+// are never printed.
 export async function buildManuscriptDOCX({ title, chapters, details, wordCount }) {
   const font = MANUSCRIPT_FONTS[details.font] || MANUSCRIPT_FONTS.serif;
   const children = manuscriptTitlePage(title, details, wordCount);
