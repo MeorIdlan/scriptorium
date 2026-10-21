@@ -9,10 +9,10 @@ import Chapter from '../models/Chapter.js';
 import MapModel from '../models/Map.js';
 import User from '../models/User.js';
 import { exportScenes } from './sceneMarkers.js';
-import { paragraphText } from './exportRuns.js';
+import { paragraphText, runLines, escapeXml, runsHTML, docxTextRuns, pdfFont } from './exportRuns.js';
 import { buildManuscriptDOCX, buildManuscriptPDF } from './manuscriptExport.js';
 
-// Paragraph strings per scene; the formats don't render styles yet
+// Paragraph strings per scene, for the manuscript layout until it renders styles
 const plainScenes = (ch) => exportScenes(ch).map((scene) => scene.map(paragraphText));
 
 export async function exportWork(workId, format, options = {}) {
@@ -34,7 +34,7 @@ export async function exportWork(workId, format, options = {}) {
 
   const chapters = exported.map((ch) => ({
     title: ch.title || 'Untitled',
-    scenes: plainScenes(ch),
+    scenes: exportScenes(ch),
     // The Map's notes field is the one the UI edits
     notes: includeNotes ? (map?.chapters?.[ch._id]?.notes || ch.notes || '').trim() : '',
   }));
@@ -78,6 +78,13 @@ function exportManuscript(meta, chapterDocs, format, details) {
 
 // ─── PDF ─────────────────────────────────────────────────────────────────────
 
+const READING_FONTS = {
+  regular: 'Helvetica',
+  bold: 'Helvetica-Bold',
+  italic: 'Helvetica-Oblique',
+  boldItalic: 'Helvetica-BoldOblique',
+};
+
 function buildPDF(meta, chapters) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 72 });
@@ -118,11 +125,29 @@ function buildPDF(meta, chapters) {
           doc.text(SCENE_BREAK, { align: 'center' });
           doc.moveDown(0.5);
         }
-        for (const p of paragraphs) doc.text(p, { lineGap: 4, paragraphGap: 8 });
+        for (const p of paragraphs) writePDFParagraph(doc, p);
       });
     }
 
     doc.end();
+  });
+}
+
+// Each run continues its line; a line break ends the line. pdfkit never gets a line
+// break or an empty string, and the paragraph gap comes after the last line
+function writePDFParagraph(doc, runs) {
+  const lines = runLines(runs);
+  lines.forEach((line, l) => {
+    line.forEach((run, r) => {
+      const endOfLine = r === line.length - 1;
+      const endOfParagraph = endOfLine && l === lines.length - 1;
+      doc.font(pdfFont(READING_FONTS, run)).text(run.text, {
+        continued: !endOfLine,
+        underline: run.underline,
+        lineGap: 4,
+        paragraphGap: endOfParagraph ? 8 : 0,
+      });
+    });
   });
 }
 
@@ -244,34 +269,20 @@ async function buildDOCX(meta, chapters) {
 
 export const SCENE_BREAK = '* * *';
 
-// A paragraph may hold line breaks (<br> in the editor)
-function docxRuns(text) {
-  return text.split('\n').map((line, i) => new TextRun({ text: line, break: i > 0 ? 1 : 0 }));
-}
-
 export function docxBody(scenes) {
   const out = [];
   scenes.forEach((paragraphs, i) => {
     if (i > 0) {
       out.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: SCENE_BREAK })], spacing: { after: 200 } }));
     }
-    for (const p of paragraphs) out.push(new Paragraph({ children: docxRuns(p), spacing: { after: 200 } }));
+    for (const p of paragraphs) out.push(new Paragraph({ children: docxTextRuns(p), spacing: { after: 200 } }));
   });
   return out;
 }
 
-function escapeXml(text) {
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 export function chapterToHTML({ title, scenes, notes }) {
   const body = (scenes || [])
-    .map((paragraphs) => paragraphs.map((p) => `<p>${escapeXml(p).replace(/\n/g, '<br/>')}</p>`).join(''))
+    .map((paragraphs) => paragraphs.map((p) => `<p>${runsHTML(p)}</p>`).join(''))
     .join(`<p style="text-align:center">${SCENE_BREAK}</p>`);
   const notesHtml = notes ? `<p><em>Notes: ${escapeXml(notes)}</em></p>` : '';
   return `<h1>${escapeXml(title)}</h1>${notesHtml}${body || '<p></p>'}`;

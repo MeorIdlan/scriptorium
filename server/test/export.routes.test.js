@@ -4,6 +4,7 @@ import express from 'express';
 import request from 'supertest';
 import { startDb, clearDb } from './support/http.js';
 import { unzip } from './support/zip.js';
+import { parsePdf } from './support/pdf.js';
 import exportRouter from '../src/routes/export.js';
 import { errorHandler } from '../src/middleware/errorHandler.js';
 import Work from '../src/models/Work.js';
@@ -226,4 +227,56 @@ test('another writer gets 404 for prefill and manuscript export, and nothing cha
   const settings = await Settings.findById('user_a').lean();
   assert.deepEqual(settings.manuscript, { authorName: 'Original Name', surname: 'Name', contactBlock: '', font: 'serif' });
   assert.equal((await Work.findById('work_a').lean()).manuscript, undefined);
+});
+
+// A styled chapter in work_b, which has no chapters of its own
+const addStyledChapter = (contentHtml) =>
+  Chapter.create({ _id: 'styled', workId: 'work_b', title: 'Styled', order: 1, status: 'drafting', wordCount: 5, contentHtml });
+
+const pdfRuns = (res) => parsePdf(res.body).pages.flatMap((page) => page.runs);
+
+test('reading PDF uses bold and oblique Helvetica for styled text', async () => {
+  await addStyledChapter('<div>plain <b>bold</b> <i>ital</i> <b><i>both</i></b></div>');
+  const res = await exportAs({ format: 'pdf' }, 'work_b');
+  assert.equal(res.status, 200);
+  const runs = pdfRuns(res);
+  const fontOf = (text) => runs.find((run) => run.text.trim() === text)?.font;
+  assert.equal(fontOf('plain'), 'Helvetica');
+  assert.equal(fontOf('bold'), 'Helvetica-Bold');
+  assert.equal(fontOf('ital'), 'Helvetica-Oblique');
+  assert.equal(fontOf('both'), 'Helvetica-BoldOblique');
+});
+
+test('reading PDF survives a paragraph with line breaks inside styled text', async () => {
+  await addStyledChapter('<div><b>a<br></b>b<br><i>c</i></div>');
+  const res = await exportAs({ format: 'pdf' }, 'work_b');
+  assert.equal(res.status, 200);
+  const texts = pdfRuns(res).map((run) => run.text.trim());
+  for (const text of ['a', 'b', 'c']) assert.ok(texts.includes(text), `"${text}" is in the PDF`);
+});
+
+// The XML of the <w:r> run whose text is `text`
+const runXml = (xml, text) => (xml.match(/<w:r>.*?<\/w:r>/g) || []).find((run) => run.includes(`>${text}</w:t>`));
+
+test('reading DOCX marks styled runs', async () => {
+  await addStyledChapter('<div>plain <b>bold</b> <i>ital</i> <u>under</u></div>');
+  const res = await exportAs({ format: 'docx' }, 'work_b');
+  assert.equal(res.status, 200);
+  const xml = await documentXml(res);
+  assert.ok(runXml(xml, 'bold').includes('<w:b/>'));
+  assert.ok(runXml(xml, 'ital').includes('<w:i/>'));
+  assert.ok(runXml(xml, 'under').includes('<w:u '));
+  const plain = runXml(xml, 'plain ');
+  assert.ok(!plain.includes('<w:b/>') && !plain.includes('<w:i/>') && !plain.includes('<w:u '), 'plain text is not styled');
+});
+
+test('EPUB chapter keeps <strong> and <em>, and escapes the styled text', async () => {
+  await addStyledChapter('<div>plain <b>bold &amp; &lt;x&gt;</b> <i>ital</i></div>');
+  const res = await exportAs({ format: 'epub' }, 'work_b');
+  assert.equal(res.status, 200);
+  const files = await unzip(res.body);
+  const chapter = [...files.values()].map((data) => data.toString('utf8')).find((text) => text.includes('<strong>'));
+  assert.ok(chapter, 'a chapter file has <strong>');
+  assert.ok(chapter.includes('<strong>bold &amp; &lt;x&gt;</strong>'));
+  assert.ok(chapter.includes('<em>ital</em>'));
 });
