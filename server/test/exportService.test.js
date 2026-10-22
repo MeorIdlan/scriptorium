@@ -110,3 +110,52 @@ test('cover text is escaped', () => {
   assert.ok(svg.includes('Ann &amp; Bo &lt;Writer&gt;'));
   assert.doesNotMatch(svg, /&(?!amp;|lt;|gt;|quot;|#39;)/);
 });
+
+// Each text block's first baseline y and the dy of every tspan after the first.
+const coverPositions = (svg) =>
+  [...svg.matchAll(/<text x="800" y="([\d.]+)"[^>]*>(.*?)<\/text>/g)].map(([, y, body]) => ({
+    y: Number(y),
+    dys: [...body.matchAll(/<tspan x="800" dy="([\d.]+)"/g)].map(([, dy]) => Number(dy)),
+  }));
+
+test('many short words step the cover title down to at most 5 lines', () => {
+  const title = Array(30).fill('word').join(' ');
+  const [titleBlock] = coverBlocks(coverSVG({ title, author: '' }));
+  assert.ok(titleBlock.size < 120, `size ${titleBlock.size}`);
+  assert.ok(titleBlock.lines.length <= 5, `${titleBlock.lines.length} lines`);
+  assert.equal(titleBlock.lines.join(' '), title);
+});
+
+test('many short words step the cover author down to at most 3 lines', () => {
+  const author = Array(30).fill('word').join(' ');
+  const [, authorBlock] = coverBlocks(coverSVG({ title: 'T', author }));
+  assert.ok(authorBlock.size < 64, `size ${authorBlock.size}`);
+  assert.ok(authorBlock.lines.length <= 3, `${authorBlock.lines.length} lines`);
+  assert.equal(authorBlock.lines.join(' '), author);
+});
+
+test('cover title block is centred on y=1100 and the author starts 160 px below it', () => {
+  const title = 'Tea & <Cake>: Ünïcode "Test" \'Run\' and a much longer subtitle';
+  const svg = coverSVG({ title, author: 'Ann' });
+  const [titleBlock] = coverBlocks(svg);
+  const [titlePos, authorPos] = coverPositions(svg);
+  const n = titleBlock.lines.length;
+  const lh = 1.2 * titleBlock.size;
+  const first = 1100 - ((n - 1) * lh) / 2;
+  assert.ok(n > 1);
+  assert.ok(Math.abs(titlePos.y - first) < 0.1, `first baseline ${titlePos.y} vs ${first}`);
+  assert.equal(titlePos.dys.length, n);
+  assert.equal(titlePos.dys[0], 0);
+  for (const dy of titlePos.dys.slice(1)) assert.ok(Math.abs(dy - lh) < 0.1, `dy ${dy} vs ${lh}`);
+  const lastTitleBaseline = titlePos.y + (n - 1) * lh;
+  assert.ok(Math.abs(authorPos.y - (lastTitleBaseline + 160)) < 0.1, `author ${authorPos.y}`);
+});
+
+test('cover lines are measured in characters, so a split emoji stays whole', () => {
+  const word = '🙂'.repeat(50);
+  const svg = coverSVG({ title: word, author: '' });
+  assert.doesNotMatch(svg, /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/);
+  const [titleBlock] = coverBlocks(svg);
+  for (const line of titleBlock.lines) assert.ok(Array.from(line).length * 0.55 * titleBlock.size <= 1300, line);
+  assert.equal(titleBlock.lines.join(''), word);
+});

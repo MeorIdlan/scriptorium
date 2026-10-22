@@ -214,7 +214,7 @@ export function coverSVG(meta) {
   const titleLast = title.y + (title.lines.length - 1) * title.lineHeight;
   const author = wrapCoverText((meta.author || '').trim(), 64, 40, 3);
   const authorBlock = author.lines.length
-    ? coverTextBlock({ ...author, y: titleLast + 160, fill: '#c9a96e' })
+    ? coverTextBlock({ ...author, y: round1(titleLast + 160), fill: '#c9a96e' })
     : '';
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="2560" viewBox="0 0 1600 2560">
@@ -225,9 +225,12 @@ export function coverSVG(meta) {
 `;
 }
 
-// Cover text width estimate: usable width 1300 px, average glyph 0.55 em.
+// Cover text width estimate: usable width 1300 px, average glyph 0.55 em. Lengths count code
+// points, so an emoji is one character and a hard break never splits a surrogate pair.
 const COVER_TEXT_WIDTH = 1300;
 const COVER_GLYPH_EM = 0.55;
+const coverChars = (text) => Array.from(text).length;
+const round1 = (n) => Math.round(n * 10) / 10;
 
 // Greedy word wrap. Steps the font size down 10 % (never below `min`) until the lines fit in
 // `maxLines`, then hard-breaks any word still too long at the minimum size. `y` is the first
@@ -239,8 +242,8 @@ function wrapCoverText(text, start, min, maxLines) {
     size = Math.max(min, Math.round(size * 0.9));
     lines = wrapCoverLines(text, size, size === min);
   }
-  const lineHeight = size * 1.2;
-  const y = 1100 - ((lines.length - 1) * lineHeight) / 2;
+  const lineHeight = round1(size * 1.2);
+  const y = round1(1100 - ((lines.length - 1) * lineHeight) / 2);
   return { lines, size, lineHeight, y };
 }
 
@@ -248,15 +251,16 @@ function wrapCoverLines(text, size, hardBreak) {
   const maxChars = Math.floor(COVER_TEXT_WIDTH / (COVER_GLYPH_EM * size));
   const words = text.trim().split(/\s+/).flatMap((word) => {
     if (!hardBreak) return [word];
+    const chars = Array.from(word);
     const chunks = [];
-    for (let i = 0; i < word.length; i += maxChars) chunks.push(word.slice(i, i + maxChars));
+    for (let i = 0; i < chars.length; i += maxChars) chunks.push(chars.slice(i, i + maxChars).join(''));
     return chunks;
   });
   const lines = [];
   let line = '';
   for (const word of words) {
     const next = line ? `${line} ${word}` : word;
-    if (line && next.length * COVER_GLYPH_EM * size > COVER_TEXT_WIDTH) {
+    if (line && coverChars(next) * COVER_GLYPH_EM * size > COVER_TEXT_WIDTH) {
       lines.push(line);
       line = word;
     } else {
@@ -268,7 +272,7 @@ function wrapCoverLines(text, size, hardBreak) {
 }
 
 function coverLinesFit(lines, size, maxLines) {
-  return lines.length <= maxLines && lines.every((line) => line.length * COVER_GLYPH_EM * size <= COVER_TEXT_WIDTH);
+  return lines.length <= maxLines && lines.every((line) => coverChars(line) * COVER_GLYPH_EM * size <= COVER_TEXT_WIDTH);
 }
 
 function coverTextBlock({ lines, size, lineHeight, y, fill }) {
