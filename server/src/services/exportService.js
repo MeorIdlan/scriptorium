@@ -9,6 +9,7 @@ import Chapter from '../models/Chapter.js';
 import MapModel from '../models/Map.js';
 import User from '../models/User.js';
 import { exportScenes } from './sceneMarkers.js';
+import { runLines, escapeXml, runsHTML, docxTextRuns, pdfFont } from './exportRuns.js';
 import { buildManuscriptDOCX, buildManuscriptPDF } from './manuscriptExport.js';
 
 export async function exportWork(workId, format, options = {}) {
@@ -74,6 +75,13 @@ function exportManuscript(meta, chapterDocs, format, details) {
 
 // ─── PDF ─────────────────────────────────────────────────────────────────────
 
+const READING_FONTS = {
+  regular: 'Helvetica',
+  bold: 'Helvetica-Bold',
+  italic: 'Helvetica-Oblique',
+  boldItalic: 'Helvetica-BoldOblique',
+};
+
 function buildPDF(meta, chapters) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 72 });
@@ -114,12 +122,37 @@ function buildPDF(meta, chapters) {
           doc.text(SCENE_BREAK, { align: 'center' });
           doc.moveDown(0.5);
         }
-        for (const p of paragraphs) doc.text(p, { lineGap: 4, paragraphGap: 8 });
+        for (const p of paragraphs) writePDFParagraph(doc, p);
       });
     }
 
     doc.end();
   });
+}
+
+// Each run continues its line; a line break ends the line. pdfkit never gets a line
+// break or an empty string, and the paragraph gap comes after the last line. A blank
+// line still takes a line of height. The regular font is set again at the end, so
+// text written after the paragraph (the scene break) is not styled
+function writePDFParagraph(doc, runs) {
+  const lines = runLines(runs);
+  lines.forEach((line, l) => {
+    const endOfParagraph = l === lines.length - 1;
+    if (line.length === 0) {
+      doc.font(READING_FONTS.regular).text(' ', { lineGap: 4, paragraphGap: endOfParagraph ? 8 : 0 });
+      return;
+    }
+    line.forEach((run, r) => {
+      const endOfLine = r === line.length - 1;
+      doc.font(pdfFont(READING_FONTS, run)).text(run.text, {
+        continued: !endOfLine,
+        underline: run.underline,
+        lineGap: 4,
+        paragraphGap: endOfLine && endOfParagraph ? 8 : 0,
+      });
+    });
+  });
+  doc.font(READING_FONTS.regular);
 }
 
 // ─── EPUB ────────────────────────────────────────────────────────────────────
@@ -175,15 +208,76 @@ async function buildEPUBNow(meta, chapters) {
   }
 }
 
-function coverSVG(meta) {
+export function coverSVG(meta) {
   const bg = /^#[0-9a-f]{6}$/i.test(meta.coverColor || '') ? meta.coverColor : '#2d3b4a';
+  const title = wrapCoverText(meta.title || 'Untitled', 120, 60, 5);
+  const titleLast = title.y + (title.lines.length - 1) * title.lineHeight;
+  const author = wrapCoverText((meta.author || '').trim(), 64, 40, 3);
+  const authorBlock = author.lines.length
+    ? coverTextBlock({ ...author, y: round1(titleLast + 160), fill: '#c9a96e' })
+    : '';
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="2560" viewBox="0 0 1600 2560">
   <rect width="1600" height="2560" fill="${bg}"/>
-  <text x="800" y="1100" font-family="Georgia, serif" font-size="120" fill="#e8e3d8" text-anchor="middle">${escapeXml(meta.title || 'Untitled')}</text>
-  <text x="800" y="1300" font-family="Georgia, serif" font-size="64" fill="#c9a96e" text-anchor="middle">${escapeXml(meta.author || '')}</text>
+  ${coverTextBlock({ ...title, fill: '#e8e3d8' })}
+  ${authorBlock}
 </svg>
 `;
+}
+
+// Cover text width estimate: usable width 1300 px, average glyph 0.55 em. Lengths count code
+// points, so an emoji is one character and a hard break never splits a surrogate pair.
+const COVER_TEXT_WIDTH = 1300;
+const COVER_GLYPH_EM = 0.55;
+const coverChars = (text) => Array.from(text).length;
+const round1 = (n) => Math.round(n * 10) / 10;
+
+// Greedy word wrap. Steps the font size down 10 % (never below `min`) until the lines fit in
+// `maxLines`, then hard-breaks any word still too long at the minimum size. `y` is the first
+// baseline, which centres the block's lines on y=1100.
+function wrapCoverText(text, start, min, maxLines) {
+  let size = start;
+  let lines = wrapCoverLines(text, size, false);
+  while (size > min && !coverLinesFit(lines, size, maxLines)) {
+    size = Math.max(min, Math.round(size * 0.9));
+    lines = wrapCoverLines(text, size, size === min);
+  }
+  const lineHeight = round1(size * 1.2);
+  const y = round1(1100 - ((lines.length - 1) * lineHeight) / 2);
+  return { lines, size, lineHeight, y };
+}
+
+function wrapCoverLines(text, size, hardBreak) {
+  const maxChars = Math.floor(COVER_TEXT_WIDTH / (COVER_GLYPH_EM * size));
+  const words = text.trim().split(/\s+/).flatMap((word) => {
+    if (!hardBreak) return [word];
+    const chars = Array.from(word);
+    const chunks = [];
+    for (let i = 0; i < chars.length; i += maxChars) chunks.push(chars.slice(i, i + maxChars).join(''));
+    return chunks;
+  });
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && coverChars(next) * COVER_GLYPH_EM * size > COVER_TEXT_WIDTH) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function coverLinesFit(lines, size, maxLines) {
+  return lines.length <= maxLines && lines.every((line) => coverChars(line) * COVER_GLYPH_EM * size <= COVER_TEXT_WIDTH);
+}
+
+function coverTextBlock({ lines, size, lineHeight, y, fill }) {
+  const tspans = lines.map((line, i) => `<tspan x="800" dy="${i ? lineHeight : 0}">${escapeXml(line)}</tspan>`).join('');
+  return `<text x="800" y="${y}" font-family="Georgia, serif" font-size="${size}" fill="${fill}" text-anchor="middle">${tspans}</text>`;
 }
 
 // ─── DOCX ────────────────────────────────────────────────────────────────────
@@ -240,34 +334,20 @@ async function buildDOCX(meta, chapters) {
 
 export const SCENE_BREAK = '* * *';
 
-// A paragraph may hold line breaks (<br> in the editor)
-function docxRuns(text) {
-  return text.split('\n').map((line, i) => new TextRun({ text: line, break: i > 0 ? 1 : 0 }));
-}
-
 export function docxBody(scenes) {
   const out = [];
   scenes.forEach((paragraphs, i) => {
     if (i > 0) {
       out.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: SCENE_BREAK })], spacing: { after: 200 } }));
     }
-    for (const p of paragraphs) out.push(new Paragraph({ children: docxRuns(p), spacing: { after: 200 } }));
+    for (const p of paragraphs) out.push(new Paragraph({ children: docxTextRuns(p), spacing: { after: 200 } }));
   });
   return out;
 }
 
-function escapeXml(text) {
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 export function chapterToHTML({ title, scenes, notes }) {
   const body = (scenes || [])
-    .map((paragraphs) => paragraphs.map((p) => `<p>${escapeXml(p).replace(/\n/g, '<br/>')}</p>`).join(''))
+    .map((paragraphs) => paragraphs.map((p) => `<p>${runsHTML(p)}</p>`).join(''))
     .join(`<p style="text-align:center">${SCENE_BREAK}</p>`);
   const notesHtml = notes ? `<p><em>Notes: ${escapeXml(notes)}</em></p>` : '';
   return `<h1>${escapeXml(title)}</h1>${notesHtml}${body || '<p></p>'}`;

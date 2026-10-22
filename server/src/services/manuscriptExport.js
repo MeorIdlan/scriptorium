@@ -2,6 +2,7 @@
 // and the details service build on these.
 import PDFDocument from 'pdfkit';
 import { AlignmentType, Document, Header, Packer, PageNumber, Paragraph, Tab, TabStopType, TextRun } from 'docx';
+import { docxTextRuns, pdfFont, runLines } from './exportRuns.js';
 
 export const MANUSCRIPT_SCENE_BREAK = '#';
 
@@ -49,8 +50,8 @@ export function resolveManuscriptDetails({ settings, work, userName }) {
 // ─── DOCX ────────────────────────────────────────────────────────────────────
 
 // Standard manuscript layout: US Letter, 1 in margins, 12 pt double-spaced, running
-// header from the second page on. `chapters` is [{ title, scenes }] as exportScenes
-// builds it; chapter notes are never printed.
+// header from the second page on. `chapters` is [{ title, scenes }] with each paragraph
+// as Run[] (exportScenes); chapter notes are never printed.
 export async function buildManuscriptDOCX({ title, chapters, details, wordCount }) {
   const font = MANUSCRIPT_FONTS[details.font] || MANUSCRIPT_FONTS.serif;
   const children = manuscriptTitlePage(title, details, wordCount);
@@ -142,21 +143,19 @@ function manuscriptChapter({ title, scenes }) {
       canIndent = false;
     }
     for (const p of paragraphs) {
-      out.push(new Paragraph({ children: lineRuns(p), indent: canIndent ? { firstLine: INDENT } : undefined }));
+      out.push(new Paragraph({ children: docxTextRuns(p), indent: canIndent ? { firstLine: INDENT } : undefined }));
       canIndent = true;
     }
   });
   return out;
 }
 
-// A paragraph may hold line breaks (<br> in the editor)
-function lineRuns(text) {
-  return text.split('\n').map((line, i) => new TextRun({ text: line, break: i > 0 ? 1 : 0 }));
-}
-
 // ─── PDF ─────────────────────────────────────────────────────────────────────
 
-const MANUSCRIPT_PDF_FONTS = { serif: 'Times-Roman', mono: 'Courier' };
+const MANUSCRIPT_PDF_FONTS = {
+  serif: { regular: 'Times-Roman', bold: 'Times-Bold', italic: 'Times-Italic', boldItalic: 'Times-BoldItalic' },
+  mono: { regular: 'Courier', bold: 'Courier-Bold', italic: 'Courier-Oblique', boldItalic: 'Courier-BoldOblique' },
+};
 // Points. US Letter with 1 in margins: 468 pt of text width between them.
 const PDF_MARGIN = 72;
 const PDF_TEXT_WIDTH = 468;
@@ -177,12 +176,17 @@ export function buildManuscriptPDF({ title, chapters, details, wordCount }, { co
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    doc.font(MANUSCRIPT_PDF_FONTS[details.font] || MANUSCRIPT_PDF_FONTS.serif).fontSize(12);
-    // pdfkit adds lineGap to the font's own line height; this makes each line 24 pt.
-    const lineGap = PDF_LINE - doc.currentLineHeight(true);
+    const fonts = MANUSCRIPT_PDF_FONTS[details.font] || MANUSCRIPT_PDF_FONTS.serif;
+    doc.fontSize(12);
+    // pdfkit adds lineGap to each font's own line height, and the four styles differ, so
+    // each font gets its own gap that makes its lines 24 pt.
+    const lineGaps = {};
+    for (const name of Object.values(fonts)) lineGaps[name] = PDF_LINE - doc.font(name).currentLineHeight(true);
+    doc.font(fonts.regular);
+    const lineGap = lineGaps[fonts.regular];
 
     manuscriptTitlePagePDF(doc, { title, details, wordCount }, lineGap);
-    for (const chapter of chapters) manuscriptChapterPDF(doc, chapter, lineGap);
+    for (const chapter of chapters) manuscriptChapterPDF(doc, chapter, lineGap, fonts, lineGaps);
     blankLinePDF(doc, PDF_LINE);
     doc.text('END', PDF_MARGIN, undefined, { width: PDF_TEXT_WIDTH, align: 'center', lineGap });
 
@@ -214,7 +218,7 @@ function manuscriptTitlePagePDF(doc, { title, details, wordCount }, lineGap) {
 
 // A chapter opens on a new page, a third down, then one blank line. Its first paragraph
 // and the first paragraph after a scene break have no first-line indent; the rest do.
-function manuscriptChapterPDF(doc, { title, scenes }, lineGap) {
+function manuscriptChapterPDF(doc, { title, scenes }, lineGap, fonts, lineGaps) {
   const centred = { width: PDF_TEXT_WIDTH, align: 'center', lineGap };
   doc.addPage();
   doc.text(title, PDF_MARGIN, PDF_CHAPTER_Y, centred);
@@ -227,19 +231,36 @@ function manuscriptChapterPDF(doc, { title, scenes }, lineGap) {
       canIndent = false;
     }
     for (const p of paragraphs) {
-      paragraphPDF(doc, p, canIndent ? PDF_INDENT : 0, lineGap);
+      paragraphPDF(doc, p, canIndent ? PDF_INDENT : 0, lineGaps, fonts);
       canIndent = true;
     }
   });
 }
 
-// A paragraph may hold line breaks (<br> in the editor): each starts a new line, and only
-// the paragraph's first line takes the indent.
-function paragraphPDF(doc, text, indent, lineGap) {
-  text.split('\n').forEach((line, i) => {
-    if (line === '') blankLinePDF(doc, PDF_LINE);
-    else doc.text(line, PDF_MARGIN, undefined, { width: PDF_TEXT_WIDTH, indent: i === 0 ? indent : 0, lineGap });
+// Each run continues its line, and a line break ends the line. Only the paragraph's first
+// line takes the indent. An empty line keeps the blank-line step. The regular font is set
+// again at the end, so the scene break, END and the running header are not styled.
+function paragraphPDF(doc, runs, indent, lineGaps, fonts) {
+  runLines(runs).forEach((line, l) => {
+    if (line.length === 0) {
+      blankLinePDF(doc, PDF_LINE);
+      return;
+    }
+    line.forEach((run, r) => {
+      // An explicit x on a continued chain breaks it from the third run on (pdfkit 0.15),
+      // so the margin is set on the document and the text takes no x or y.
+      if (r === 0) doc.x = PDF_MARGIN;
+      const font = pdfFont(fonts, run);
+      doc.font(font).text(run.text, {
+        width: PDF_TEXT_WIDTH,
+        indent: r === 0 && l === 0 ? indent : 0,
+        continued: r < line.length - 1,
+        underline: run.underline,
+        lineGap: lineGaps[font],
+      });
+    });
   });
+  doc.font(fonts.regular);
 }
 
 // pdfkit does not advance y for empty text, so a blank line moves the cursor itself. A

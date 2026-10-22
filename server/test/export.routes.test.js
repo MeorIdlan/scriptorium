@@ -4,10 +4,13 @@ import express from 'express';
 import request from 'supertest';
 import { startDb, clearDb } from './support/http.js';
 import { unzip } from './support/zip.js';
-import exportRouter from '../src/routes/export.js';
+import { parsePdf } from './support/pdf.js';
+import { epubcheck, HAS_EPUBCHECK } from './support/epubcheck.js';
+import exportRouter, { exportBasename } from '../src/routes/export.js';
 import { errorHandler } from '../src/middleware/errorHandler.js';
 import Work from '../src/models/Work.js';
 import Chapter from '../src/models/Chapter.js';
+import MapModel from '../src/models/Map.js';
 import Settings from '../src/models/Settings.js';
 import User from '../src/models/User.js';
 
@@ -226,4 +229,248 @@ test('another writer gets 404 for prefill and manuscript export, and nothing cha
   const settings = await Settings.findById('user_a').lean();
   assert.deepEqual(settings.manuscript, { authorName: 'Original Name', surname: 'Name', contactBlock: '', font: 'serif' });
   assert.equal((await Work.findById('work_a').lean()).manuscript, undefined);
+});
+
+// A styled chapter in work_b, which has no chapters of its own
+const addStyledChapter = (contentHtml) =>
+  Chapter.create({ _id: 'styled', workId: 'work_b', title: 'Styled', order: 1, status: 'drafting', wordCount: 5, contentHtml });
+
+const pdfRuns = (res) => parsePdf(res.body).pages.flatMap((page) => page.runs);
+
+test('reading PDF uses bold and oblique Helvetica for styled text', async () => {
+  await addStyledChapter('<div>plain <b>bold</b> <i>ital</i> <b><i>both</i></b></div>');
+  const res = await exportAs({ format: 'pdf' }, 'work_b');
+  assert.equal(res.status, 200);
+  const runs = pdfRuns(res);
+  const fontOf = (text) => runs.find((run) => run.text.trim() === text)?.font;
+  assert.equal(fontOf('plain'), 'Helvetica');
+  assert.equal(fontOf('bold'), 'Helvetica-Bold');
+  assert.equal(fontOf('ital'), 'Helvetica-Oblique');
+  assert.equal(fontOf('both'), 'Helvetica-BoldOblique');
+});
+
+test('reading PDF survives a paragraph with line breaks inside styled text', async () => {
+  await addStyledChapter('<div><b>a<br></b>b<br><i>c</i></div>');
+  const res = await exportAs({ format: 'pdf' }, 'work_b');
+  assert.equal(res.status, 200);
+  const texts = pdfRuns(res).map((run) => run.text.trim());
+  for (const text of ['a', 'b', 'c']) assert.ok(texts.includes(text), `"${text}" is in the PDF`);
+});
+
+// The XML of the <w:r> run whose text is `text`
+const runXml = (xml, text) => (xml.match(/<w:r>.*?<\/w:r>/g) || []).find((run) => run.includes(`>${text}</w:t>`));
+
+test('reading DOCX marks styled runs', async () => {
+  await addStyledChapter('<div>plain <b>bold</b> <i>ital</i> <u>under</u></div>');
+  const res = await exportAs({ format: 'docx' }, 'work_b');
+  assert.equal(res.status, 200);
+  const xml = await documentXml(res);
+  assert.ok(runXml(xml, 'bold').includes('<w:b/>'));
+  assert.ok(runXml(xml, 'ital').includes('<w:i/>'));
+  assert.ok(runXml(xml, 'under').includes('<w:u '));
+  const plain = runXml(xml, 'plain ');
+  assert.ok(!plain.includes('<w:b/>') && !plain.includes('<w:i/>') && !plain.includes('<w:u '), 'plain text is not styled');
+});
+
+test('EPUB chapter keeps <strong> and <em>, and escapes the styled text', async () => {
+  await addStyledChapter('<div>plain <b>bold &amp; &lt;x&gt;</b> <i>ital</i></div>');
+  const res = await exportAs({ format: 'epub' }, 'work_b');
+  assert.equal(res.status, 200);
+  const files = await unzip(res.body);
+  const chapter = [...files.values()].map((data) => data.toString('utf8')).find((text) => text.includes('<strong>'));
+  assert.ok(chapter, 'a chapter file has <strong>');
+  assert.ok(chapter.includes('<strong>bold &amp; &lt;x&gt;</strong>'));
+  assert.ok(chapter.includes('<em>ital</em>'));
+});
+
+test('the scene break after a scene that ends in bold is in the regular font', async () => {
+  await addStyledChapter('<p>first <b>end</b></p><hr data-scene="s1" data-status="draft" /><p>second</p>');
+  const res = await exportAs({ format: 'pdf' }, 'work_b');
+  assert.equal(res.status, 200);
+  const runs = pdfRuns(res);
+  assert.equal(runs.find((run) => run.text === '* * *')?.font, 'Helvetica');
+  assert.equal(runs.find((run) => run.text.trim() === 'second')?.font, 'Helvetica');
+});
+
+test('a blank line between paragraphs leaves a larger gap than a line break', async () => {
+  await addStyledChapter('<div>a<br>b</div>');
+  const oneParagraph = await exportAs({ format: 'pdf' }, 'work_b');
+  assert.equal(oneParagraph.status, 200);
+  const gapOf = (runs) => runs.find((run) => run.text.trim() === 'b').y - runs.find((run) => run.text.trim() === 'a').y;
+  const single = gapOf(pdfRuns(oneParagraph));
+
+  await Chapter.deleteOne({ _id: 'styled' });
+  await addStyledChapter('<div>a<br><br>b</div>');
+  const twoParagraphs = await exportAs({ format: 'pdf' }, 'work_b');
+  assert.equal(twoParagraphs.status, 200);
+  const double = gapOf(pdfRuns(twoParagraphs));
+  assert.ok(double > single, `a blank line between a and b makes the gap larger (${double} vs ${single})`);
+});
+
+// An outline chapter with no prose sits in work_b beside a chapter that has prose
+const addOutlineChapter = () =>
+  Chapter.create({ _id: 'sketch', workId: 'work_b', title: 'Lantern Sketch', order: 2, status: 'outline', wordCount: 0, contentHtml: '' });
+
+test('an outline chapter with no prose is left out of a DOCX unless includeOutline is set', async () => {
+  await addStyledChapter('<p>Prose here.</p>');
+  await addOutlineChapter();
+  const left = await exportAs({ format: 'docx' }, 'work_b');
+  assert.equal(left.status, 200);
+  assert.ok(!(await documentXml(left)).includes('Lantern Sketch'), 'left out by default');
+  const kept = await exportAs({ format: 'docx', includeOutline: true }, 'work_b');
+  assert.equal(kept.status, 200);
+  assert.ok((await documentXml(kept)).includes('Lantern Sketch'), 'included with includeOutline');
+});
+
+test('an outline chapter with no prose is left out of an EPUB unless includeOutline is set', async () => {
+  await addStyledChapter('<p>Prose here.</p>');
+  await addOutlineChapter();
+  const epubText = async (res) => [...(await unzip(res.body)).values()].map((data) => data.toString('utf8')).join('\n');
+  const left = await exportAs({ format: 'epub' }, 'work_b');
+  assert.ok(!(await epubText(left)).includes('Lantern Sketch'), 'left out by default');
+  const kept = await exportAs({ format: 'epub', includeOutline: true }, 'work_b');
+  assert.ok((await epubText(kept)).includes('Lantern Sketch'), 'included with includeOutline');
+});
+
+// Special characters in the title, genre, logline, author name, chapter title, prose and notes
+const SPECIAL = {
+  title: 'Tea & <Cake> "Ünï" \'x\'',
+  genre: 'A & B',
+  logline: '<x> & "y"',
+  author: 'Ann & Bo <C>',
+  chapterTitle: 'Bread & <Butter>',
+  notes: 'n & <m>',
+  prose: '<div>1 &amp; 2 &lt; 3 &gt; 0 "q" \'a\' — café</div>',
+};
+
+async function useSpecialCharacters() {
+  await User.updateOne({ _id: 'user_a' }, { name: SPECIAL.author });
+  await Work.updateOne({ _id: 'work_a' }, { title: SPECIAL.title, genre: SPECIAL.genre, logline: SPECIAL.logline });
+  await Chapter.updateOne({ _id: 'ch1' }, { title: SPECIAL.chapterTitle, contentHtml: SPECIAL.prose, notes: '' });
+  await MapModel.create({ _id: 'map_a', workId: 'work_a', chapters: { ch1: { notes: SPECIAL.notes } } });
+}
+
+const zipEntry = (files, ext) => [...files.entries()].find(([name]) => name.endsWith(ext))?.[1].toString('utf8');
+
+test('export filename comes from the title', async () => {
+  await useSpecialCharacters();
+  assert.equal(exportBasename(SPECIAL.title), 'Tea-Cake-Ünï-x');
+  for (const ext of ['pdf', 'epub', 'docx']) {
+    const res = await exportAs({ format: ext });
+    assert.equal(res.status, 200);
+    // The ASCII fallback replaces each non-ASCII character with _; filename* carries the UTF-8 name
+    assert.equal(
+      res.headers['content-disposition'],
+      `attachment; filename="Tea-Cake-_n_-x.${ext}"; filename*=UTF-8''Tea-Cake-%C3%9Cn%C3%AF-x.${ext}`
+    );
+  }
+});
+
+test('EPUB metadata and chapter text are escaped and well-formed', async () => {
+  await useSpecialCharacters();
+  const res = await exportAs({ format: 'epub', includeNotes: true });
+  assert.equal(res.status, 200);
+  const files = await unzip(res.body);
+
+  const opf = zipEntry(files, '.opf');
+  assert.ok(opf, 'the EPUB has a package document');
+  assert.ok(opf.includes('<dc:title>Tea &amp; &lt;Cake&gt; &quot;Ünï&quot; &#39;x&#39;</dc:title>'), 'title is escaped');
+  assert.ok(opf.includes('>Ann &amp; Bo &lt;C&gt;</dc:creator>'), 'author is escaped');
+  assert.ok(opf.includes('<dc:description>&lt;x&gt; &amp; &quot;y&quot;</dc:description>'), 'logline is escaped');
+  assert.ok(opf.includes('<dc:subject>A &amp; B</dc:subject>'), 'genre is escaped');
+  assert.ok(!opf.includes('<Cake>') && !opf.includes('<C>'), 'no raw markup from the title or author');
+
+  const chapter = [...files.values()].map((data) => data.toString('utf8')).find((text) => text.includes('<h1>'));
+  assert.ok(chapter, 'a chapter file has the heading');
+  assert.ok(chapter.includes('<h1>Bread &amp; &lt;Butter&gt;</h1>'), 'chapter title is escaped');
+  assert.ok(chapter.includes('1 &amp; 2 &lt; 3 &gt; 0'), 'prose is escaped');
+  assert.ok(chapter.includes('&quot;q&quot; &#39;a&#39;'), 'quotes are escaped');
+  assert.ok(chapter.includes('café'), 'accented text is kept');
+  assert.ok(chapter.includes('<em>Notes: n &amp; &lt;m&gt;</em>'), 'notes are escaped');
+  for (const text of [opf, chapter]) {
+    assert.doesNotMatch(text, /&(?!(?:amp|lt|gt|quot|#\d+);)/, 'no bare ampersand');
+  }
+});
+
+test('DOCX holds the literal title, author and prose', async () => {
+  await useSpecialCharacters();
+  const res = await exportAs({ format: 'docx', includeNotes: true });
+  assert.equal(res.status, 200);
+  const xml = await documentXml(res);
+  // The docx library writes quotes as &quot; and &apos; in text nodes; both are valid XML
+  assert.ok(xml.includes('Tea &amp; &lt;Cake&gt; &quot;Ünï&quot; &apos;x&apos;'), 'title');
+  assert.ok(xml.includes('Ann &amp; Bo &lt;C&gt;'), 'author');
+  assert.ok(xml.includes('Bread &amp; &lt;Butter&gt;'), 'chapter title');
+  assert.ok(xml.includes('1 &amp; 2 &lt; 3 &gt; 0 &quot;q&quot; &apos;a&apos; — café'), 'prose');
+  assert.ok(xml.includes('Notes: n &amp; &lt;m&gt;'), 'notes');
+});
+
+test('PDF holds the literal title, author and prose', async () => {
+  await useSpecialCharacters();
+  const res = await exportAs({ format: 'pdf', includeNotes: true });
+  assert.equal(res.status, 200);
+  const text = pdfRuns(res).map((run) => run.text).join(' ');
+  assert.ok(text.includes('Tea & <Cake> "Ünï" \'x\''), 'title');
+  assert.ok(text.includes('Ann & Bo <C>'), 'author');
+  assert.ok(text.includes('Bread & <Butter>'), 'chapter title');
+  assert.ok(text.includes('1 & 2 < 3 > 0'), 'prose');
+  assert.ok(text.includes('café'), 'accented prose');
+});
+
+test('generated EPUB passes epubcheck', { skip: !HAS_EPUBCHECK }, async () => {
+  await useSpecialCharacters();
+  const res = await exportAs({ format: 'epub', includeNotes: true, includeOutline: true });
+  assert.equal(res.status, 200);
+  const result = epubcheck(res.body);
+  assert.ok(result.ok, result.output);
+});
+
+// One EPUB export holds its own work's title and chapter text, and nothing from the other work
+async function assertOwnEpub(res, { title, own, other }) {
+  assert.equal(res.status, 200);
+  const files = await unzip(res.body);
+  assert.ok(zipEntry(files, '.opf')?.includes(`<dc:title>${title}</dc:title>`), `${title}: OPF title`);
+  const text = [...files.values()].map((data) => data.toString('utf8')).join('\n');
+  assert.ok(text.includes(own), `${title}: has "${own}"`);
+  assert.ok(!text.includes(other), `${title}: no "${other}"`);
+  if (HAS_EPUBCHECK) {
+    const result = epubcheck(res.body);
+    assert.ok(result.ok, result.output);
+  }
+}
+
+test('two EPUB exports at the same time both succeed with their own content', async () => {
+  await Work.updateOne({ _id: 'work_a' }, { title: 'Alpha' });
+  await Work.updateOne({ _id: 'work_b' }, { title: 'Beta' });
+  await Chapter.deleteMany({ workId: 'work_a' });
+  await Chapter.create({
+    _id: 'alpha1',
+    workId: 'work_a',
+    title: 'A one',
+    order: 1,
+    status: 'drafting',
+    wordCount: 3,
+    contentHtml: '<p>A one text.</p>',
+  });
+  await Chapter.create({
+    _id: 'beta1',
+    workId: 'work_b',
+    title: 'B one',
+    order: 1,
+    status: 'drafting',
+    wordCount: 3,
+    contentHtml: '<p>B one text.</p>',
+  });
+
+  // nodepub keeps document state on a shared module. It reads all of that state synchronously
+  // before its first await, so overlapping builds should not mix the books. This test pins the
+  // outcome, not the queue: three rounds of two simultaneous exports each get their own content.
+  for (let round = 0; round < 3; round++) {
+    const [alpha, beta] = await Promise.all([
+      exportAs({ format: 'epub' }, 'work_a'),
+      exportAs({ format: 'epub' }, 'work_b'),
+    ]);
+    await assertOwnEpub(alpha, { title: 'Alpha', own: 'A one text.', other: 'B one text.' });
+    await assertOwnEpub(beta, { title: 'Beta', own: 'B one text.', other: 'A one text.' });
+  }
 });

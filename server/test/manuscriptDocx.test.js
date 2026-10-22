@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { buildManuscriptDOCX } from '../src/services/manuscriptExport.js';
 import { unzip } from './support/zip.js';
 
+const plain = (text) => ({ text, bold: false, italic: false, underline: false });
+
 const BASE = {
   title: 'The Glass Orchard',
   details: {
@@ -14,8 +16,8 @@ const BASE = {
   },
   wordCount: 87420,
   chapters: [
-    { title: 'One', scenes: [['A1', 'A2 line\nbreak'], ['B1']] },
-    { title: 'Two', scenes: [['C1']] },
+    { title: 'One', scenes: [[[plain('A1')], [plain('A2 line\nbreak')]], [[plain('B1')]]] },
+    { title: 'Two', scenes: [[[plain('C1')]]] },
   ],
 };
 
@@ -83,6 +85,48 @@ test('a paragraph with line breaks keeps the breaks and one first-line indent', 
   const a2 = paragraphStarting(text(await build(), 'word/document.xml'), 'A2');
   assert.match(a2, /<w:br\/>/);
   assert.match(a2, /w:firstLine="720"/);
+});
+
+// The XML of the <w:r> run whose text is `text`
+function runXml(xml, text) {
+  return (xml.match(/<w:r>.*?<\/w:r>/g) ?? []).find((run) => run.includes(`>${text}</w:t>`));
+}
+
+test('manuscript DOCX runs carry bold, italics and underline', async () => {
+  const chapters = [
+    {
+      title: 'Four',
+      scenes: [[[
+        { ...plain('Bold'), bold: true },
+        plain(' '),
+        { ...plain('Ital'), italic: true },
+        plain(' '),
+        { ...plain('Under'), underline: true },
+      ]]],
+    },
+  ];
+  const xml = text(await build({ chapters }), 'word/document.xml');
+  assert.ok(runXml(xml, 'Bold').includes('<w:b/>'));
+  assert.ok(runXml(xml, 'Ital').includes('<w:i/>'));
+  assert.ok(runXml(xml, 'Under').includes('<w:u '));
+  assert.ok(!runXml(xml, 'Bold').includes('<w:i/>'), 'bold run is not italic');
+});
+
+test('a styled paragraph keeps the first-line indent and its exceptions', async () => {
+  const chapters = [
+    {
+      title: 'Four',
+      scenes: [
+        [[plain('A1')], [{ ...plain('Bold'), bold: true }, plain(' tail')]],
+        [[{ ...plain('B1'), italic: true }]],
+      ],
+    },
+  ];
+  const doc = text(await build({ chapters }), 'word/document.xml');
+  assert.match(paragraphStarting(doc, 'Bold'), /w:firstLine="720"/);
+  assert.match(runXml(doc, 'Bold'), /<w:b\/>/);
+  assert.doesNotMatch(paragraphStarting(doc, 'B1'), /w:firstLine/);
+  assert.match(runXml(doc, 'B1'), /<w:i\/>/);
 });
 
 test('scene break is a centred paragraph holding only # between scenes', async () => {
@@ -161,7 +205,7 @@ test('the first-page header is empty', async () => {
 
 test('chapter notes are never printed in the manuscript', async () => {
   const files = await build({
-    chapters: [{ title: 'One', notes: 'secret', scenes: [['A1']] }],
+    chapters: [{ title: 'One', notes: 'secret', scenes: [[[plain('A1')]]] }],
   });
   assert.ok(!text(files, 'word/document.xml').includes('secret'));
 });

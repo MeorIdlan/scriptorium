@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { buildManuscriptPDF } from '../src/services/manuscriptExport.js';
 import { parsePdf } from './support/pdf.js';
 
+const plain = (text) => ({ text, bold: false, italic: false, underline: false });
+
 const BASE = {
   title: 'The Glass Orchard',
   details: {
@@ -14,8 +16,8 @@ const BASE = {
   },
   wordCount: 87420,
   chapters: [
-    { title: 'One', scenes: [['A1', 'A2 line\nbreak'], ['B1']] },
-    { title: 'Two', scenes: [['C1']] },
+    { title: 'One', scenes: [[[plain('A1')], [plain('A2 line\nbreak')]], [[plain('B1')]]] },
+    { title: 'Two', scenes: [[[plain('C1')]]] },
   ],
 };
 
@@ -23,9 +25,9 @@ const BASE = {
 const LONG = {
   title: 'Three',
   scenes: [
-    Array.from({ length: 60 }, (_, p) =>
-      Array.from({ length: 80 }, (_, w) => `p${p}w${w}`).join(' ')
-    ),
+    Array.from({ length: 60 }, (_, p) => [
+      plain(Array.from({ length: 80 }, (_, w) => `p${p}w${w}`).join(' ')),
+    ]),
   ],
 };
 
@@ -72,6 +74,81 @@ test('body text stays inside 1 inch margins', async () => {
   }
 });
 
+test('manuscript PDF prints bold as Times-Bold', async () => {
+  const chapters = [{ title: 'Four', scenes: [[[{ ...plain('heavy'), bold: true }]]] }];
+  assert.equal(findRun(await build({ chapters }), 'heavy').font, 'Times-Bold');
+});
+
+test('manuscript PDF prints italic as Times-Italic, and Courier-Oblique for mono', async () => {
+  const chapters = [{ title: 'Four', scenes: [[[{ ...plain('slant'), italic: true }]]] }];
+  assert.equal(findRun(await build({ chapters }), 'slant').font, 'Times-Italic');
+  const mono = await build({ chapters, details: { ...BASE.details, font: 'mono' } });
+  assert.equal(findRun(mono, 'slant').font, 'Courier-Oblique');
+});
+
+test('a styled paragraph keeps the first-line indent and its exceptions', async () => {
+  const pdf = await build({
+    chapters: [
+      {
+        title: 'Four',
+        scenes: [
+          [[plain('A1')], [{ ...plain('Bold'), bold: true }, plain(' tail')]],
+          [[{ ...plain('B1'), italic: true }]],
+        ],
+      },
+    ],
+  });
+  assert.ok(Math.abs(findRun(pdf, 'Bold').x - 108) < 0.5, `bold x ${findRun(pdf, 'Bold').x}`);
+  assert.equal(findRun(pdf, 'Bold').font, 'Times-Bold');
+  // The rest of the line follows the bold run, with no second indent
+  assert.ok(Math.abs(findRun(pdf, ' tail').x - 132) < 0.5, `tail x ${findRun(pdf, ' tail').x}`);
+  assert.ok(Math.abs(findRun(pdf, 'B1').x - 72) < 0.5, `B1 x ${findRun(pdf, 'B1').x}`);
+  assert.equal(findRun(pdf, 'B1').font, 'Times-Italic');
+});
+
+test('a <br> inside an italic run starts an unindented line and stays italic', async () => {
+  const pdf = await build({
+    chapters: [{ title: 'Four', scenes: [[[plain('A1')], [{ ...plain('first\nsecond'), italic: true }]]] }],
+  });
+  assert.ok(Math.abs(findRun(pdf, 'first').x - 108) < 0.5, `first x ${findRun(pdf, 'first').x}`);
+  assert.ok(Math.abs(findRun(pdf, 'second').x - 72) < 0.5, `second x ${findRun(pdf, 'second').x}`);
+  assert.equal(findRun(pdf, 'first').font, 'Times-Italic');
+  assert.equal(findRun(pdf, 'second').font, 'Times-Italic');
+});
+
+test('three or more runs on a line continue it, and the next paragraph is one line down', async () => {
+  const pdf = await build({
+    chapters: [
+      {
+        title: 'Four',
+        scenes: [[[plain('She said '), { ...plain('no'), italic: true }, plain(' and left.')], [plain('next')]]],
+      },
+    ],
+  });
+  const no = findRun(pdf, 'no');
+  const rest = findRun(pdf, ' and left.');
+  assert.ok(Math.abs(rest.y - no.y) < 0.5, `rest y ${rest.y} on the line of "no" ${no.y}`);
+  assert.ok(rest.x > no.x, `rest x ${rest.x} after "no" x ${no.x}`);
+  const start = findRun(pdf, 'She said ');
+  assert.ok(Math.abs(findRun(pdf, 'next').y - start.y - 24) < 0.5, `next y ${findRun(pdf, 'next').y}`);
+});
+
+test('the scene break, END and running header after a styled run are in the regular font', async () => {
+  const pdf = await build({
+    chapters: [
+      {
+        title: 'Four',
+        scenes: [[[{ ...plain('end of scene'), bold: true }]], [[{ ...plain('end of book'), italic: true }]]],
+      },
+    ],
+  });
+  assert.equal(findRun(pdf, '#').font, 'Times-Roman');
+  assert.equal(findRun(pdf, 'END').font, 'Times-Roman');
+  const headers = allRuns(pdf).filter(isHeader);
+  assert.ok(headers.length > 0, 'there are running headers');
+  for (const header of headers) assert.equal(header.font, 'Times-Roman', header.text);
+});
+
 test('wrapped lines are double spaced: 24 pt baseline to baseline', async () => {
   // Page 3 is a continuation page of the long chapter, so all its body lines are wrapped.
   const pdf = await build({ chapters: [LONG] });
@@ -80,6 +157,21 @@ test('wrapped lines are double spaced: 24 pt baseline to baseline', async () => 
   for (let i = 1; i < lines.length; i++) {
     const gap = lines[i].y - lines[i - 1].y;
     assert.ok(Math.abs(gap - 24) <= 0.5, `gap ${gap} between "${lines[i - 1].text}" and "${lines[i].text}"`);
+  }
+});
+
+test('wrapped bold and italic lines are double spaced too: 24 pt apart in each style', async () => {
+  for (const style of ['bold', 'italic']) {
+    const words = Array.from({ length: 80 }, (_, w) => `${style}${w}`).join(' ');
+    const chapters = [{ title: 'Four', scenes: [[[{ ...plain(words), [style]: true }]]] }];
+    const pdf = await build({ chapters });
+    const font = style === 'bold' ? 'Times-Bold' : 'Times-Italic';
+    const lines = bodyRuns(pdf).filter((run) => run.font === font);
+    assert.ok(lines.length > 5, `${style} lines ${lines.length}`);
+    for (let i = 1; i < lines.length; i++) {
+      const gap = lines[i].y - lines[i - 1].y;
+      assert.ok(Math.abs(gap - 24) <= 0.1, `${style} gap ${gap} between "${lines[i - 1].text}" and "${lines[i].text}"`);
+    }
   }
 });
 
@@ -178,7 +270,7 @@ test('a work with no exportable chapters still builds: about 100 words, then END
 });
 
 test('non-Latin text builds without throwing', async () => {
-  const pdf = await build({ chapters: [{ title: 'Four', scenes: [['“Ægir” — 東京']] }] });
+  const pdf = await build({ chapters: [{ title: 'Four', scenes: [[[plain('“Ægir” — 東京')]]] }] });
   assert.ok(allRuns(pdf).some((run) => run.text.includes('gir')));
 });
 

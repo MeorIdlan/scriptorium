@@ -55,7 +55,7 @@ function blockText(nodes) {
 }
 
 // Top-level blocks: each block element (or <hr>) alone, runs of inline nodes together
-export function topBlocks(nodes) {
+export function topBlocks(nodes, render = blockText) {
   const groups = [];
   let run = null;
   for (const node of nodes) {
@@ -70,7 +70,7 @@ export function topBlocks(nodes) {
       run.push(node);
     }
   }
-  return groups.map(blockText);
+  return groups.map((group) => render(group));
 }
 
 // [{ marker, nodes }]; the first entry is the opening (marker null)
@@ -99,6 +99,113 @@ export function paragraphsOf(nodes) {
     .flatMap((block) => block.split(/\n\s*\n/))
     .map((p) => p.trim())
     .filter(Boolean);
+}
+
+const PLAIN_STYLE = { bold: false, italic: false, underline: false };
+const BOLD_WEIGHT = /^(bold|bolder|[6-9]00)$/;
+const PLAIN_WEIGHT = /^(normal|400)$/;
+const sameStyle = (a, b) => a.bold === b.bold && a.italic === b.italic && a.underline === b.underline;
+
+// The style an element gives its children: its tag, then its inline style
+function styleOf(node, inherited) {
+  const style = { ...inherited };
+  if (node.name === 'b' || node.name === 'strong') style.bold = true;
+  if (node.name === 'i' || node.name === 'em') style.italic = true;
+  if (node.name === 'u') style.underline = true;
+  for (const declaration of (node.attribs.style || '').split(';')) {
+    const colon = declaration.indexOf(':');
+    if (colon < 0) continue;
+    const prop = declaration.slice(0, colon).trim().toLowerCase();
+    const value = declaration.slice(colon + 1).trim().toLowerCase();
+    if (prop === 'font-weight') {
+      if (BOLD_WEIGHT.test(value)) style.bold = true;
+      else if (PLAIN_WEIGHT.test(value)) style.bold = false;
+    } else if (prop === 'font-style') {
+      if (value === 'italic') style.italic = true;
+      else if (value === 'normal') style.italic = false;
+    } else if (prop === 'text-decoration' && value.includes('underline')) {
+      style.underline = true;
+    }
+  }
+  return style;
+}
+
+// blockText with each piece of text kept under its style: { text, runs }, where
+// text is exactly what blockText returns and the runs spell it out
+function styledBlockText(nodes) {
+  let text = '';
+  const runs = [];
+  let closed = false;
+  const append = (piece, style) => {
+    if (!piece) return;
+    text += piece;
+    const last = runs[runs.length - 1];
+    if (last && sameStyle(last, style)) last.text += piece;
+    else runs.push({ text: piece, ...style });
+  };
+  const breakAfter = (style) => {
+    if (closed && text && !text.endsWith('\n')) append('\n', style);
+    closed = false;
+  };
+  const walk = (node, nested, inherited) => {
+    if (node.type === 'text') {
+      if (node.data) breakAfter(inherited);
+      append(node.data, inherited);
+      return;
+    }
+    if (!isTag(node)) return;
+    if (node.name === 'br') {
+      breakAfter(inherited);
+      append('\n', inherited);
+      return;
+    }
+    if (node.name === 'hr') {
+      closed = true;
+      return;
+    }
+    const style = styleOf(node, inherited);
+    const block = BLOCK_TAGS.has(node.name);
+    if (block) {
+      closed = false;
+      if (text && !text.endsWith('\n')) append('\n', inherited);
+    }
+    for (const child of node.children) walk(child, true, style);
+    if (nested && block) closed = true;
+  };
+  for (const node of nodes) walk(node, false, PLAIN_STYLE);
+  return { text, runs };
+}
+
+// The runs of text[start, end), keeping each run's style
+function sliceRuns(runs, start, end) {
+  const sliced = [];
+  let offset = 0;
+  for (const run of runs) {
+    const from = Math.max(start - offset, 0);
+    const to = Math.min(end - offset, run.text.length);
+    if (to > from) sliced.push({ ...run, text: run.text.slice(from, to) });
+    offset += run.text.length;
+  }
+  return sliced;
+}
+
+// paragraphsOf for styled blocks: the same cuts and trimming, as Run[] per paragraph
+function styledParagraphsOf({ text, runs }) {
+  const bounds = [];
+  let from = 0;
+  for (const match of text.matchAll(/\n\s*\n/g)) {
+    bounds.push([from, match.index]);
+    from = match.index + match[0].length;
+  }
+  bounds.push([from, text.length]);
+  return bounds
+    .map(([a, b]) => {
+      const piece = text.slice(a, b);
+      const start = a + piece.length - piece.trimStart().length;
+      return [start, start + piece.trim().length];
+    })
+    .filter(([start, end]) => end > start)
+    .map(([start, end]) => sliceRuns(runs, start, end));
 }
 
 export function parseScenes(html) {
@@ -135,18 +242,18 @@ export function chapterText(html) {
     .join('\n\n');
 }
 
-// Paragraphs per scene for export; older chapters only have plain text
+// Styled paragraphs (Run[]) per scene for export; older chapters only have plain text
 export function exportScenes({ content, contentHtml }) {
   if (typeof contentHtml === 'string' && contentHtml.trim()) {
-    return parseScenes(contentHtml)
-      .map((s) => s.paragraphs)
+    return splitTop(contentHtml)
+      .map((seg) => topBlocks(seg.nodes, styledBlockText).flatMap(styledParagraphsOf))
       .filter((p) => p.length > 0);
   }
   const paragraphs = (content || '')
     .split(/\n\n+/)
     .map((p) => p.trim())
     .filter(Boolean);
-  return paragraphs.length ? [paragraphs] : [];
+  return paragraphs.length ? [paragraphs.map((p) => [{ text: p, ...PLAIN_STYLE }])] : [];
 }
 
 function escapeHtml(text) {
