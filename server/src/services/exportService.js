@@ -208,15 +208,72 @@ async function buildEPUBNow(meta, chapters) {
   }
 }
 
-function coverSVG(meta) {
+export function coverSVG(meta) {
   const bg = /^#[0-9a-f]{6}$/i.test(meta.coverColor || '') ? meta.coverColor : '#2d3b4a';
+  const title = wrapCoverText(meta.title || 'Untitled', 120, 60, 5);
+  const titleLast = title.y + (title.lines.length - 1) * title.lineHeight;
+  const author = wrapCoverText((meta.author || '').trim(), 64, 40, 3);
+  const authorBlock = author.lines.length
+    ? coverTextBlock({ ...author, y: titleLast + 160, fill: '#c9a96e' })
+    : '';
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="2560" viewBox="0 0 1600 2560">
   <rect width="1600" height="2560" fill="${bg}"/>
-  <text x="800" y="1100" font-family="Georgia, serif" font-size="120" fill="#e8e3d8" text-anchor="middle">${escapeXml(meta.title || 'Untitled')}</text>
-  <text x="800" y="1300" font-family="Georgia, serif" font-size="64" fill="#c9a96e" text-anchor="middle">${escapeXml(meta.author || '')}</text>
+  ${coverTextBlock({ ...title, fill: '#e8e3d8' })}
+  ${authorBlock}
 </svg>
 `;
+}
+
+// Cover text width estimate: usable width 1300 px, average glyph 0.55 em.
+const COVER_TEXT_WIDTH = 1300;
+const COVER_GLYPH_EM = 0.55;
+
+// Greedy word wrap. Steps the font size down 10 % (never below `min`) until the lines fit in
+// `maxLines`, then hard-breaks any word still too long at the minimum size. `y` is the first
+// baseline, which centres the block's lines on y=1100.
+function wrapCoverText(text, start, min, maxLines) {
+  let size = start;
+  let lines = wrapCoverLines(text, size, false);
+  while (size > min && !coverLinesFit(lines, size, maxLines)) {
+    size = Math.max(min, Math.round(size * 0.9));
+    lines = wrapCoverLines(text, size, size === min);
+  }
+  const lineHeight = size * 1.2;
+  const y = 1100 - ((lines.length - 1) * lineHeight) / 2;
+  return { lines, size, lineHeight, y };
+}
+
+function wrapCoverLines(text, size, hardBreak) {
+  const maxChars = Math.floor(COVER_TEXT_WIDTH / (COVER_GLYPH_EM * size));
+  const words = text.trim().split(/\s+/).flatMap((word) => {
+    if (!hardBreak) return [word];
+    const chunks = [];
+    for (let i = 0; i < word.length; i += maxChars) chunks.push(word.slice(i, i + maxChars));
+    return chunks;
+  });
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && next.length * COVER_GLYPH_EM * size > COVER_TEXT_WIDTH) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function coverLinesFit(lines, size, maxLines) {
+  return lines.length <= maxLines && lines.every((line) => line.length * COVER_GLYPH_EM * size <= COVER_TEXT_WIDTH);
+}
+
+function coverTextBlock({ lines, size, lineHeight, y, fill }) {
+  const tspans = lines.map((line, i) => `<tspan x="800" dy="${i ? lineHeight : 0}">${escapeXml(line)}</tspan>`).join('');
+  return `<text x="800" y="${y}" font-family="Georgia, serif" font-size="${size}" fill="${fill}" text-anchor="middle">${tspans}</text>`;
 }
 
 // ─── DOCX ────────────────────────────────────────────────────────────────────

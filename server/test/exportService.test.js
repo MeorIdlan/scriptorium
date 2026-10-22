@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Document, Packer } from 'docx';
-import { chapterToHTML, docxBody, SCENE_BREAK } from '../src/services/exportService.js';
+import { chapterToHTML, coverSVG, docxBody, SCENE_BREAK } from '../src/services/exportService.js';
 import { unzip } from './support/zip.js';
 
 const run = (text, flags = {}) => ({ text, bold: false, italic: false, underline: false, ...flags });
@@ -58,4 +58,55 @@ test('DOCX body sets bold, italics and underline on runs and keeps line breaks',
   assert.ok(a.includes('<w:b/>') && a.includes('<w:i/>') && a.includes('<w:u w:val="single"/>') && a.includes('>a</w:t>'));
   assert.ok(b.includes('<w:b/>') && !b.includes('<w:i/>') && !b.includes('<w:u ') && b.includes('>b</w:t>'));
   assert.ok(c.includes('<w:b/>') && c.includes('<w:br/>') && c.includes('>c</w:t>'), 'the line break keeps the run style');
+});
+
+// Each <text> block of a cover: its font size and its unescaped tspan lines.
+const unescapeXml = (text) =>
+  text.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+const coverBlocks = (svg) =>
+  [...svg.matchAll(/<text ([^>]*)>(.*?)<\/text>/g)].map(([, attrs, body]) => ({
+    size: Number(attrs.match(/font-size="([\d.]+)"/)[1]),
+    lines: [...body.matchAll(/<tspan [^>]*>(.*?)<\/tspan>/g)].map(([, text]) => unescapeXml(text)),
+  }));
+const fitsCover = (line, size, charWidth) => line.length * charWidth * size <= 1300;
+
+test('cover title of 36+ characters wraps onto several lines that fit the cover', () => {
+  const title = 'Tea & <Cake>: Ünïcode "Test" \'Run\' and a much longer subtitle';
+  const [titleBlock] = coverBlocks(coverSVG({ title, author: 'Ann' }));
+  assert.ok(titleBlock.lines.length > 1);
+  for (const line of titleBlock.lines) assert.ok(line.length * 0.6 * titleBlock.size <= 1400, line);
+  assert.equal(titleBlock.lines.join(' '), title);
+});
+
+test('a short title stays one 120 px line', () => {
+  const [titleBlock] = coverBlocks(coverSVG({ title: 'Alpha', author: 'Ann' }));
+  assert.deepEqual(titleBlock, { size: 120, lines: ['Alpha'] });
+});
+
+test('a single very long word is shrunk and broken to fit', () => {
+  const word = 'abcdefghij'.repeat(6);
+  const [titleBlock] = coverBlocks(coverSVG({ title: word, author: '' }));
+  assert.ok(titleBlock.size >= 60);
+  for (const line of titleBlock.lines) assert.ok(fitsCover(line, titleBlock.size, 0.55), line);
+  assert.equal(titleBlock.lines.join(''), word);
+});
+
+test('a long author name wraps within 3 lines', () => {
+  const author = 'Maximilian Alexander Bartholomew Fitzgerald-Worthington the Third of Somewhere';
+  const [, authorBlock] = coverBlocks(coverSVG({ title: 'T', author }));
+  assert.ok(authorBlock.size >= 40);
+  assert.ok(authorBlock.lines.length > 1 && authorBlock.lines.length <= 3);
+  for (const line of authorBlock.lines) assert.ok(fitsCover(line, authorBlock.size, 0.55), line);
+  assert.equal(authorBlock.lines.join(' '), author);
+});
+
+test('no author text when the author is empty', () => {
+  assert.equal(coverBlocks(coverSVG({ title: 'T', author: '' })).length, 1);
+});
+
+test('cover text is escaped', () => {
+  const svg = coverSVG({ title: 'Tea & <Cake>', author: 'Ann & Bo <Writer>' });
+  assert.ok(svg.includes('Tea &amp; &lt;Cake&gt;'));
+  assert.ok(svg.includes('Ann &amp; Bo &lt;Writer&gt;'));
+  assert.doesNotMatch(svg, /&(?!amp;|lt;|gt;|quot;|#39;)/);
 });
