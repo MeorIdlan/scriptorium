@@ -1,25 +1,32 @@
 import OpenAI from 'openai';
+import { requestControls, runRecovering } from './reasoning.js';
 
 export async function complete({ apiKey, model, system, prompt, maxTokens, temperature }) {
   const client = new OpenAI({ apiKey });
-  // max_tokens is refused by the gpt-5 family; max_completion_tokens works for every chat model
-  const request = {
+  // Ask for the least reasoning the model allows; reasoning tokens count against the cap
+  const { temperature: takesTemperature, controls } = requestControls('openai', model);
+  const params = {
     model,
+    // max_tokens is refused by the gpt-5 family; max_completion_tokens works for every chat model
     max_completion_tokens: maxTokens,
     messages: [
       { role: 'system', content: system },
       { role: 'user', content: prompt },
     ],
+    ...(takesTemperature ? { temperature } : {}),
+    ...Object.fromEntries(controls.map((c) => [c.field, c.value])),
   };
-  let res;
-  try {
-    res = await client.chat.completions.create({ ...request, temperature });
-  } catch (err) {
-    // Some models only allow their default temperature; retry once without it
-    if (err.status !== 400 || !/temperature/i.test(err.message)) throw err;
-    res = await client.chat.completions.create(request);
-  }
-  return res.choices[0].message.content;
+  return runRecovering({
+    model,
+    params,
+    controls,
+    capField: 'max_completion_tokens',
+    send: (p) => client.chat.completions.create(p),
+    read: (res) => ({
+      text: res.choices[0].message.content ?? '',
+      cutOff: res.choices[0].finish_reason === 'length',
+    }),
+  });
 }
 
 export async function listModels({ apiKey }) {
