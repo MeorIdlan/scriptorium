@@ -2,35 +2,113 @@
    Scriptorium — Comprehensive Dark Theme
    ============================================================ */
 
-:root {
+/* Palettes. Votive is the default; the writer's choice sets data-palette on <html>
+   (see utils/palette.js). Every palette defines every colour token. */
+:root,
+[data-palette="votive"] {
   color-scheme: dark;
-  --bg: #0e0e16;
-  --bg-elevated: #15151f;
-  --bg-card: #1a1a28;
-  --bg-input: #12121c;
-  --border: #2a2a38;
-  --border-control: #6c6c84;
-  --border-focus: #c9a96e;
-  --gold: #c9a96e;
-  --gold-dim: #a8874f;
-  --gold-hover: #dfc080;
-  --text: #e8e3d8;
-  --text-muted: #9a9588;
-  --text-dim: #8a857e;
-  --teal: #5dcaa5;
-  --purple: #9690e6;
-  --coral: #e06a40;
-  --amber: #e8a030;
-  --error: #e07a7a;
-  --success: #9fdba0;
-  --sidebar-bg: #12121c;
+  --bg: #121013;
+  --bg-elevated: #191518;
+  --bg-card: #201b1e;
+  --bg-input: #0e0c0f;
+  --sidebar-bg: #0e0c0f;
+  --border: #33292b;
+  --border-control: #7d6f68;
+  --border-focus: #d8b468;
+  --gold: #d0aa62;
+  --gold-dim: #b08f50;
+  --gold-hover: #e2c07c;
+  --text: #eae2d2;
+  --text-muted: #aba293;
+  --text-dim: #9b9284;
+  --teal: #6cc4a4;
+  --purple: #a79fe0;
+  --coral: #e58461;
+  --amber: #e3a548;
+  --error: #ea8f85;
+  --success: #a3d9a0;
+  --accent: #7c1f1c;
+  --accent-hover: #93261f;
+  --glass-1: #8f2a24;
+  --glass-2: #b8863a;
+  --glow: rgba(226, 150, 70, 0.16);
+}
+
+[data-palette="nave"] {
+  --bg: #0d1016;
+  --bg-elevated: #141821;
+  --bg-card: #1a1f2b;
+  --bg-input: #0a0d12;
+  --sidebar-bg: #0a0d12;
+  --border: #2b3242;
+  --border-control: #707a90;
+  --border-focus: #dcbc78;
+  --gold: #d4b472;
+  --gold-dim: #b2965c;
+  --gold-hover: #e5c98e;
+  --text: #e4e3dc;
+  --text-muted: #a3a6a8;
+  --text-dim: #93979c;
+  --teal: #62c6b0;
+  --purple: #a6a2ea;
+  --coral: #e6835f;
+  --amber: #e5a94e;
+  --error: #ec8e8a;
+  --success: #a0dba8;
+  --accent: #27407f;
+  --accent-hover: #314e97;
+  --glass-1: #2c4a9a;
+  --glass-2: #8f2a3a;
+  --glow: rgba(90, 120, 210, 0.16);
+}
+
+[data-palette="reliquary"] {
+  --bg: #150c0e;
+  --bg-elevated: #1e1114;
+  --bg-card: #27161a;
+  --bg-input: #100909;
+  --sidebar-bg: #100909;
+  --border: #43252a;
+  --border-control: #8a6c6c;
+  --border-focus: #e0b868;
+  --gold: #cfa658;
+  --gold-dim: #b78f4d;
+  --gold-hover: #e2bd74;
+  --text: #eee0d0;
+  --text-muted: #b5a395;
+  --text-dim: #a69486;
+  --teal: #6ec4a6;
+  --purple: #b0a2e0;
+  --coral: #ea8a66;
+  --amber: #e6a84a;
+  --error: #f0958c;
+  --success: #a8d8a0;
+  --accent: #8f1d22;
+  --accent-hover: #a82329;
+  --glass-1: #a01f26;
+  --glass-2: #5c1218;
+  --glow: rgba(190, 50, 50, 0.2);
+}
+
+/* Fonts, type sizes, radii and layout sizes: the same in every palette */
+:root {
+  --font-display: 'Pirata One', Georgia, serif;
+  --font-reading: 'EB Garamond', Georgia, serif;
+  --font-ui: 'Spectral', Georgia, serif;
+  --type-display: 2.75rem;
+  --type-title: 2rem;
+  --type-heading: 1.45rem;
+  --type-reading: 1.1875rem;
+  --type-body: 0.9375rem;
+  --type-small: 0.8125rem;
+  --type-label: 0.6875rem;
   --sidebar-width: 200px;
   --topbar-height: 48px;
   --panel-width: 280px;
   --chapter-sidebar-width: 200px;
-  --radius: 6px;
-  --radius-sm: 4px;
-  --radius-lg: 10px;
+  --radius: 2px;
+  --radius-sm: 1px;
+  --radius-lg: 3px;
   --transition: 0.15s ease;
 }
 
