@@ -90,6 +90,20 @@ export function validateAiToggle(current, partial) {
   return null;
 }
 
+// The colour palettes a writer can choose; the client keeps the same list (utils/palette.js)
+export const PALETTES = ['votive', 'nave', 'reliquary'];
+const DEFAULT_PALETTE = 'votive';
+
+// Checks a palette change; null when fine or when the save doesn't touch it. Without
+// this the schema would drop an unknown value and the save would still look successful.
+export function validatePalette(partial) {
+  if (partial.palette === undefined) return null;
+  if (!PALETTES.includes(partial.palette)) {
+    return httpError(400, 'VALIDATION_ERROR', `palette must be one of: ${PALETTES.join(', ')}`);
+  }
+  return null;
+}
+
 export function maskSettings(settings) {
   const masked = structuredClone(settings);
   for (const [id, provider] of Object.entries(masked.providers)) {
@@ -109,6 +123,7 @@ export function maskSettings(settings) {
   }
   masked.aiEnabled = isAiEnabled(settings);
   masked.aiAvailable = isAiAvailable(settings);
+  masked.palette = settings.palette ?? DEFAULT_PALETTE;
   return masked;
 }
 
