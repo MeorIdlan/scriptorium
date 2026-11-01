@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useId } from 'react';
 import { api } from '../utils/api.js';
 import ProviderSelect from '../components/settings/ProviderSelect.jsx';
 import ApiKeyField from '../components/settings/ApiKeyField.jsx';
@@ -33,6 +33,7 @@ function labelModel(m) {
 }
 
 export default function Settings() {
+  const rekindlerId = useId();
   const { aiOn, setAiState } = useAiState();
   const [settings, setSettings] = useState(null);
   const [providers, setProviders] = useState([]);
@@ -321,11 +322,11 @@ export default function Settings() {
             <section className="settings-section">
               <h2 className="settings-section-title">AI Behaviour</h2>
               <div className="settings-field">
-                <label className="settings-label">Rekindler</label>
+                <span id={rekindlerId} className="settings-label">Rekindler</span>
                 <p className="settings-description">
                   When you open a work with no saved session, the Rekindler uses AI to summarise where you left off.
                 </p>
-                <div className="settings-radio-group">
+                <div className="settings-radio-group" role="radiogroup" aria-labelledby={rekindlerId}>
                   {[
                     { value: 'auto', label: 'Automatic', desc: 'Runs silently every time' },
                     { value: 'prompt', label: 'Ask me first', desc: 'Shows a prompt before running' },

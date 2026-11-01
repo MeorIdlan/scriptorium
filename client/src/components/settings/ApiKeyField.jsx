@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { busyProps, guardBusy } from '../../utils/busyButton.js';
 
 export default function ApiKeyField({ hasKey, keyPreview, onChange, onTest, onSave, testing, saving, testStatus }) {
+  const id = useId();
   const [value, setValue] = useState('');
   const [showKey, setShowKey] = useState(false);
 
@@ -23,11 +24,12 @@ export default function ApiKeyField({ hasKey, keyPreview, onChange, onTest, onSa
 
   return (
     <div className="form-group">
-      <label className="form-label">
+      <label className="form-label" htmlFor={id}>
         API Key {hasKey && <span className="key-set-badge">Key set</span>}
       </label>
       <div className="api-key-field">
         <input
+          id={id}
           className="form-input"
           type={showKey ? 'text' : 'password'}
           value={value}

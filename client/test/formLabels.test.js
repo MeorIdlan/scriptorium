@@ -11,15 +11,6 @@ import { fileURLToPath } from 'node:url';
 
 const srcDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'src');
 
-// Files still being fixed (card PdTKm196). Each fix task removes its files.
-const UNFIXED = new Set([
-  'components/settings/ApiKeyField.jsx',
-  'components/settings/ModelSelect.jsx',
-  'components/settings/ParamSliders.jsx',
-  'components/settings/ProviderSelect.jsx',
-  'pages/Settings.jsx',
-]);
-
 function jsxFiles(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
@@ -29,7 +20,7 @@ function jsxFiles(dir) {
 }
 
 // Labels in `source` that have neither htmlFor nor a wrapped input, select or textarea
-export function unlinkedLabels(source) {
+function unlinkedLabels(source) {
   const found = [];
   for (const match of source.matchAll(/<label\b([^>]*)>([\s\S]*?)<\/label>/g)) {
     const [, attrs, body] = match;
@@ -49,15 +40,9 @@ for (const file of jsxFiles(srcDir)) {
 test('every <label> has htmlFor or wraps its control', () => {
   const problems = [];
   for (const [file, hits] of offenders) {
-    if (UNFIXED.has(file)) continue;
     for (const { line, text } of hits) problems.push(`${file}:${line}  ${text}`);
   }
   assert.deepEqual(problems, [], `labels with neither htmlFor nor a wrapped control:\n${problems.join('\n')}`);
-});
-
-test('UNFIXED lists only files that still have unlinked labels', () => {
-  const stale = [...UNFIXED].filter((file) => !offenders.has(file));
-  assert.deepEqual(stale, [], `remove these from UNFIXED, they are fixed: ${stale.join(', ')}`);
 });
 
 test('the scan tells linked labels from unlinked ones', () => {
