@@ -435,6 +435,33 @@ test('diffs: removed text is error and struck, added text is success and underli
   }
 });
 
+// Small screens: the @media rules take tokens and fonts only; their structure is not part of this redesign
+function mediaBlocks() {
+  const blocks = [];
+  for (const match of css.matchAll(/@media[^{]*\{/g)) {
+    let depth = 1;
+    let i = match.index + match[0].length;
+    while (depth > 0 && i < css.length) {
+      if (css[i] === '{') depth += 1;
+      else if (css[i] === '}') depth -= 1;
+      i += 1;
+    }
+    blocks.push(css.slice(match.index, i));
+  }
+  return blocks;
+}
+
+test('the small-screen rules hold no palette-coloured literal and no raw font', () => {
+  const blocks = mediaBlocks();
+  assert.equal(blocks.length, 4, 'expected the four existing @media blocks');
+  for (const block of blocks) {
+    assert.deepEqual(literalColours(block), [], block.slice(0, 60));
+    for (const [, value] of block.matchAll(/font-family:\s*([^;}]+)/g)) {
+      assert.match(value.trim(), /^(inherit|var\(--font-(display|reading|ui)\))$/, block.slice(0, 60));
+    }
+  }
+});
+
 test('the helpers find rules by selector', () => {
   assert.ok(rulesFor(':focus-visible').length > 0);
   assert.match(bodyOf(':focus-visible'), /outline: 2px solid var\(--border-focus\)/);
