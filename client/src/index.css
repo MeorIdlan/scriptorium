@@ -1617,6 +1617,12 @@ a:hover {
   overflow-y: auto;
 }
 
+/* The Map scrolls, so its sections keep their height. Left to shrink, the curve
+   section (overflow: hidden) is squashed to a strip once the page is taller than the view */
+.map-view > * {
+  flex-shrink: 0;
+}
+
 .map-header {
   display: flex;
   align-items: baseline;
