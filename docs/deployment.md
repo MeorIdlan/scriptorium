@@ -47,9 +47,11 @@ template's README.
        WEBAUTHN_RP_NAME=Scriptorium
        COOKIE_SECURE=true
        SESSION_TTL_DAYS=30
+       CLIENT_IP_HEADER=cf-connecting-ip
 
    Passkeys only work if `WEBAUTHN_RP_ID` and `WEBAUTHN_ORIGIN` match the public
-   hostname exactly.
+   hostname exactly. `CLIENT_IP_HEADER` is explained in
+   [Client IP](#client-ip-behind-the-tunnel).
 
 3. **Tunnel ingress**: add a Public Hostname entry to the existing Cloudflare
    Tunnel (Zero Trust dashboard → Networks → Tunnels → your tunnel → Public
@@ -71,6 +73,32 @@ template's README.
    server flags it as admin too. The flag is only ever added: changing
    `ADMIN_EMAIL` later doesn't remove admin from the previous account, so
    unset `isAdmin` on it in mongosh if it shouldn't keep it.
+
+## Client IP behind the tunnel
+
+The sign-up and recovery throttles (`emailThrottle`: 5 code requests an hour
+per client and email, 10 per client) need each visitor's own address. Every
+request reaches the server from nginx, so the socket address is the same for
+everyone, and without the setting below the caps apply to the whole site.
+
+`CLIENT_IP_HEADER=cf-connecting-ip` makes the server read the client address
+from that header (`server/src/utils/clientIp.js`). Cloudflare's edge sets
+`CF-Connecting-IP` on every request and overwrites any value the client sent,
+and cloudflared and nginx pass it through unchanged, so a client can't pick
+its own bucket. Express's `trust proxy` stays off, so `X-Forwarded-For`, which
+clients can add to freely, is never read. Leave the variable unset when the app
+isn't behind Cloudflare (local dev, tests): the socket address is used.
+
+This is only safe while the tunnel is the only way in. If any container
+publishes a port (or another proxy that doesn't overwrite the header is put in
+front), anyone reaching it directly can send their own `CF-Connecting-IP`.
+Keep `ports:` out of `compose.prod.yml`.
+
+To check the header on production, watch the server's traffic while sending
+one request from a phone, then compare with the phone's public IP:
+
+    docker run --rm --net container:$(docker compose -f compose.prod.yml ps -q scriptorium-server) \
+      nicolaka/netshoot tcpdump -l -A -s0 -i any 'tcp dst port 3001' | grep --line-buffered -i -E 'cf-connecting-ip|x-forwarded-for'
 
 ## Updating
 

@@ -68,7 +68,7 @@ scriptorium/
 │       │                       #   snapshotService, snapshotMigration, textDiff (version history), catchFields, sceneMarkers (scenes inside chapter HTML),
 │       │                       #   threadFields, threadTags, threadScope, threadCleanup (plot threads; scene tags are data-threads on scene markers, chapter tags are Chapter.threadIds written by PUT /chapters/:id/threads)
 │       ├── services/providers/ # anthropic.js, openai.js
-│       ├── utils/authCookie.js
+│       ├── utils/authCookie.js, clientIp.js (CLIENT_IP_HEADER → per-client limit key)
 │       └── routes/             # auth, admin, works, chapters, snapshots, milestones, codex, catches, map, threads, sessions, ai, settings, export
 └── client/
     ├── Dockerfile, Dockerfile.prod, nginx.conf   # prod serves the built bundle via nginx
