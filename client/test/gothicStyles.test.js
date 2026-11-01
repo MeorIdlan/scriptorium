@@ -261,6 +261,46 @@ test('the backup reminder on a card is amber under a rule', () => {
   assert.match(bodyOf('.backup-reminder--card'), /border-top: 1px solid var\(--border\)/);
 });
 
+// Main Room
+test('buttons and fields take the page font instead of the browser default', () => {
+  for (const tag of ['button', 'input', 'select', 'textarea']) {
+    assert.match(bodyOf(tag), /font-family: inherit/, tag);
+  }
+});
+
+test('the chapter list: 2px gold bar and a card fill on the open chapter, label-style heading', () => {
+  assert.match(bodyOf('.chapter-item'), /border-left: 2px solid transparent/);
+  assert.match(bodyOf('.chapter-item'), /padding: 7px 12px/);
+  assert.match(bodyOf('.chapter-item.active'), /border-left-color: var\(--gold\)/);
+  assert.match(bodyOf('.chapter-item.active'), /background: var\(--bg-card\)/);
+  assert.match(bodyOf('.chapter-item.active'), /color: var\(--gold\)/);
+  assert.match(bodyOf('.chapter-sidebar-title'), /font-size: var\(--type-label\)/);
+  assert.match(bodyOf('.chapter-sidebar-title'), /letter-spacing: 0\.1em/);
+  assert.match(bodyOf('.chapter-item-badge.outline'), /border: 1px solid var\(--purple\)/);
+});
+
+test('the toolbar, word counter and panel tabs', () => {
+  assert.match(bodyOf('.toolbar'), /padding: 7px 12px/);
+  assert.match(bodyOf('.toolbar-btn:hover'), /color: var\(--text\)/);
+  assert.match(bodyOf('.toolbar-btn:hover'), /border-color: var\(--border-control\)/);
+  assert.match(bodyOf('.word-counter'), /font-variant-numeric: tabular-nums/);
+  assert.match(bodyOf('.word-counter'), /border-top: 1px solid var\(--border\)/);
+  assert.match(bodyOf('.panel-tab'), /font-size: var\(--type-small\)/);
+  assert.match(bodyOf('.panel-tab.active'), /color: var\(--gold\)/);
+  assert.match(bodyOf('.editor-wrap'), /padding: 40px 32px/);
+});
+
+// The writing page stays plain so typing stays fast on a long work (NFR-3): nothing in the editor
+// area but flat colour. The one shadow is the 1px focus ring the focus test pins.
+test('the editor and its scroll area have no gradient, mask, filter, image or shadow', () => {
+  const offenders = rules
+    .filter((r) => r.selectors.some((s) => /^\.editor(?:-wrap)?(?![\w-])/.test(s)))
+    .filter((r) => !r.selectors.includes('.editor:focus-visible'))
+    .filter((r) => /gradient|mask|filter|url\(|box-shadow/.test(r.body))
+    .map((r) => r.selectors.join(', '));
+  assert.deepEqual(offenders, []);
+});
+
 test('the helpers find rules by selector', () => {
   assert.ok(rulesFor(':focus-visible').length > 0);
   assert.match(bodyOf(':focus-visible'), /outline: 2px solid var\(--border-focus\)/);

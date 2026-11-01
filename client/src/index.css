@@ -135,6 +135,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Controls take the page's font; the browser's own is a plain sans */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 :focus-visible {
   outline: 2px solid var(--border-focus);
   outline-offset: 2px;
@@ -1080,10 +1088,11 @@ input[type="range"] {
 }
 
 .chapter-sidebar-title {
-  font-size: 0.78rem;
-  color: var(--text-muted);
+  font-size: var(--type-label);
+  font-weight: 500;
+  color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.1em;
 }
 
 .chapter-add-btn {
@@ -1132,8 +1141,8 @@ input[type="range"] {
   text-align: left;
   background: none;
   border: none;
-  border-left: 3px solid transparent;
-  padding: 0.5rem 0.75rem;
+  border-left: 2px solid transparent;
+  padding: 7px 12px;
   cursor: pointer;
   color: var(--text-muted);
   display: flex;
@@ -1148,11 +1157,11 @@ input[type="range"] {
 .chapter-item.active {
   color: var(--gold);
   border-left-color: var(--gold);
-  background: color-mix(in srgb, var(--gold) 7%, transparent);
+  background: var(--bg-card);
 }
 
 .chapter-item-num {
-  font-size: 0.72rem;
+  font-size: var(--type-label);
   color: var(--text-dim);
 }
 .chapter-item.active .chapter-item-num { color: var(--gold-dim); }
@@ -1169,22 +1178,26 @@ input[type="range"] {
 }
 
 .chapter-item-title {
-  font-size: 0.82rem;
+  font-size: var(--type-small);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* An outlined badge: no fill, one colour for the text and the edge */
 .chapter-item-badge {
-  font-size: 0.65rem;
-  padding: 0.05rem 0.35rem;
-  border-radius: 999px;
+  font-size: var(--type-label);
+  font-weight: 500;
+  line-height: 1.5;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
   margin-top: 0.1rem;
   display: inline-block;
 }
 .chapter-item-badge.outline {
-  background: color-mix(in srgb, var(--purple) 15%, transparent);
+  background: transparent;
   color: var(--purple);
+  border: 1px solid var(--purple);
 }
 
 .chapter-list-empty {
@@ -1206,7 +1219,7 @@ input[type="range"] {
 .editor-wrap {
   flex: 1;
   overflow-y: auto;
-  padding: 2rem;
+  padding: 40px 32px;
   background: var(--bg);
 }
 
@@ -1283,8 +1296,8 @@ input[type="range"] {
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.75rem;
+  gap: 6px;
+  padding: 7px 12px;
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -1294,30 +1307,32 @@ input[type="range"] {
 .toolbar-select {
   background: var(--bg-input);
   border: 1px solid var(--border-control);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   color: var(--text-muted);
   font-family: var(--font-ui);
-  font-size: 0.8rem;
-  padding: 0.25rem 0.4rem;
+  font-size: var(--type-small);
+  padding: 3px 6px;
   cursor: pointer;
 }
-.toolbar-select:hover { border-color: var(--text-dim); }
+.toolbar-select:hover { border-color: var(--text-muted); }
 
 .toolbar-btn {
-  background: none;
+  background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   color: var(--text-muted);
   cursor: pointer;
   font-family: var(--font-ui);
-  font-size: 0.85rem;
-  padding: 0.2rem 0.5rem;
+  font-size: var(--type-small);
+  font-weight: 500;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
   transition: color var(--transition), background var(--transition), border-color var(--transition);
 }
 .toolbar-btn:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.05);
-  border-color: var(--border);
+  border-color: var(--border-control);
 }
 
 .toolbar-divider {
@@ -1328,29 +1343,29 @@ input[type="range"] {
 }
 
 .toolbar-spark {
-  color: var(--gold-dim);
+  color: var(--gold);
   border-color: var(--gold-dim);
-  background: color-mix(in srgb, var(--gold) 6%, transparent);
 }
 .toolbar-spark:hover {
-  color: var(--gold);
+  color: var(--gold-hover);
   border-color: var(--gold);
-  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  background: var(--bg-card);
 }
 
 /* ============================================================
    Word Counter
    ============================================================ */
 .word-counter {
-  font-size: 0.78rem;
-  color: var(--text-dim);
+  font-size: var(--type-small);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
   text-align: center;
-  padding: 0.35rem;
+  padding: 7px 12px;
   border-top: 1px solid var(--border);
   background: var(--bg-elevated);
   flex-shrink: 0;
 }
-.word-counter-total { color: var(--text-dim); }
+.word-counter-total { color: var(--text-muted); }
 .word-counter-daily { color: var(--gold); }
 .word-counter-bar {
   display: inline-block;
@@ -1405,8 +1420,9 @@ input[type="range"] {
   color: var(--text-muted);
   cursor: pointer;
   font-family: var(--font-ui);
-  font-size: 0.82rem;
-  padding: 0.6rem 0;
+  font-size: var(--type-small);
+  font-weight: 500;
+  padding: 9px 0 8px;
   transition: color var(--transition), border-color var(--transition);
 }
 .panel-tab:hover { color: var(--text); }
