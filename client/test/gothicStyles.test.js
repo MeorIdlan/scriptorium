@@ -321,6 +321,23 @@ test('the corner frame is two small gold-dim corners', () => {
   assert.match(bodyOf('.corners'), /position: relative/);
 });
 
+// Codex
+test('the Codex: blackletter entry titles and section dividers, 2px gold bar on the open entry', () => {
+  assert.match(bodyOf('.codex-entry-title'), /font-family: var\(--font-display\)/);
+  assert.match(bodyOf('.codex-entry-title'), /font-size: var\(--type-title\)/);
+  assert.match(bodyOf('.codex-section-divider'), /font-family: var\(--font-display\)/);
+  assert.match(bodyOf('.codex-section-divider'), /color: var\(--gold-dim\)/);
+  assert.match(bodyOf('.codex-section-divider::after'), /flex: 1/);
+  assert.match(bodyOf('.codex-section-divider::after'), /border-bottom: 1px solid var\(--border\)/);
+  assert.match(bodyOf('.codex-entity-item'), /border-left: 2px solid transparent/);
+  assert.match(bodyOf('.codex-entity-item.active'), /border-left-color: var\(--gold\)/);
+  assert.match(bodyOf('.codex-entity-item.active'), /background: var\(--bg-card\)/);
+  assert.match(bodyOf('.codex-tabs .codex-tab'), /font-size: var\(--type-small\)/);
+  assert.match(bodyOf('.codex-detail-col'), /padding: 26px 30px/);
+  assert.match(bodyOf('.codex-flags-title'), /font-size: var\(--type-label\)/);
+  assert.match(bodyOf('.codex-flags-title'), /letter-spacing: 0\.1em/);
+});
+
 test('the helpers find rules by selector', () => {
   assert.ok(rulesFor(':focus-visible').length > 0);
   assert.match(bodyOf(':focus-visible'), /outline: 2px solid var\(--border-focus\)/);
