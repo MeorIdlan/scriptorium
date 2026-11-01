@@ -43,6 +43,7 @@ export default function Settings() {
   const [testing, setTesting] = useState(false);
   const [savingKey, setSavingKey] = useState(false);
   const [savingAi, setSavingAi] = useState(false);
+  const [removingKey, setRemovingKey] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [pendingApiKey, setPendingApiKey] = useState('');
   const [fetchedModels, setFetchedModels] = useState(null);
@@ -215,6 +216,44 @@ export default function Settings() {
     }
   }
 
+  // Deletes the saved key on its own, like saving one. Only the key fields and
+  // the AI state come from the reply, so unsaved edits elsewhere survive; the
+  // reply goes to the app-wide AI state, which hides the AI controls if this
+  // was the active provider's key.
+  async function handleRemoveKey() {
+    const providerId = settings?.activeProvider;
+    if (!providerId) return;
+    setRemovingKey(true);
+    setError(null);
+    try {
+      const updated = await api.delete(`/settings/providers/${providerId}/key`);
+      const provider = updated?.providers?.[providerId];
+      setSettings((s) => ({
+        ...s,
+        aiEnabled: updated.aiEnabled,
+        aiAvailable: updated.aiAvailable,
+        providers: {
+          ...s.providers,
+          [providerId]: {
+            ...s.providers?.[providerId],
+            hasKey: Boolean(provider?.hasKey),
+            keyPreview: provider?.keyPreview ?? null,
+          },
+        },
+      }));
+      setAiState(updated);
+      setPendingApiKey('');
+      setKeyTestStatus(null);
+      // The list was fetched with the key that is now gone
+      setFetchedModels(null);
+      showToast('API key removed');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRemovingKey(false);
+    }
+  }
+
   // Saves on its own, like the API key, so the choice never waits on Save Settings
   async function handleToggleAi(enabled) {
     setSavingAi(true);
@@ -293,8 +332,10 @@ export default function Settings() {
             }}
             onTest={handleTestKey}
             onSave={handleSaveKey}
+            onRemove={handleRemoveKey}
             testing={testing}
             saving={savingKey}
+            removing={removingKey}
             testStatus={keyTestStatus}
           />
 
