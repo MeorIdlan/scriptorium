@@ -1,9 +1,9 @@
 # Scriptorium: Product Requirements
 
-Version: 1.1 · Updated: 2026-11-01 · Status: Approved
+Version: 1.2 · Updated: 2026-11-01 · Status: Approved
 
 ## 1. Overview
-Scriptorium is a private fiction-writing workspace that carries a work from first spark to submission-ready manuscript, with opt-in AI help grounded in the writer's own story. It is for writers of novels, short fiction and serials, and runs as a single instance hosted by the dev. Most of the writing pipeline already exists; this PRD sets out what "the entire app working" means (MVP 1), then the next layer of depth and a toggleable game-style UI (MVP 2).
+Scriptorium is a private fiction-writing workspace that carries a work from first spark to submission-ready manuscript, with opt-in AI help grounded in the writer's own story. It is for writers of novels, short fiction and serials, and runs as a single instance hosted by the dev. Most of the writing pipeline already exists; this PRD sets out what "the entire app working" means (MVP 1), then the next layer of depth and a gothic redesign of the classic UI (MVP 2). A toggleable game-style UI is deferred to Later.
 
 ## 2. Problem
 Fiction writers lose the thread of a long project: ideas, characters, structure and drafts are scattered across documents, notes apps and spreadsheets, and generic AI tools don't know their story. Scriptorium is one private workspace that keeps all of it together, with AI that is opt-in and grounded in the writer's own material (codex, outline, earlier chapters) rather than replacing their voice.
@@ -29,8 +29,8 @@ The dev also operates the single instance (deploys, admin user management). That
 ## 5. Scope
 ### In scope
 - **MVP 1, the entire app working:** verify every existing feature in production with a real AI key and fix what breaks (including the known chapter double-fetch); plot threads; a daily word goal; manuscript-format export; writer-run backup (per work and whole account, with history, plus a reminder); an AI on/off switch; CI that runs the tests and blocks deploys on failure.
-- **MVP 2:** a grimdark gothic redesign of the classic UI; game mode v1 (toggle, cinematic login, Librarium, Study, played as pre-rendered clips under real UI); responsive phone/tablet layout; import and restore from a backup; project targets, deadlines, streaks and session goals; Map structure tools (drag to reorder, editable frameworks, tension inference); Codex depth (unknown-name detection, appearances, relationships, timeline, AI continuity check); writing-flow tools (distraction-free mode, inline comments and TK markers, "what next" help, linked Codex names); removal of the flat-file storage leftovers.
-- **Later:** Kindle-ready EPUB with front matter; chapter-range export; game-mode scenes beyond v1 and the servo-skull AI face; replacing the contentEditable editor with TipTap/ProseMirror.
+- **MVP 2:** a grimdark gothic redesign of the classic UI; responsive phone/tablet layout; import and restore from a backup; project targets, deadlines, streaks and session goals; Map structure tools (drag to reorder, editable frameworks, tension inference); Codex depth (unknown-name detection, appearances, relationships, timeline, AI continuity check); writing-flow tools (distraction-free mode, inline comments and TK markers, "what next" help, linked Codex names); removal of the flat-file storage leftovers.
+- **Later:** Kindle-ready EPUB with front matter; chapter-range export; game mode (deferred 2026-11-01): v1 (toggle, cinematic login, Librarium, Study, played as pre-rendered clips under real UI), then scenes for the other rooms and the servo-skull AI face; replacing the contentEditable editor with TipTap/ProseMirror.
 
 ### Out of scope (Won't, this time)
 - **Collaboration** (co-authors, sharing a work, real-time editing, beta-reader comments): Scriptorium is a single-author tool; each writer's works stay private to them.
@@ -120,9 +120,9 @@ Existing features (FR-1 to FR-12) are already built. For MVP 1 each is accepted 
 ### Interface
 | ID | Requirement | Priority | Release | Acceptance notes |
 |---|---|---|---|---|
-| FR-24 | Game mode v1: a switch between the classic UI and a cinematic gothic UI that starts at sign-in, with the login, the Librarium (Shelves) and the Study (Main Room) as scenes; other rooms render their classic page inside the game frame | Should | MVP 2 | The writer can switch modes at any time, including before signing in (the choice is remembered in the browser); writing uses the same editor in both |
-| FR-45 | Redesign the classic UI with a grimdark gothic look (inspired by WH40K, using none of Games Workshop's names, logos or iconography), from one design system that game mode also builds on | Should | MVP 2 | Every room matches the approved design; WCAG AA contrast still holds (NFR-6) |
-| FR-46 | Game-mode scenes are pre-rendered video clips, the same for every writer, with every interactive element drawn as real UI over the video; scene changes fade through black | Should | MVP 2 | Loops are seamless; overlays stay aligned at any desktop window size; each clip has a still-frame fallback |
+| FR-24 | Game mode v1: a switch between the classic UI and a cinematic gothic UI that starts at sign-in, with the login, the Librarium (Shelves) and the Study (Main Room) as scenes; other rooms render their classic page inside the game frame | Could | Later | The writer can switch modes at any time, including before signing in (the choice is remembered in the browser); writing uses the same editor in both |
+| FR-45 | Redesign the classic UI with a grimdark gothic look (inspired by WH40K, using none of Games Workshop's names, logos or iconography), from one design system | Should | MVP 2 | Every room matches the approved design; WCAG AA contrast still holds (NFR-6) |
+| FR-46 | Game-mode scenes are pre-rendered video clips, the same for every writer, with every interactive element drawn as real UI over the video; scene changes fade through black | Could | Later | Loops are seamless; overlays stay aligned at any desktop window size; each clip has a still-frame fallback |
 | FR-25 | Responsive layout so every room is usable on phones and tablets | Should | MVP 2 | All rooms usable at 390 px wide without horizontal scrolling |
 | FR-44 | Game-mode scenes for Map, Codex, Catch and Settings, and the servo-skull as the face of the AI assistant | Could | Later | Each room has its own scene |
 
@@ -136,13 +136,13 @@ Existing features (FR-1 to FR-12) are already built. For MVP 1 each is accepted 
 | NFR-5 | Platforms | Current Chrome, Edge, Firefox and Safari on desktop at 1024 px or wider | Must | MVP 1 |
 | NFR-6 | Accessibility | Every action works from the keyboard with visible focus; text meets WCAG AA contrast on the dark theme | Must | MVP 1 |
 | NFR-7 | Reliability | With AI off, no screen errors, goes blank or waits on an AI provider | Must | MVP 1 |
-| NFR-8 | Accessibility | Respect the operating system's reduced-motion setting (animations become instant fades) | Should | MVP 2 |
+| NFR-8 | Accessibility | Respect the operating system's reduced-motion setting (animations become instant fades) | Could | Later |
 
 ## 8. Constraints and dependencies
 - **Stack (kept):** React 18 + Vite client; Express (ESM) + MongoDB/Mongoose server; plain CSS; passkey + email one-time-code auth; AI through the writer's own Anthropic or OpenAI key; pdfkit, nodepub and docx for export. Tests use Node's built-in runner (`node --test`), with `linkedom` as the client DOM. No linter.
 - **Hosting:** one instance, operated by the dev, on a droplet behind a Cloudflare Tunnel with a shared MongoDB. A push to `main` builds images and deploys. nginx and the tunnel allow requests up to 100 seconds.
 - **External services:** Mailgun for code emails; AI provider APIs and their rate limits, billed to each writer's key.
-- **Game-mode art:** scenes are pre-rendered clips the dev makes with a third-party video generator, from prompts and a storyboard designed in Claude Design; they are served as static assets, outside the app bundle. Each clip has a still-frame fallback for reduced motion, narrow screens and failed loads.
+- **Game-mode art (Later):** scenes are pre-rendered clips the dev makes with a third-party video generator, from prompts and a storyboard designed in Claude Design; they are served as static assets, outside the app bundle. Each clip has a still-frame fallback for reduced motion, narrow screens and failed loads.
 - **Known technical limits:** EPUB builds must run one at a time and need a cover image (nodepub). Chapter text is sanitized HTML with scene markers; replacing the editor model (TipTap) is deferred to Later.
 - **Technical clean-up:** the flat-file storage leftovers (`clean-data.sh`, `server/data/`) were removed in MVP 2 (2026-10-12).
 - **Process:** one developer (the dev); work follows the repo playbook's gates with TDD; no deadline or budget cap.
@@ -157,9 +157,8 @@ The entire app working. FR-1 to FR-23 and NFR-1 to NFR-7. Exit when G-1 is met.
 - [Progress](https://trello.com/c/u8vaqnxC): FR-18 (1 story)
 - [Export and backup](https://trello.com/c/OCQSvfai): FR-19 to FR-22 (4 stories)
 ### MVP 2
-FR-24 to FR-41, FR-45, FR-46 and NFR-8.
+FR-25 to FR-41 and FR-45.
 - [Visual redesign](https://trello.com/c/6r7cj3P0): FR-45 (2 stories)
-- [Game mode](https://trello.com/c/HAGWPUDf): FR-24, FR-46, NFR-8 (2 stories; the build stories are drafted from the approved design)
 - [Responsive layout](https://trello.com/c/K36SBVkr): FR-25 (2 stories)
 - [Export and backup](https://trello.com/c/OCQSvfai): FR-26 (1 story)
 - [Progress](https://trello.com/c/u8vaqnxC): FR-27 to FR-29 (3 stories)
@@ -168,9 +167,9 @@ FR-24 to FR-41, FR-45, FR-46 and NFR-8.
 - [Writing flow](https://trello.com/c/SK39HOxM): FR-38 to FR-41 (4 stories)
 - [Foundation](https://trello.com/c/eoJ9XH9f): flat-file cleanup (1 story)
 ### Later
-FR-42 to FR-44, and the TipTap editor migration.
+FR-24, FR-42 to FR-44, FR-46, NFR-8, and the TipTap editor migration.
 - [Export and backup](https://trello.com/c/OCQSvfai): FR-42, FR-43 (2 stories)
-- [Game mode](https://trello.com/c/HAGWPUDf): FR-44 (1 story)
+- [Game mode](https://trello.com/c/HAGWPUDf): FR-24, FR-44, FR-46, NFR-8 (3 stories, deferred 2026-11-01; the v1 build stories are drafted from the approved design)
 - [Foundation](https://trello.com/c/eoJ9XH9f): TipTap migration (1 story)
 
 Board: https://trello.com/b/ixWOyJWe/scriptorium
@@ -182,7 +181,7 @@ Board: https://trello.com/b/ixWOyJWe/scriptorium
 | AI cost and rate limits on the dev's key during verification and summary generation | Medium | Medium | Verify on a small test work first; summaries are generated only when needed |
 | Whole-account backups with history become large and slow | Medium | Medium | Measure on a large work; size and streaming decided in the backup story's Gate 3 |
 | The contentEditable editor strains as more features build on chapter HTML (scenes, threads, comments, TK markers) | Medium | High | Each feature keeps markers compatible with the sanitizer; revisit TipTap if defects cluster |
-| Game-mode clips aren't ready when MVP 2 work starts | Medium | Low | The design card produces the clip set before the player is built; still frames stand in until then |
+| Game-mode clips aren't ready when game mode is picked up | Medium | Low | The design card produces the clip set before the player is built; still frames stand in until then |
 | Generated clips drift toward recognisable Games Workshop designs | Medium | Medium | Prompts carry IP guardrails; every clip gets a dev review before it ships |
 
 ## 11. Open questions
@@ -197,3 +196,4 @@ Board: https://trello.com/b/ixWOyJWe/scriptorium
 |---|---|---|
 | 1.0 | 2026-10-11 | Initial PRD |
 | 1.1 | 2026-11-01 | Added FR-45 (classic UI redesign) and FR-46 (pre-rendered game-mode clips under real UI); FR-24 now starts at sign-in; game-art constraint and risks updated; Visual redesign epic added to MVP 2 |
+| 1.2 | 2026-11-01 | Game mode deferred: FR-24, FR-46 and NFR-8 moved from MVP 2 to Later (Could); FR-45 no longer builds for game mode; release plan, game-art constraint and risks updated |
