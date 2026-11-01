@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import request from 'supertest';
 import { emailThrottle, resetEmailThrottle, throttleSize } from '../src/middleware/emailThrottle.js';
+import { errorHandler } from '../src/middleware/errorHandler.js';
 
 function buildApp() {
   const app = express();
   app.use(express.json());
   app.post('/recover', emailThrottle, (req, res) => res.json({ ok: true }));
+  app.use(errorHandler);
   return app;
 }
 
@@ -97,4 +99,47 @@ test('expired keys are swept so the store does not grow without bound', async ()
   mock.timers.tick(60 * 60 * 1000 + 1);
   await send(app, { ip: '203.0.113.7', email: 'b@example.com' });
   assert.equal(throttleSize(), 2);
+});
+
+test('addresses in the same IPv6 /64 share one bucket', async () => {
+  const app = buildApp();
+  for (let i = 0; i < 10; i++) {
+    const res = await send(app, { ip: `2402:b400:41fd:b71f::${(i + 1).toString(16)}`, email: `a${i}@example.com` });
+    assert.equal(res.status, 200);
+  }
+  assertRateLimited(await send(app, { ip: '2402:b400:41fd:b71f:dead:beef:0:1', email: 'z@example.com' }));
+  // a different /64 is a different client
+  assert.equal((await send(app, { ip: '2402:b400:41fd:b720::1', email: 'z@example.com' })).status, 200);
+});
+
+test('emails differing only in case or surrounding spaces share a bucket', async () => {
+  const app = buildApp();
+  for (const email of ['a@x.com', ' a@x.com', 'A@X.COM ', '\ta@x.com', 'a@x.com']) {
+    assert.equal((await send(app, { ip: '198.51.100.1', email })).status, 200);
+  }
+  assertRateLimited(await send(app, { ip: '198.51.100.1', email: '  a@x.com  ' }));
+});
+
+for (const [label, body, code] of [
+  ['missing', {}, 'MISSING_FIELD'],
+  ['blank', { email: '   ' }, 'MISSING_FIELD'],
+  ['a number', { email: 5 }, 'INVALID_FIELD'],
+  ['an array', { email: ['a@x.com'] }, 'INVALID_FIELD'],
+  ['longer than 254 characters', { email: `${'a'.repeat(250)}@x.com` }, 'INVALID_FIELD'],
+]) {
+  test(`an email that is ${label} is rejected with 400 before anything is stored`, async () => {
+    const app = buildApp();
+    const res = await request(app).post('/recover').set('CF-Connecting-IP', '198.51.100.1').send(body);
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, code);
+    assert.equal(throttleSize(), 0);
+  });
+}
+
+test('rejected emails do not count against the client', async () => {
+  const app = buildApp();
+  for (let i = 0; i < 20; i++) {
+    await request(app).post('/recover').set('CF-Connecting-IP', '198.51.100.1').send({ email: `${'x'.repeat(1000)}${i}` });
+  }
+  assert.equal((await send(app, { ip: '198.51.100.1', email: 'a@example.com' })).status, 200);
 });

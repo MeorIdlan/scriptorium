@@ -89,14 +89,20 @@ its own bucket. Express's `trust proxy` stays off, so `X-Forwarded-For`, which
 clients can add to freely, is never read. Leave the variable unset when the app
 isn't behind Cloudflare (local dev, tests): the socket address is used.
 
-This is only safe while the tunnel is the only way in. If any container
-publishes a port (or another proxy that doesn't overwrite the header is put in
-front), anyone reaching it directly can send their own `CF-Connecting-IP`.
-Keep `ports:` out of `compose.prod.yml`.
+This is only safe while the tunnel is the only way in: no published ports, and
+no untrusted container on `shared-edge` or `shared-mongo` (both can reach the
+app without going through Cloudflare). Anyone who reaches nginx or the server
+directly, or through another proxy that doesn't overwrite the header, can send
+their own `CF-Connecting-IP`. Keep `ports:` out of `docker-compose.prod.yml`.
+
+The throttle counts an IPv6 client by its /64 (one subscriber usually holds a
+whole /64), and it rejects a missing, non-string or over-254-character email
+with a 400 before counting anything.
 
 To check the header on production, watch the server's traffic while sending
 one request from a phone, then compare with the phone's public IP:
 
+    cd /opt/apps/scriptorium
     docker run --rm --net container:$(docker compose -f compose.prod.yml ps -q scriptorium-server) \
       nicolaka/netshoot tcpdump -l -A -s0 -i any 'tcp dst port 3001' | grep --line-buffered -i -E 'cf-connecting-ip|x-forwarded-for'
 
