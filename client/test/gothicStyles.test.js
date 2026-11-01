@@ -404,6 +404,37 @@ test('the Catch overlay takes the modal look: gold-dim outline, double-ruled bla
   assert.match(bodyOf('.catch-overlay-input:focus-visible'), /border-color: var\(--border-focus\)/);
 });
 
+// Modals: Export, Polish review, History and compare
+test('modal choices: a chosen format or layout is a gold edge on a card fill', () => {
+  assert.match(bodyOf('.format-btn'), /border: 1px solid var\(--border-control\)/);
+  const active = bodyOf('.format-btn.active');
+  assert.match(active, /border-color: var\(--gold\)/);
+  assert.match(active, /color: var\(--gold\)/);
+  assert.match(active, /background: var\(--bg-card\)/);
+  assert.match(bodyOf('.polish-change-btn.active'), /color: var\(--gold\)/);
+  assert.match(bodyOf('.polish-change-btn.active'), /background: var\(--bg-card\)/);
+});
+
+test('History: the chosen snapshot has a 2px gold bar on a card fill, and day headings are labels', () => {
+  assert.match(bodyOf('.history-item'), /border-left: 2px solid transparent/);
+  assert.match(bodyOf('.history-item.active'), /border-left-color: var\(--gold\)/);
+  assert.match(bodyOf('.history-item.active'), /background: var\(--bg-card\)/);
+  assert.match(bodyOf('.history-day'), /font-size: var\(--type-label\)/);
+  assert.match(bodyOf('.history-day'), /letter-spacing: 0\.1em/);
+});
+
+test('diffs: removed text is error and struck, added text is success and underlined, in the reading face', () => {
+  assert.match(bodyOf('.polish-del'), /color: var\(--error\)/);
+  assert.match(bodyOf('.polish-del'), /text-decoration: line-through/);
+  assert.match(bodyOf('.polish-add'), /color: var\(--success\)/);
+  assert.match(bodyOf('.polish-add'), /text-decoration: underline/);
+  for (const selector of ['.polish-review-body', '.history-fulltext', '.version-diff-body']) {
+    assert.match(bodyOf(selector), /font-family: var\(--font-reading\)/, selector);
+    assert.match(bodyOf(selector), /font-size: var\(--type-reading\)/, selector);
+    assert.match(bodyOf(selector), /line-height: 1\.7(?:;|$)/, selector);
+  }
+});
+
 test('the helpers find rules by selector', () => {
   assert.ok(rulesFor(':focus-visible').length > 0);
   assert.match(bodyOf(':focus-visible'), /outline: 2px solid var\(--border-focus\)/);

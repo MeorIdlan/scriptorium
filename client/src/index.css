@@ -3320,7 +3320,7 @@ button.rule-item {
   flex: 1;
   padding: 0.6rem;
   background: var(--bg-card);
-  border: 2px solid var(--border-control);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
   color: var(--text-muted);
   cursor: pointer;
@@ -3333,7 +3333,7 @@ button.rule-item {
 .format-btn.active {
   border-color: var(--gold);
   color: var(--gold);
-  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  background: var(--bg-card);
 }
 
 .checkbox-group {
@@ -3389,8 +3389,8 @@ button.rule-item {
 
 .draft-polish-preview {
   font-family: var(--font-reading);
-  font-size: 0.95rem;
-  line-height: 1.75;
+  font-size: var(--type-reading);
+  line-height: 1.7;
   color: var(--text);
   white-space: pre-wrap;
   word-break: break-word;
@@ -3431,9 +3431,10 @@ button.rule-item {
 }
 
 .history-day {
-  font-size: 0.7rem;
+  font-size: var(--type-label);
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   color: var(--text-dim);
   margin: 0.75rem 0 0.25rem 0.6rem;
 }
@@ -3446,7 +3447,8 @@ button.rule-item {
   text-align: left;
   background: none;
   border: 1px solid transparent;
-  border-radius: var(--radius);
+  border-left: 2px solid transparent;
+  border-radius: 0;
   padding: 0.45rem 0.6rem;
   color: var(--text);
   cursor: pointer;
@@ -3454,10 +3456,10 @@ button.rule-item {
 }
 .history-item:hover { background: var(--bg-card); }
 .history-item.active {
-  border-color: var(--gold-dim);
-  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  border-left-color: var(--gold);
+  background: var(--bg-card);
 }
-.history-item-label { font-size: 0.85rem; }
+.history-item-label { font-size: var(--type-small); }
 .history-item-label--named { color: var(--gold); }
 .history-item-label--milestone { color: var(--purple); }
 .history-item-meta { font-size: 0.75rem; color: var(--text-muted); }
@@ -3505,8 +3507,8 @@ button.rule-item {
 
 .history-fulltext {
   font-family: var(--font-reading);
-  font-size: 0.95rem;
-  line-height: 1.75;
+  font-size: var(--type-reading);
+  line-height: 1.7;
   color: var(--text);
   white-space: pre-wrap;
   word-break: break-word;
@@ -3548,8 +3550,8 @@ button.rule-item {
 
 .version-diff-body {
   font-family: var(--font-reading);
-  font-size: 0.95rem;
-  line-height: 1.75;
+  font-size: var(--type-reading);
+  line-height: 1.7;
   color: var(--text);
   white-space: pre-wrap;
   word-break: break-word;
@@ -4032,9 +4034,9 @@ button.rule-item {
 .polish-review-bulk { display: flex; gap: 0.5rem; }
 
 .polish-review-body {
-  font-family: var(--font-ui);
-  font-size: 0.95rem;
-  line-height: 1.8;
+  font-family: var(--font-reading);
+  font-size: var(--type-reading);
+  line-height: 1.7;
   color: var(--text);
 }
 
@@ -4049,8 +4051,8 @@ button.rule-item {
 .polish-change--accepted { background: color-mix(in srgb, var(--teal) 8%, transparent); }
 .polish-change--rejected { background: none; }
 
-.polish-del { color: var(--coral); text-decoration: line-through; }
-.polish-add { color: var(--teal); }
+.polish-del { color: var(--error); text-decoration: line-through; }
+.polish-add { color: var(--success); text-decoration: underline; text-underline-offset: 3px; }
 .polish-rejected { color: var(--text-muted); }
 
 .polish-change-actions {
@@ -4071,7 +4073,7 @@ button.rule-item {
   cursor: pointer;
 }
 .polish-change-btn:hover { color: var(--text); border-color: var(--gold-dim); }
-.polish-change-btn.active { color: var(--bg); background: var(--gold); border-color: var(--gold); }
+.polish-change-btn.active { color: var(--gold); background: var(--bg-card); border-color: var(--gold); }
 
 .polish-part-failed { color: var(--error); font-size: 0.82rem; font-family: inherit; }
 .polish-note, .polish-notice { color: var(--text-muted); font-size: 0.8rem; font-style: italic; }
