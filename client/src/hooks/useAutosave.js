@@ -1,17 +1,29 @@
 import { useEffect, useRef } from 'react';
 import { api } from '../utils/api.js';
 import { useEditor } from '../context/EditorContext.jsx';
+import { useActiveWork } from '../context/ActiveWorkContext.jsx';
 
 const AUTOSAVE_DELAY = 5000; // 5 seconds
 
 export function useAutosave(workId) {
   const { state, setSaveStatus } = useEditor();
+  const { updateChapter } = useActiveWork();
   const timerRef = useRef(null);
   // The unsaved edit, captured with its chapter so it can't be saved under
   // another one; cleared as soon as its save goes out
   const pendingRef = useRef(null);
   const workIdRef = useRef(workId);
   workIdRef.current = workId;
+  const updateChapterRef = useRef(updateChapter);
+  updateChapterRef.current = updateChapter;
+
+  // The chapter list (and so the footer's Total) holds the count from when the
+  // work loaded; a save's reply carries the server's new one. A reply without a
+  // count changes nothing. A chapter that is no longer in the list matches nothing.
+  function applySaved(chapterId, saved) {
+    if (typeof saved?.wordCount !== 'number') return;
+    updateChapterRef.current(chapterId, { wordCount: saved.wordCount });
+  }
 
   useEffect(() => {
     if (!state.hasUnsavedChanges || !workId || !state.chapterId) return;
@@ -29,7 +41,8 @@ export function useAutosave(workId) {
       if (!pending) return;
 
       try {
-        await savePending(workId, pending);
+        const saved = await savePending(workId, pending);
+        applySaved(pending.chapterId, saved);
         setSaveStatus('saved');
       } catch (err) {
         console.error('Autosave failed:', err);
