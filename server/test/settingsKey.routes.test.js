@@ -68,6 +68,22 @@ test('removing the active provider key turns AI off and leaves the stored flag a
   assert.equal((await stored()).aiEnabled, true);
 });
 
+test('saving a new key after removal brings AI back on', async () => {
+  await seed({ aiEnabled: true });
+  await call('delete', keyPath('anthropic'));
+  const res = await call('put', '/api/settings').send({ providers: { anthropic: { apiKey: 'sk-ant-new-key-123456' } } });
+  assert.equal(res.body.providers.anthropic.hasKey, true);
+  assert.equal(res.body.aiEnabled, true);
+});
+
+test('removing a provider that an older document never stored still works', async () => {
+  await Settings.create({ _id: 'user_a', providers: { anthropic: { apiKey: 'sk-ant-1234567890abcdef', model: 'm' } } });
+  const res = await call('delete', keyPath('openai'));
+  assert.equal(res.status, 200);
+  assert.equal(res.body.providers.openai.hasKey, false);
+  assert.equal(res.body.providers.anthropic.hasKey, true);
+});
+
 test('removing another provider key leaves the active key and AI on', async () => {
   await seed({ aiEnabled: true });
   const res = await call('delete', keyPath('openai'));

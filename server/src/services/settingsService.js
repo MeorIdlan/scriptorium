@@ -29,8 +29,8 @@ export async function saveSettings(userId, partial) {
   return merged;
 }
 
-// Clears one provider's saved key, in one atomic write so it can't race a save.
-// The id lands in a dotted Mongo path, so it must be a known provider. aiEnabled
+// Clears one provider's saved key with a single atomic $set that touches no
+// other field. The id lands in a dotted Mongo path, so it must be a known provider. aiEnabled
 // is left alone: with the key gone AI reads as off (isAiAvailable), and a later
 // key brings it back unless the writer had turned it off.
 export async function removeProviderKey(userId, providerId) {
