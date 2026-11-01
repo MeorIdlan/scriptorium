@@ -149,7 +149,8 @@ export default function ApiKeyField({
               ref={cancelRef}
               className="btn btn-ghost btn-sm"
               type="button"
-              onClick={closeQuestion}
+              onClick={guardBusy(removing, closeQuestion)}
+              {...busyProps(removing)}
             >
               Cancel
             </button>

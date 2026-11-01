@@ -150,11 +150,12 @@ test('Cancel does nothing while the removal request is running', async () => {
   await view.unmount();
 });
 
-test('while removing, Yes, remove reads as busy and stays focusable', async () => {
+test('while removing, Yes, remove and Cancel read as busy and stay focusable', async () => {
   const view = await render(field({ removing: true }));
   await click(button(view, 'Remove key'));
-  const yes = button(view, 'Removing…');
-  assert.equal(yes.getAttribute('aria-disabled'), 'true');
-  assert.equal(yes.hasAttribute('disabled'), false);
+  for (const el of [button(view, 'Removing…'), button(view, 'Cancel')]) {
+    assert.equal(el.getAttribute('aria-disabled'), 'true');
+    assert.equal(el.hasAttribute('disabled'), false);
+  }
   await view.unmount();
 });
