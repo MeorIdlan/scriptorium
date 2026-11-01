@@ -159,7 +159,7 @@ The entire app working. FR-1 to FR-23 and NFR-1 to NFR-7. Exit when G-1 is met.
 ### MVP 2
 FR-24 to FR-41, FR-45, FR-46 and NFR-8.
 - [Visual redesign](https://trello.com/c/6r7cj3P0): FR-45 (2 stories)
-- [Game mode](https://trello.com/c/HAGWPUDf): FR-24, FR-46, NFR-8 (6 stories)
+- [Game mode](https://trello.com/c/HAGWPUDf): FR-24, FR-46, NFR-8 (2 stories; the build stories are drafted from the approved design)
 - [Responsive layout](https://trello.com/c/K36SBVkr): FR-25 (2 stories)
 - [Export and backup](https://trello.com/c/OCQSvfai): FR-26 (1 story)
 - [Progress](https://trello.com/c/u8vaqnxC): FR-27 to FR-29 (3 stories)
