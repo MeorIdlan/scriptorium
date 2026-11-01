@@ -1077,8 +1077,8 @@ a:hover {
   max-width: 680px;
   margin: 0 auto;
   font-family: var(--font-reading);
-  font-size: 1rem;
-  line-height: 1.85;
+  font-size: var(--type-reading);
+  line-height: 1.7;
   color: var(--text);
   caret-color: var(--gold);
 }

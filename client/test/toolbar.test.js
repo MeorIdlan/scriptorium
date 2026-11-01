@@ -240,3 +240,115 @@ test('when the selection has left the editor, the command still applies to the s
   }
 });
 
+// The editor's default is EB Garamond at 19 (card uqVctsf5). Existing fonts and sizes stay.
+const optionTexts = (select) => [...select.querySelectorAll('option')].map((o) => o.textContent);
+const chosen = (select) => [...select.querySelectorAll('option')].find((o) => o.selected || o.hasAttribute('selected'))?.textContent;
+
+async function renderToolbar(env) {
+  return renderApp(h(Toolbar, { editorRef: { current: env.editor } }), { ai: false, path: '/work/w1/chapter/c1', route: '/work/:workId/chapter/:chapterId' });
+}
+
+test('the font select lists EB Garamond first, keeps the old fonts, and defaults to EB Garamond', async () => {
+  const env = setup();
+  try {
+    const view = await renderToolbar(env);
+    const font = view.query('select[title="Font family"]');
+    assert.deepEqual(optionTexts(font), ['EB Garamond', 'Georgia', 'Arial', 'Verdana', 'Courier']);
+    assert.equal(chosen(font), 'EB Garamond');
+    await view.unmount();
+  } finally {
+    env.restore();
+  }
+});
+
+test('the size select lists 19 between 18 and 20 and defaults to 19', async () => {
+  const env = setup();
+  try {
+    const view = await renderToolbar(env);
+    const size = view.query('select[title="Font size"]');
+    assert.deepEqual(optionTexts(size), ['12', '14', '16', '18', '19', '20']);
+    assert.equal(chosen(size), '19');
+    await view.unmount();
+  } finally {
+    env.restore();
+  }
+});
+
+// execCommand's fontSize takes 1 to 7, so 19px has no number. 19 asks for size 7, which the
+// toolbar then rewrites as a span with an exact size, so the text really is 19px.
+function stubFontSizeSeven(env) {
+  document.execCommand = (command, ui, value) => {
+    env.calls.push([command, value]);
+    if (command === 'fontSize') env.editor.innerHTML = `<p><font size="${value}">The lamp would not stay lit.</font></p>`;
+  };
+  const created = [];
+  const original = document.createRange;
+  document.createRange = () => {
+    const range = { setStartBefore(n) { this.start = n; }, setEndAfter(n) { this.end = n; } };
+    created.push(range);
+    return range;
+  };
+  return { created, restore: () => { document.createRange = original; } };
+}
+
+test('choosing 19 turns the size-7 font elements into spans of 19px and keeps the selection on them', async () => {
+  const env = setup();
+  const ranges = stubFontSizeSeven(env);
+  try {
+    const view = await renderToolbar(env);
+    document.dispatchEvent(new window.Event('selectionchange'));
+    const size = view.query('select[title="Font size"]');
+    size.focus();
+    await change(size, '19');
+    assert.deepEqual(env.calls, [['fontSize', 7]]);
+    assert.equal(env.editor.innerHTML, '<p><span style="font-size: 19px">The lamp would not stay lit.</span></p>');
+    assert.equal(env.editor.querySelectorAll('font[size="7"]').length, 0);
+    // The new span is selected again, and a keyboard pick leaves focus on the select
+    const span = env.editor.querySelector('span');
+    assert.equal(ranges.created.length, 1);
+    assert.equal(ranges.created[0].start === span && ranges.created[0].end === span, true);
+    assert.equal(env.sel.added, ranges.created[0]);
+    assert.equal(document.activeElement === size, true);
+    await view.unmount();
+  } finally {
+    ranges.restore();
+    env.restore();
+  }
+});
+
+test('choosing 19 with the mouse leaves focus in the editor', async () => {
+  const env = setup();
+  const ranges = stubFontSizeSeven(env);
+  try {
+    const view = await renderToolbar(env);
+    const size = view.query('select[title="Font size"]');
+    size.focus();
+    await pointerDown(size);
+    await change(size, '19');
+    assert.equal(env.editor.querySelectorAll('span[style="font-size: 19px"]').length, 1);
+    assert.equal(document.activeElement === env.editor, true);
+    await view.unmount();
+  } finally {
+    ranges.restore();
+    env.restore();
+  }
+});
+
+test('choosing 19 at a bare caret does nothing, so no size-7 text is left behind', async () => {
+  const env = setup();
+  const ranges = stubFontSizeSeven(env);
+  try {
+    const view = await renderToolbar(env);
+    document.dispatchEvent(new window.Event('selectionchange'));
+    env.range.collapsed = true;
+    const size = view.query('select[title="Font size"]');
+    size.focus();
+    await change(size, '19');
+    assert.deepEqual(env.calls, []);
+    await view.unmount();
+  } finally {
+    ranges.restore();
+    env.restore();
+  }
+});
+

@@ -8,8 +8,11 @@ import ChapterSummaryModal from '../overlays/ChapterSummaryModal.jsx';
 import { insertSceneBreak } from '../../utils/scenes.js';
 import { rememberedCaret } from '../../utils/editorBlocks.js';
 
-const FONTS = ['Georgia', 'Arial', 'Verdana', 'Courier'];
-const SIZES = [12, 14, 16, 18, 20];
+// EB Garamond at 19 is the editor's own default (see .editor in index.css); the older fonts stay
+const FONTS = ['EB Garamond', 'Georgia', 'Arial', 'Verdana', 'Courier'];
+const SIZES = [12, 14, 16, 18, 19, 20];
+const DEFAULT_FONT = 'EB Garamond';
+const DEFAULT_SIZE = 19;
 
 export default function Toolbar({ editorRef }) {
   const { state: uiState, dispatch } = useUI();
@@ -102,9 +105,47 @@ export default function Toolbar({ editorRef }) {
   }
 
   function setSize(size, control) {
+    if (size === DEFAULT_SIZE) {
+      setDefaultSize(control);
+      return;
+    }
     // execCommand fontSize uses 1-7, map px roughly
     const sizeMap = { 12: 1, 14: 2, 16: 3, 18: 4, 20: 5 };
     execOnSelection(control, 'fontSize', sizeMap[size] || 3);
+  }
+
+  // The range the next command acts on: the live selection when it is in the editor, else the saved one
+  function currentRange() {
+    const sel = document.getSelection();
+    if (sel && sel.rangeCount > 0 && editorRef.current?.contains(sel.anchorNode)) return sel.getRangeAt(0);
+    return editorRange.current;
+  }
+
+  // 19 is the editor's own size, and execCommand's 1 to 7 scale has no 19px. So 19 asks for
+  // size 7 (the largest, which nothing else uses) and rewrites the font elements that makes
+  // as spans with an exact 19px, which also overrides any bigger or smaller font around them.
+  function setDefaultSize(control) {
+    const root = editorRef.current;
+    // A bare caret has no text to resize, and size 7 would leave the next words huge
+    if (!root || currentRange()?.collapsed) return;
+    execOnSelection(control, 'fontSize', 7);
+    const spans = [...root.querySelectorAll('font[size="7"]')].map((font) => {
+      const span = document.createElement('span');
+      span.setAttribute('style', `font-size: ${DEFAULT_SIZE}px`);
+      span.append(...font.childNodes);
+      font.replaceWith(span);
+      return span;
+    });
+    // Moving the text dropped the writer's selection; select the new spans so more formatting can follow
+    const sel = document.getSelection();
+    if (!spans.length || !sel || typeof document.createRange !== 'function') return;
+    const range = document.createRange();
+    range.setStartBefore(spans[0]);
+    range.setEndAfter(spans[spans.length - 1]);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    // Putting a range in the editor focuses it; a keyboard pick keeps focus on the select
+    if (!pointerPick.current) control.focus();
   }
 
   return (
@@ -114,7 +155,7 @@ export default function Toolbar({ editorRef }) {
         onChange={(e) => setFont(e.target.value, e.target)}
         onPointerDown={selectPointerDown}
         onKeyDown={selectKeyDown}
-        defaultValue="Georgia"
+        defaultValue={DEFAULT_FONT}
         title="Font family"
       >
         {FONTS.map((f) => (
@@ -127,7 +168,7 @@ export default function Toolbar({ editorRef }) {
         onChange={(e) => setSize(Number(e.target.value), e.target)}
         onPointerDown={selectPointerDown}
         onKeyDown={selectKeyDown}
-        defaultValue="16"
+        defaultValue={String(DEFAULT_SIZE)}
         title="Font size"
       >
         {SIZES.map((s) => (

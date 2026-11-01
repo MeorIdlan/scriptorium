@@ -36,6 +36,13 @@ test('the shared tokens: fonts, type sizes and radii', () => {
   }
 });
 
+test('the editor uses the reading font at 19px with a 1.7 line height', () => {
+  const editor = bodyOf('.editor');
+  assert.match(editor, /font-family: var\(--font-reading\)/);
+  assert.match(editor, /font-size: var\(--type-reading\)/);
+  assert.match(editor, /line-height: 1\.7(?:;|$)/);
+});
+
 test('the helpers find rules by selector', () => {
   assert.ok(rulesFor(':focus-visible').length > 0);
   assert.match(bodyOf(':focus-visible'), /outline: 2px solid var\(--border-focus\)/);

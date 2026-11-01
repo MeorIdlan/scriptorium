@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import { parseDocument } from 'htmlparser2';
 import { sanitizeChapterHtml } from '../src/services/htmlService.js';
 
+test('keeps a span with a 19px font size and the font element size and face', () => {
+  const out = sanitizeChapterHtml('<p><span style="font-size: 19px" onclick="x()">a</span><font size="4" face="Arial">b</font></p>');
+  assert.match(out, /<span style="font-size:\s*19px">a<\/span>/);
+  assert.match(out, /<font[^>]*size="4"/);
+  assert.match(out, /<font[^>]*face="Arial"/);
+  assert.doesNotMatch(out, /onclick/);
+});
+
 const hrs = (html) => parseDocument(html).children.filter((n) => n.name === 'hr').map((n) => n.attribs);
 
 test('keeps a marker with only the scene attributes', () => {
