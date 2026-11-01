@@ -13,6 +13,7 @@ import codexRouter from '../../src/routes/codex.js';
 import catchesRouter from '../../src/routes/catches.js';
 import mapRouter from '../../src/routes/map.js';
 import progressRouter from '../../src/routes/progress.js';
+import settingsRouter from '../../src/routes/settings.js';
 import backupReminderRouter from '../../src/routes/backupReminder.js';
 import { errorHandler } from '../../src/middleware/errorHandler.js';
 
@@ -38,6 +39,7 @@ export function buildApp() {
     next();
   });
   app.use('/api/progress', progressRouter);
+  app.use('/api/settings', settingsRouter);
   app.use('/api/works', worksRouter);
   app.use('/api/works/:workId/threads', threadsRouter);
   app.use('/api/works/:workId/chapters/:chapterId/snapshots', snapshotsRouter);
