@@ -12,10 +12,13 @@ export default function WorkGrid({ works }) {
   }
 
   return (
-    <div className="work-grid">
-      {works.map((work) => (
-        <WorkCard key={work.id} work={work} />
-      ))}
+    <div className="shelf-wrap">
+      <div className="work-grid">
+        {works.map((work) => (
+          <WorkCard key={work.id} work={work} />
+        ))}
+      </div>
+      <div className="shelf-board" aria-hidden="true" />
     </div>
   );
 }

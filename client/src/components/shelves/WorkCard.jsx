@@ -116,8 +116,10 @@ export default function WorkCard({ work, onDelete, onExport }) {
 
   return (
     <div className="work-card" onClick={handleCardClick}>
+      {/* The tome's spine: an ornament in the work's cover colour */}
+      <span className="work-card-spine" style={{ '--spine': coverColor }} aria-hidden="true" />
+      <div className="work-card-main">
       <div className="work-card-header">
-        <span className="work-card-color-swatch" style={{ background: coverColor }} />
         <div className="work-card-menu-wrap" ref={menuRef} onClick={(e) => e.stopPropagation()}>
           <button
             ref={menuBtnRef}
@@ -167,6 +169,7 @@ export default function WorkCard({ work, onDelete, onExport }) {
           {work.currentDraft > 1 && (
             <span className="work-card-draft">Draft {work.currentDraft}</span>
           )}
+          {work.status === 'completed' && <span className="seal" title="Completed" />}
         </div>
       </div>
 
@@ -175,6 +178,7 @@ export default function WorkCard({ work, onDelete, onExport }) {
         variant="card"
         onChange={(backupReminder) => updateWork(work.id, { backupReminder })}
       />
+      </div>
     </div>
   );
 }

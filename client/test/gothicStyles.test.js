@@ -207,6 +207,60 @@ test('panels, modals and toasts: flat card, gold-dim modal over a double rule, d
   assert.match(bodyOf('.settings-toast'), /border-left: 3px double var\(--gold\)/);
 });
 
+// Shelves, work cards and the New Work wizard
+test('Shelves: a Pirata One title, a grid of 280px tomes, and a shelf board', () => {
+  assert.match(bodyOf('.shelves-title'), /font-family: var\(--font-display\)/);
+  assert.match(bodyOf('.shelves-title'), /font-size: var\(--type-display\)/);
+  assert.match(bodyOf('.work-grid'), /minmax\(280px, 1fr\)/);
+  assert.match(bodyOf('.shelf-board'), /border-top: 1px solid var\(--gold-dim\)/);
+});
+
+test('the work card is a tome: an 18px spine beside the body, flat, gold-dim on hover', () => {
+  const card = bodyOf('.work-card');
+  assert.match(card, /display: grid/);
+  assert.match(card, /grid-template-columns: 18px minmax\(0, 1fr\)/);
+  assert.match(card, /border: 1px solid var\(--border\)/);
+  assert.match(card, /border-radius: var\(--radius\)/);
+  assert.match(bodyOf('.work-card:hover'), /border-color: var\(--gold-dim\)/);
+  assert.match(bodyOf('.work-card-spine'), /background: var\(--spine, var\(--accent\)\)/);
+  assert.match(bodyOf('.work-card-spine::before'), /background: var\(--gold-dim\)/);
+  assert.match(bodyOf('.work-card-spine::after'), /background: var\(--gold-dim\)/);
+});
+
+test('the work card title is blackletter and the genre and status are outlined badges', () => {
+  assert.match(bodyOf('.work-card-title'), /font-family: var\(--font-display\)/);
+  assert.match(bodyOf('.work-card-title'), /font-size: var\(--type-heading\)/);
+  assert.match(bodyOf('.work-card-genre'), /border: 1px solid var\(--border-control\)/);
+  assert.match(bodyOf('.work-card-genre'), /background: none|background: transparent/);
+  // A stored status of drafting or draft has no class of its own, so gold is the base look
+  assert.match(bodyOf('.work-card-status'), /color: var\(--gold\)/);
+  assert.match(bodyOf('.work-card-status'), /border: 1px solid var\(--gold-dim\)/);
+  assert.match(bodyOf('.status-active'), /color: var\(--gold\)/);
+  assert.match(bodyOf('.status-completed'), /color: var\(--teal\)/);
+  assert.match(bodyOf('.work-card-progress-fill'), /background: var\(--gold-dim\)/);
+});
+
+test('the wax seal is a red disc with a gold-dim ring', () => {
+  assert.match(bodyOf('.seal'), /radial-gradient\(circle at 36% 32%, var\(--accent-hover\), var\(--accent\) 70%\)/);
+  assert.match(bodyOf('.seal::after'), /border: 1px solid var\(--gold-dim\)/);
+});
+
+test('the wizard: step dots, blackletter step titles, and a selected hook with an inset gold ring', () => {
+  assert.match(bodyOf('.wizard-step-title'), /font-family: var\(--font-display\)/);
+  assert.match(bodyOf('.wizard-step-dot'), /border: 1px solid var\(--border-control\)/);
+  assert.match(bodyOf('.wizard-step-dot.done'), /background: var\(--gold-dim\)/);
+  assert.match(bodyOf('.wizard-step-dot.active'), /background: var\(--gold\)/);
+  assert.match(bodyOf('.wizard-hook-card'), /background: var\(--bg-input\)/);
+  assert.match(bodyOf('.wizard-hook-card'), /border: 1px solid var\(--border-control\)/);
+  assert.match(bodyOf('.wizard-hook-card.selected'), /border-color: var\(--gold\)/);
+  assert.match(bodyOf('.wizard-hook-card.selected'), /box-shadow: inset 0 0 0 1px var\(--gold\)/);
+});
+
+test('the backup reminder on a card is amber under a rule', () => {
+  assert.match(bodyOf('.backup-reminder'), /color: var\(--amber\)/);
+  assert.match(bodyOf('.backup-reminder--card'), /border-top: 1px solid var\(--border\)/);
+});
+
 test('the helpers find rules by selector', () => {
   assert.ok(rulesFor(':focus-visible').length > 0);
   assert.match(bodyOf(':focus-visible'), /outline: 2px solid var\(--border-focus\)/);

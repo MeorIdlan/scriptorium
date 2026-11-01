@@ -638,18 +638,22 @@ input[type="range"] {
 }
 
 .wizard-step-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--border);
-  transition: background var(--transition);
+  background: transparent;
+  border: 1px solid var(--border-control);
+  transition: background var(--transition), border-color var(--transition);
 }
-.wizard-step-dot.active { background: var(--gold); }
-.wizard-step-dot.done { background: var(--success); }
+.wizard-step-dot.active { background: var(--gold); border-color: var(--gold); }
+.wizard-step-dot.done { background: var(--gold-dim); border-color: var(--gold-dim); }
 
 .wizard-step-title {
-  font-size: 1rem;
-  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: var(--type-heading);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--gold);
   margin-bottom: 1.25rem;
 }
 
@@ -705,29 +709,29 @@ input[type="range"] {
   text-align: left;
   font-family: inherit;
   color: inherit;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: var(--bg-input);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
-  padding: 0.75rem;
+  padding: 9px 10px;
   margin-bottom: 0.5rem;
   cursor: pointer;
   transition: border-color var(--transition), background var(--transition);
-  font-size: 0.88rem;
-  line-height: 1.5;
+  font-size: var(--type-small);
+  line-height: 1.45;
 }
 .wizard-hook-card:hover {
   border-color: var(--gold-dim);
 }
 .wizard-hook-card.selected {
   border-color: var(--gold);
-  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  box-shadow: inset 0 0 0 1px var(--gold);
 }
 
 /* ============================================================
    Shelves
    ============================================================ */
 .shelves-page {
-  padding: 2rem;
+  padding: 28px 32px 48px;
   max-width: 1200px;
 }
 
@@ -735,22 +739,37 @@ input[type="range"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 2rem;
+  margin-bottom: 22px;
 }
 
 .shelves-title {
-  font-size: 2rem;
+  font-size: var(--type-display);
+  font-weight: 400;
+  line-height: 1.05;
   color: var(--gold);
-  font-family: var(--font-ui);
+  font-family: var(--font-display);
 }
 
 /* ============================================================
    Work Grid
    ============================================================ */
+.shelf-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .work-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* The shelf the tomes stand on */
+.shelf-board {
+  height: 8px;
+  border-top: 1px solid var(--gold-dim);
+  background: linear-gradient(var(--bg-elevated), transparent);
 }
 
 .work-grid-empty {
@@ -759,40 +778,60 @@ input[type="range"] {
   color: var(--text-muted);
 }
 .work-grid-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
-.work-grid-empty-title { font-size: 1.2rem; color: var(--text); margin-bottom: 0.5rem; }
-.work-grid-empty-sub { font-size: 0.9rem; }
+.work-grid-empty-title { font-family: var(--font-display); font-size: var(--type-heading); font-weight: 400; color: var(--gold); margin-bottom: 0.5rem; }
+.work-grid-empty-sub { font-size: var(--type-body); }
 
 /* ============================================================
    Work Card
    ============================================================ */
+/* A tome: a spine in the work's cover colour beside the body */
 .work-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem;
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: border-color var(--transition), box-shadow var(--transition);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  transition: border-color var(--transition);
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
   position: relative;
+  min-width: 0;
 }
 .work-card:hover {
   border-color: var(--gold-dim);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
-.work-card-header {
+.work-card-spine {
+  position: relative;
+  background: var(--spine, var(--accent));
+  box-shadow: inset -4px 0 6px rgba(0, 0, 0, 0.45);
+}
+.work-card-spine::before,
+.work-card-spine::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  right: 4px;
+  height: 6px;
+  background: var(--gold-dim);
+}
+.work-card-spine::before { top: 10px; }
+.work-card-spine::after { bottom: 10px; }
+
+.work-card-main {
+  padding: 14px 16px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  position: relative;
 }
 
-.work-card-color-swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  flex-shrink: 0;
+/* The menu sits in the top corner, over the title row */
+.work-card-header {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
 }
 
 .work-card-menu-wrap {
@@ -800,24 +839,24 @@ input[type="range"] {
 }
 
 .work-card-menu-btn {
-  background: none;
-  border: none;
+  background: transparent;
+  border: 1px solid transparent;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 1.1rem;
-  padding: 0 0.25rem;
+  font-size: var(--type-body);
+  padding: 2px 7px;
   letter-spacing: 2px;
-  line-height: 1;
-  border-radius: var(--radius-sm);
+  line-height: 1.2;
+  border-radius: var(--radius);
 }
-.work-card-menu-btn:hover { color: var(--text); }
+.work-card-menu-btn:hover { color: var(--text); border-color: var(--border-control); }
 
 .work-card-menu {
   position: absolute;
   right: 0;
   top: calc(100% + 4px);
   background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
   z-index: 10;
   min-width: 140px;
@@ -832,8 +871,8 @@ input[type="range"] {
   background: none;
   border: none;
   color: var(--text);
-  padding: 0.55rem 0.9rem;
-  font-size: 0.85rem;
+  padding: 8px 14px;
+  font-size: var(--type-small);
   font-family: var(--font-ui);
   cursor: pointer;
   transition: background var(--transition);
@@ -843,10 +882,14 @@ input[type="range"] {
 .work-card-menu button.danger-confirm { color: var(--error); font-weight: bold; }
 
 .work-card-title {
-  font-size: 1.15rem;
+  font-size: var(--type-heading);
+  font-weight: 400;
+  line-height: 1.15;
   color: var(--gold);
-  font-family: var(--font-ui);
-  margin-bottom: 0.15rem;
+  font-family: var(--font-display);
+  text-wrap: balance;
+  /* Clear of the menu in the corner */
+  padding-right: 32px;
 }
 
 /* The title button looks like the plain title it replaces */
@@ -860,18 +903,22 @@ input[type="range"] {
   cursor: pointer;
 }
 
+/* An outlined badge: no fill */
 .work-card-genre {
-  display: inline-block;
-  background: color-mix(in srgb, var(--gold) 10%, transparent);
-  color: var(--gold-dim);
-  border-radius: 999px;
-  padding: 0.1rem 0.55rem;
-  font-size: 0.75rem;
+  display: inline-flex;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-sm);
+  padding: 1px 7px;
+  font-size: var(--type-label);
+  font-weight: 500;
+  line-height: 1.5;
   margin-bottom: 0.3rem;
 }
 
 .work-card-meta {
-  font-size: 0.8rem;
+  font-size: var(--type-small);
   color: var(--text-muted);
 }
 
@@ -881,16 +928,14 @@ input[type="range"] {
 
 .work-card-progress-bar {
   height: 3px;
-  background: var(--border);
-  border-radius: 2px;
+  background: var(--bg-input);
   overflow: hidden;
-  margin-bottom: 0.5rem;
+  margin-bottom: 9px;
 }
 
 .work-card-progress-fill {
   height: 100%;
-  background: var(--gold);
-  border-radius: 2px;
+  background: var(--gold-dim);
   transition: width 0.3s ease;
 }
 
@@ -898,20 +943,47 @@ input[type="range"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
+/* Outlined status badges: one colour for the text and the edge */
 .work-card-status {
-  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--type-label);
+  font-weight: 500;
+  line-height: 1.5;
+  border: 1px solid var(--gold-dim);
   border-radius: var(--radius-sm);
-  padding: 0.1rem 0.45rem;
+  padding: 1px 7px;
+  /* In progress, whatever the stored status (drafting, active ...), unless one of the rules below says otherwise */
+  color: var(--gold);
 }
-.status-active { color: var(--teal); }
-.status-completed { color: var(--success); }
-.status-dormant { color: var(--text-dim); }
+.status-active { color: var(--gold); border-color: var(--gold-dim); }
+.status-completed { color: var(--teal); border-color: var(--teal); }
+.status-dormant { color: var(--text-muted); border-color: var(--border-control); }
 
 .work-card-draft {
-  font-size: 0.75rem;
+  font-size: var(--type-label);
   color: var(--text-dim);
+}
+
+/* A wax seal marks a completed work */
+.seal {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  position: relative;
+  background: radial-gradient(circle at 36% 32%, var(--accent-hover), var(--accent) 70%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+.seal::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  border: 1px solid var(--gold-dim);
 }
 
 /* ============================================================
@@ -921,18 +993,18 @@ input[type="range"] {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem 0.75rem;
-  font-size: 0.8rem;
-  color: var(--gold);
+  gap: 7px 12px;
+  font-size: var(--type-small);
+  color: var(--amber);
   cursor: default;
 }
 .backup-reminder--card {
   border-top: 1px solid var(--border);
-  padding-top: 0.6rem;
+  padding-top: 9px;
 }
 .backup-reminder--banner {
-  background: color-mix(in srgb, var(--gold) 8%, transparent);
-  border: 1px solid var(--gold-dim);
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
+  border: 1px solid var(--amber);
   border-radius: var(--radius);
   padding: 0.6rem 0.9rem;
 }
@@ -951,8 +1023,8 @@ input[type="range"] {
   gap: 0.4rem;
 }
 .backup-reminder-actions .btn {
-  padding: 0.25rem 0.6rem;
-  font-size: 0.8rem;
+  padding: 5px 10px;
+  font-size: var(--type-label);
 }
 .backup-reminder-dismiss {
   background: none;
