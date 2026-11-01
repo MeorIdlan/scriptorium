@@ -301,6 +301,26 @@ test('the editor and its scroll area have no gradient, mask, filter, image or sh
   assert.deepEqual(offenders, []);
 });
 
+// Map
+test('the Map: a blackletter title, panel headings over a double rule, and quiet blocks', () => {
+  assert.match(bodyOf('.map-title'), /font-family: var\(--font-display\)/);
+  assert.match(bodyOf('.map-title'), /font-size: var\(--type-display\)/);
+  assert.match(bodyOf('.thread-manager-title'), /font-family: var\(--font-display\)/);
+  assert.match(bodyOf('.thread-lanes-title'), /font-family: var\(--font-display\)/);
+  assert.match(bodyOf('.thread-manager-head'), /border-bottom: 3px double var\(--border\)/);
+  assert.match(bodyOf('.chapter-block'), /border: 1px solid var\(--border-control\)/);
+  assert.match(bodyOf('.chapter-block:hover'), /background: var\(--bg-input\)/);
+  assert.match(bodyOf('.chapter-block.selected'), /box-shadow: inset 0 0 0 1px var\(--act, var\(--gold\)\)/);
+  assert.match(bodyOf('.chapter-block-tick'), /background: var\(--text-dim\)/);
+  assert.match(bodyOf('.map-scene'), /border-radius: var\(--radius\)/);
+});
+
+test('the corner frame is two small gold-dim corners', () => {
+  assert.match(bodyOf('.corners::before'), /border: 1px solid var\(--gold-dim\)/);
+  assert.match(bodyOf('.corners::after'), /border: 1px solid var\(--gold-dim\)/);
+  assert.match(bodyOf('.corners'), /position: relative/);
+});
+
 test('the helpers find rules by selector', () => {
   assert.ok(rulesFor(':focus-visible').length > 0);
   assert.match(bodyOf(':focus-visible'), /outline: 2px solid var\(--border-focus\)/);

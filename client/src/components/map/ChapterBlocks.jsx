@@ -39,6 +39,8 @@ export default function ChapterBlocks({ chapters, pov = '' }) {
               className={`chapter-block${isSelected ? ' selected' : ''}${pov && matches === 0 ? ' dimmed' : ''}`}
               style={{
                 height: `${blockHeight}px`,
+                // The act colour, for the selected ring in CSS
+                '--act': color,
                 borderColor: color,
                 background: isSelected ? `color-mix(in srgb, ${color} 20%, transparent)` : 'transparent',
               }}
