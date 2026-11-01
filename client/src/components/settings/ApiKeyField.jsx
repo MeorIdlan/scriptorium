@@ -51,7 +51,9 @@ export default function ApiKeyField({
     onChange('');
   }
 
+  // Not while the request runs: the writer should see how it ended
   function closeQuestion() {
+    if (inFlight.current) return;
     closed.current = true;
     setConfirming(false);
   }
@@ -68,7 +70,7 @@ export default function ApiKeyField({
   }
 
   function handleConfirmKeyDown(e) {
-    if (e.key === 'Escape' && !inFlight.current) closeQuestion();
+    if (e.key === 'Escape') closeQuestion();
   }
 
   const placeholder = hasKey

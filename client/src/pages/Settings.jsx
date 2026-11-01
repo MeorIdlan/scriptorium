@@ -230,8 +230,8 @@ export default function Settings() {
       const provider = updated?.providers?.[providerId];
       setSettings((s) => ({
         ...s,
-        aiEnabled: updated.aiEnabled,
-        aiAvailable: updated.aiAvailable,
+        aiEnabled: updated?.aiEnabled,
+        aiAvailable: updated?.aiAvailable,
         providers: {
           ...s.providers,
           [providerId]: {
@@ -323,7 +323,9 @@ export default function Settings() {
             onChange={setActiveProvider}
           />
 
+          {/* Keyed by provider so an open "Remove key?" or a typed key never carries over to the other provider */}
           <ApiKeyField
+            key={settings?.activeProvider}
             hasKey={activeProviderSettings?.hasKey}
             keyPreview={activeProviderSettings?.keyPreview}
             onChange={(v) => {

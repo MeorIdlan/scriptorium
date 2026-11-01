@@ -126,3 +126,35 @@ test('a failed removal leaves the key in place and returns focus to Remove key',
   assert.equal(active(), button(view, 'Remove key'));
   await view.unmount();
 });
+
+test('Cancel does nothing while the removal request is running', async () => {
+  const request = deferred();
+  const calls = [];
+  const view = await render(
+    field({
+      onRemove: () => {
+        calls.push('remove');
+        return request.promise;
+      },
+    })
+  );
+  await click(button(view, 'Remove key'));
+  await click(button(view, 'Yes, remove'));
+  await click(button(view, 'Cancel'));
+  // Still asking, so the outcome is not hidden from the writer
+  assert.ok(button(view, 'Yes, remove'));
+  assert.deepEqual(calls, ['remove']);
+  await act(async () => request.resolve());
+  await flush();
+  assert.ok(button(view, 'Remove key'));
+  await view.unmount();
+});
+
+test('while removing, Yes, remove reads as busy and stays focusable', async () => {
+  const view = await render(field({ removing: true }));
+  await click(button(view, 'Remove key'));
+  const yes = button(view, 'Removing…');
+  assert.equal(yes.getAttribute('aria-disabled'), 'true');
+  assert.equal(yes.hasAttribute('disabled'), false);
+  await view.unmount();
+});

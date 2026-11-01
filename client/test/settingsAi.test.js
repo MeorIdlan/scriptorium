@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
-import { toggle, type, click } from './support/render.js';
+import { toggle, type, click, act, flush } from './support/render.js';
 import { renderApp, aiSettings, HttpError } from './support/app.js';
 import Settings from '../src/pages/Settings.jsx';
 
@@ -212,5 +212,37 @@ test('a failed removal shows the error and keeps the key shown', async () => {
   assert.match(view.text(), /Key set/);
   assert.doesNotMatch(view.text(), /API key removed/);
   assert.match(view.text(), /AI Behaviour/);
+  await view.unmount();
+});
+
+test('an open Remove key question does not follow a switch to another provider', async () => {
+  const both = {
+    ...aiSettings(true),
+    providers: {
+      anthropic: { hasKey: true, keyPreview: 'sk-ant-1…cdef', model: 'm1' },
+      openai: { hasKey: true, keyPreview: 'sk-open…9999', model: 'm2' },
+    },
+  };
+  const view = await renderApp(h(Settings), {
+    ai: true,
+    routes: {
+      'GET /settings': both,
+      'GET /settings/providers': [{ id: 'anthropic', label: 'Anthropic' }, { id: 'openai', label: 'OpenAI' }],
+      'POST /settings/models': { ok: true, models: [] },
+    },
+  });
+  await click(view.button('Remove key'));
+  assert.ok(view.button('Yes, remove'));
+  const select = view.query('select.form-select');
+  await act(async () => {
+    // linkedom's select.value has no setter: pick the option instead
+    select.querySelector('option[value="openai"]').selected = true;
+    select.dispatchEvent(new window.Event('change', { bubbles: true }));
+  });
+  await flush();
+  assert.equal(view.query('input.form-input').getAttribute('placeholder'), 'sk-open…9999');
+  assert.equal(view.hasButton('Yes, remove'), false);
+  assert.ok(view.hasButton('Remove key'));
+  assert.equal(deletes(view).length, 0);
   await view.unmount();
 });
