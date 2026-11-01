@@ -372,6 +372,38 @@ test('admin buttons: disabled is dashed and dim, like every other disabled butto
   }
 });
 
+// Auth pages and the Catch overlay
+test('the auth card sits under the lancet: a gold-dim outline with a double rule on top', () => {
+  assert.match(bodyOf('.auth-page'), /flex-direction: column/);
+  const card = bodyOf('.auth-card');
+  assert.match(card, /background: var\(--bg-card\)/);
+  assert.match(card, /border: 1px solid var\(--gold-dim\)/);
+  assert.match(card, /border-top: 3px double var\(--gold-dim\)/);
+  assert.match(card, /margin-top: -6px/);
+  assert.match(bodyOf('.auth-card h1'), /font-family: var\(--font-display\)/);
+  assert.match(bodyOf('.auth-card h1'), /font-size: var\(--type-title\)/);
+  assert.match(bodyOf('.auth-card input'), /background: var\(--bg-input\)/);
+  assert.match(bodyOf('.auth-card input'), /border: 1px solid var\(--border-control\)/);
+  assert.match(bodyOf('.auth-card input:focus-visible'), /outline-offset: 1px/);
+  assert.match(bodyOf('.auth-card button'), /background: var\(--accent\)/);
+  assert.match(bodyOf('.auth-card button'), /border: 1px solid var\(--gold-dim\)/);
+  assert.match(bodyOf('.auth-card button:disabled'), /border: 1px dashed var\(--border-control\)/);
+  assert.match(bodyOf('.auth-card input.otp-input'), /letter-spacing: 0\.4em/);
+});
+
+test('the lancet is a pointed arch of the glass tokens, drawn with a mask', () => {
+  assert.match(bodyOf('.lancet'), /conic-gradient\(from 180deg at 50% 62%, var\(--glass-1\), var\(--glass-2\)/);
+  assert.match(bodyOf('.lancet'), /mask: url\("data:image\/svg\+xml/);
+});
+
+test('the Catch overlay takes the modal look: gold-dim outline, double-ruled blackletter heading', () => {
+  assert.match(bodyOf('.catch-overlay'), /border: 1px solid var\(--gold-dim\)/);
+  assert.match(bodyOf('.catch-overlay-header'), /border-bottom: 3px double var\(--gold-dim\)/);
+  assert.match(bodyOf('.catch-overlay-title'), /font-family: var\(--font-display\)/);
+  assert.match(bodyOf('.catch-overlay-title'), /font-size: var\(--type-heading\)/);
+  assert.match(bodyOf('.catch-overlay-input:focus-visible'), /border-color: var\(--border-focus\)/);
+});
+
 test('the helpers find rules by selector', () => {
   assert.ok(rulesFor(':focus-visible').length > 0);
   assert.match(bodyOf(':focus-visible'), /outline: 2px solid var\(--border-focus\)/);

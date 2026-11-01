@@ -47,6 +47,7 @@ export default function Login() {
   if (mode === 'recover') {
     return (
       <div className="auth-page">
+      <span className="lancet" aria-hidden="true" />
         <form className="auth-card" onSubmit={guardBusy(submitting, handleRecover)}>
           <h1>Recover access</h1>
           <p>We'll email a verification code to your own address so you can register a new passkey.</p>
@@ -68,6 +69,7 @@ export default function Login() {
 
   return (
     <div className="auth-page">
+      <span className="lancet" aria-hidden="true" />
       <form className="auth-card" onSubmit={guardBusy(submitting, handleLogin)}>
         <h1>Log in</h1>
         {error && <div className="auth-error">{error}</div>}

@@ -29,6 +29,7 @@ export default function PasskeySetup() {
 
   return (
     <div className="auth-page">
+      <span className="lancet" aria-hidden="true" />
       <div className="auth-card">
         <h1>Add a passkey</h1>
         <p>Register a passkey (Face ID, Touch ID, or a security key) to finish setting up your account.</p>

@@ -215,6 +215,14 @@ a:hover {
 .ic-users { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='4.500' r='3'/%3E%3Cpath d='M2 15v-2.500Q2.500 9 8 9t6 3.500V15z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='4.500' r='3'/%3E%3Cpath d='M2 15v-2.500Q2.500 9 8 9t6 3.500V15z'/%3E%3C/svg%3E"); }
 .ic-out { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 15V6Q2.500 3 6 1Q9.500 3 10 6v2H8V6.500Q7.500 5 6 3.800Q4.500 5 4 6.500V13h4v-2h2v4zM9 8.500h3V6.500L16 9.500l-4 3v-2H9z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 15V6Q2.500 3 6 1Q9.500 3 10 6v2H8V6.500Q7.500 5 6 3.800Q4.500 5 4 6.500V13h4v-2h2v4zM9 8.500h3V6.500L16 9.500l-4 3v-2H9z'/%3E%3C/svg%3E"); }
 
+/* A pointed-arch window of coloured glass, above the sign-in cards */
+.lancet {
+  width: 56px; height: 96px; flex: none;
+  background: conic-gradient(from 180deg at 50% 62%, var(--glass-1), var(--glass-2), var(--glass-1), var(--glass-2), var(--glass-1));
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 100V42Q6 16 50 0Q94 16 100 42V100Z'/%3E%3C/svg%3E") center/100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 100V42Q6 16 50 0Q94 16 100 42V100Z'/%3E%3C/svg%3E") center/100% 100% no-repeat;
+}
+
 /* Small gold-dim corners, for framing a detail panel */
 .corners {
   position: relative;
@@ -3179,17 +3187,22 @@ button.rule-item {
   to { opacity: 1; transform: translateX(0); }
 }
 
+/* The heading sits over a double rule, as in a modal */
 .catch-overlay-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-bottom: 8px;
   margin-bottom: 0.75rem;
+  border-bottom: 3px double var(--gold-dim);
 }
 
 .catch-overlay-title {
-  font-size: 0.9rem;
+  font-size: var(--type-heading);
+  font-weight: 400;
+  line-height: 1.2;
   color: var(--gold);
-  font-family: var(--font-ui);
+  font-family: var(--font-display);
 }
 
 .catch-overlay-close {
@@ -3208,13 +3221,15 @@ button.rule-item {
   border-radius: var(--radius);
   color: var(--text);
   font-family: var(--font-ui);
-  font-size: 0.9rem;
-  padding: 0.6rem 0.75rem;
+  font-size: var(--type-body);
+  padding: 8px 10px;
   resize: none;
   transition: border-color var(--transition);
 }
-.catch-overlay-input:focus {
-  border-color: var(--gold);
+.catch-overlay-input:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+  border-color: var(--border-focus);
 }
 
 .catch-overlay-footer {
@@ -3818,9 +3833,11 @@ button.rule-item {
 /* ============================================================
    Auth pages (Register / VerifyOtp / PasskeySetup / Login)
    ============================================================ */
+/* The lancet window stands over the card, which overlaps its base a little */
 .auth-page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   background: var(--bg);
@@ -3829,17 +3846,22 @@ button.rule-item {
 .auth-card {
   width: 360px;
   max-width: 90vw;
-  padding: 2rem;
+  padding: 22px 26px 24px;
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--gold-dim);
+  border-top: 3px double var(--gold-dim);
+  border-radius: var(--radius);
+  margin-top: -6px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 13px;
 }
 
 .auth-card h1 {
-  font-family: var(--font-ui);
+  font-family: var(--font-display);
+  font-size: var(--type-title);
+  font-weight: 400;
+  line-height: 1.1;
   color: var(--gold);
   margin: 0;
 }
@@ -3847,33 +3869,54 @@ button.rule-item {
 .auth-card label {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.9rem;
-  color: var(--text-dim);
+  gap: 5px;
+  font-size: var(--type-small);
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 .auth-card input {
-  padding: 0.5rem;
-  background: var(--bg);
+  padding: 8px 10px;
+  background: var(--bg-input);
   border: 1px solid var(--border-control);
-  border-radius: 4px;
+  border-radius: var(--radius);
   color: var(--text);
+  font-size: var(--type-body);
+}
+.auth-card input:hover { border-color: var(--text-muted); }
+.auth-card input:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+  border-color: var(--border-focus);
+}
+/* The six-digit code: spaced out and centred */
+.auth-card input.otp-input {
+  letter-spacing: 0.4em;
+  text-align: center;
+  font-size: 1.2rem;
 }
 
 .auth-card button {
-  padding: 0.6rem;
-  background: var(--gold);
-  color: var(--bg);
-  border: none;
-  border-radius: 4px;
+  padding: 8px 14px;
+  background: var(--accent);
+  color: var(--text);
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius);
   cursor: pointer;
-  font-weight: 600;
+  font-size: var(--type-small);
+  font-weight: 500;
+}
+.auth-card button:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--accent-hover);
+  border-color: var(--gold);
 }
 
 .auth-card button:disabled,
 .auth-card button[aria-disabled="true"] {
-  opacity: 0.6;
-  cursor: default;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px dashed var(--border-control);
+  cursor: not-allowed;
 }
 
 .auth-error {

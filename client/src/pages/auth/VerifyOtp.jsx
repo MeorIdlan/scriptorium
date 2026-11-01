@@ -29,6 +29,7 @@ export default function VerifyOtp() {
 
   return (
     <div className="auth-page">
+      <span className="lancet" aria-hidden="true" />
       <form className="auth-card" onSubmit={guardBusy(submitting, handleSubmit)}>
         <h1>Enter verification code</h1>
         <p>Enter the 6-digit code we emailed you.</p>
@@ -39,7 +40,7 @@ export default function VerifyOtp() {
         </label>
         <label>
           Code
-          <input value={code} onChange={(e) => setCode(e.target.value)} maxLength={6} required />
+          <input className="otp-input" value={code} onChange={(e) => setCode(e.target.value)} maxLength={6} required />
         </label>
         <button type="submit" {...busyProps(submitting)}>
           {submitting ? 'Verifying…' : 'Verify'}
