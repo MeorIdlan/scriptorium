@@ -12,12 +12,14 @@ import { busyProps, guardBusy } from '../utils/busyButton.js';
 import { useAiState } from '../context/AiContext.jsx';
 import { applyPalette, DEFAULT_PALETTE } from '../utils/palette.js';
 
-// One card per palette; the values are the names the server accepts
+// One card per palette; the values are the names the server accepts. Each card carries
+// data-palette, so its swatches show that palette's own colours.
 const PALETTE_CHOICES = [
-  { value: 'votive', label: 'Votive', desc: 'Warm stone, candlelight and wine' },
-  { value: 'nave', label: 'Nave', desc: 'Cool slate and blue glass' },
-  { value: 'reliquary', label: 'Reliquary', desc: 'Deep red, old gold' },
+  { value: 'votive', label: 'Votive' },
+  { value: 'nave', label: 'Nave' },
+  { value: 'reliquary', label: 'Reliquary' },
 ];
+const SWATCHES = ['--bg-card', '--accent', '--gold', '--text'];
 
 // Pretty display names for known model ids; anything not listed falls back to the id itself
 const MODEL_NAMES = {
@@ -336,8 +338,8 @@ export default function Settings() {
           <div className="settings-field">
             <span id={paletteId} className="settings-label">Palette</span>
             <div className="pick" role="radiogroup" aria-labelledby={paletteId}>
-              {PALETTE_CHOICES.map(({ value, label, desc }) => (
-                <label key={value} className="pick-card">
+              {PALETTE_CHOICES.map(({ value, label }) => (
+                <label key={value} className="pick-card" data-palette={value}>
                   <input
                     type="radio"
                     name="palette"
@@ -346,8 +348,12 @@ export default function Settings() {
                     {...busyProps(savingPalette)}
                     onChange={guardBusy(savingPalette, () => handleChoosePalette(value))}
                   />
+                  <span className="pick-strip" aria-hidden="true">
+                    {SWATCHES.map((token) => (
+                      <i key={token} style={{ background: `var(${token})` }} />
+                    ))}
+                  </span>
                   <span className="pick-card-label">{label}</span>
-                  <span className="pick-card-desc">{desc}</span>
                 </label>
               ))}
             </div>

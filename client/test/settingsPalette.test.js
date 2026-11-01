@@ -52,6 +52,18 @@ test('the palette radios are one labelled radio group with a visible name each',
   await view.unmount();
 });
 
+test('each palette card shows its own colours: it carries data-palette and a four-swatch strip', async () => {
+  const view = await open('votive');
+  const cards = view.queryAll('.pick-card');
+  assert.deepEqual(cards.map((c) => c.getAttribute('data-palette')), ['votive', 'nave', 'reliquary']);
+  for (const card of cards) {
+    assert.equal(card.querySelectorAll('.pick-strip i').length, 4, 'strip of four swatches');
+    assert.equal(card.querySelector('.pick-strip').getAttribute('aria-hidden'), 'true');
+    assert.ok(card.querySelector('input[type="radio"]'), 'the card is still a native radio');
+  }
+  await view.unmount();
+});
+
 test('choosing a palette applies it at once and saves only palette', async () => {
   const view = await open('votive');
   await click(radio(view, 'reliquary'));

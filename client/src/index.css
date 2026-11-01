@@ -2858,8 +2858,8 @@ button.rule-item {
    Settings
    ============================================================ */
 .settings-page {
-  padding: 2rem;
-  max-width: 600px;
+  padding: 28px 32px 48px;
+  max-width: 684px;
 }
 
 .settings-header {
@@ -2867,9 +2867,11 @@ button.rule-item {
 }
 
 .settings-title {
-  font-size: 2rem;
+  font-size: var(--type-display);
+  font-weight: 400;
+  line-height: 1.05;
   color: var(--gold);
-  font-family: var(--font-ui);
+  font-family: var(--font-display);
 }
 
 .settings-error {
@@ -2885,16 +2887,20 @@ button.rule-item {
 .settings-section {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
+  border-radius: var(--radius);
+  padding: 20px;
 }
 
+/* A panel heading in blackletter over a double rule */
 .settings-section-title {
-  font-size: 1rem;
-  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: var(--type-heading);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--gold);
   margin-bottom: 1.25rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  border-bottom: 3px double var(--border);
 }
 
 .settings-actions {
@@ -2938,7 +2944,7 @@ button.rule-item {
   transition: background var(--transition), border-color var(--transition);
 }
 .settings-radio-option:hover {
-  background: var(--bg-hover);
+  background: var(--bg-input);
   border-color: var(--border);
 }
 .settings-radio-option input[type="radio"] {
@@ -2956,12 +2962,15 @@ button.rule-item {
   color: var(--text-dim);
 }
 
+/* An outlined badge: no fill */
 .key-set-badge {
-  background: color-mix(in srgb, var(--success) 12%, transparent);
+  background: transparent;
   color: var(--success);
-  border-radius: 999px;
-  padding: 0.05rem 0.45rem;
-  font-size: 0.75rem;
+  border: 1px solid var(--success);
+  border-radius: var(--radius-sm);
+  padding: 1px 7px;
+  font-size: var(--type-label);
+  font-weight: 500;
   margin-left: 0.4rem;
 }
 
@@ -3025,6 +3034,47 @@ button.rule-item {
   color: var(--error);
   border: 1px solid color-mix(in srgb, var(--error) 20%, transparent);
 }
+
+/* Palette choice: each card is drawn in its own palette (it carries data-palette), so the
+   swatches are the real colours. The radio is native but sits invisibly over the card. */
+.pick {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.pick-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: var(--type-small);
+  cursor: pointer;
+}
+.pick-card:hover { border-color: var(--gold-dim); }
+.pick-card:has(input:checked) {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 1px var(--gold);
+}
+.pick-card:has(input:focus-visible) {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+.pick-card input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+.pick-strip { display: flex; height: 22px; }
+.pick-strip i { flex: 1; }
 
 .settings-toast {
   position: fixed;
@@ -3101,7 +3151,9 @@ button.rule-item {
 
 .admin-users-table button:disabled,
 .admin-users-table button[aria-disabled="true"] {
-  opacity: 0.4;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px dashed var(--border-control);
   cursor: not-allowed;
 }
 

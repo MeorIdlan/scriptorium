@@ -338,6 +338,40 @@ test('the Codex: blackletter entry titles and section dividers, 2px gold bar on 
   assert.match(bodyOf('.codex-flags-title'), /letter-spacing: 0\.1em/);
 });
 
+// Settings and admin
+test('Settings: a blackletter title, sections as flat panels with a double-ruled heading', () => {
+  assert.match(bodyOf('.settings-title'), /font-family: var\(--font-display\)/);
+  assert.match(bodyOf('.settings-title'), /font-size: var\(--type-display\)/);
+  assert.match(bodyOf('.settings-section'), /border-radius: var\(--radius\)/);
+  assert.match(bodyOf('.settings-section-title'), /font-family: var\(--font-display\)/);
+  assert.match(bodyOf('.settings-section-title'), /border-bottom: 3px double var\(--border\)/);
+  assert.match(bodyOf('.key-set-badge'), /border: 1px solid var\(--success\)/);
+});
+
+test('palette cards: three columns, each in its own colours, gold when chosen, ringed on keyboard focus', () => {
+  assert.match(bodyOf('.pick'), /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(bodyOf('.pick-card'), /background: var\(--bg\)/);
+  assert.match(bodyOf('.pick-card'), /border: 1px solid var\(--border-control\)/);
+  assert.match(bodyOf('.pick-card'), /color: var\(--text\)/);
+  assert.match(bodyOf('.pick-card:has(input:checked)'), /border-color: var\(--gold\)/);
+  assert.match(bodyOf('.pick-card:has(input:checked)'), /box-shadow: inset 0 0 0 1px var\(--gold\)/);
+  assert.match(bodyOf('.pick-card:has(input:focus-visible)'), /outline: 2px solid var\(--border-focus\)/);
+  // The radio is native but drawn away: the card is what the writer sees
+  assert.match(bodyOf('.pick-card input'), /position: absolute/);
+  assert.match(bodyOf('.pick-card input'), /opacity: 0/);
+  assert.match(bodyOf('.pick-strip'), /display: flex/);
+  assert.match(bodyOf('.pick-strip i'), /flex: 1/);
+});
+
+test('admin buttons: disabled is dashed and dim, like every other disabled button', () => {
+  for (const selector of ['.admin-users-table button:disabled', '.admin-users-table button[aria-disabled="true"]']) {
+    const body = bodyOf(selector);
+    assert.match(body, /border: 1px dashed var\(--border-control\)/, selector);
+    assert.match(body, /color: var\(--text-dim\)/, selector);
+    assert.doesNotMatch(body, /opacity/, selector);
+  }
+});
+
 test('the helpers find rules by selector', () => {
   assert.ok(rulesFor(':focus-visible').length > 0);
   assert.match(bodyOf(':focus-visible'), /outline: 2px solid var\(--border-focus\)/);
