@@ -7,6 +7,7 @@ import { httpError } from '../middleware/errorHandler.js';
 import { loadWorkFromBody } from '../middleware/loadWork.js';
 import { buildContext } from '../services/storyContextService.js';
 import { validateTargets, targetWords, maxTokensFor, buildPolishPrompt, parseRewrites } from '../services/polishService.js';
+import { codexAuditSummary } from '../services/codexAudit.js';
 
 const router = Router();
 
@@ -384,31 +385,7 @@ router.post('/codex-audit', loadWorkFromBody(), async (req, res, next) => {
   try {
     const workId = req.work.id;
 
-    const codex = (await Codex.findOne({ workId }).lean()) || { characters: [], places: [], worldRules: [] };
-
-    const codexSummary = {
-      characters: (codex.characters || []).map((c) => ({
-        id: c.id,
-        name: c.name,
-        role: c.role,
-        aliases: c.aliases,
-        affiliations: c.affiliations,
-        notes: c.notes,
-        physical: c.physical,
-      })),
-      places: (codex.places || []).map((p) => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        notes: p.notes,
-      })),
-      worldRules: (codex.worldRules || []).map((r) => ({
-        id: r.id,
-        category: r.category,
-        rule: r.rule,
-        description: r.description,
-      })),
-    };
+    const codexSummary = codexAuditSummary(await Codex.findOne({ workId }).lean());
 
     const totalEntries =
       codexSummary.characters.length +
