@@ -43,3 +43,15 @@ test('does not retry other 400 errors', async () => {
   await assert.rejects(complete(args), /not found/);
   assert.equal(sent.length, 1);
 });
+
+test('reads the text blocks even when a thinking block comes first', async () => {
+  behaviour = () => ({
+    content: [{ type: 'thinking', thinking: '' }, { type: 'text', text: 'Hello ' }, { type: 'text', text: 'there' }],
+  });
+  assert.equal(await complete(args), 'Hello there');
+});
+
+test('returns an empty string when the reply has no text block', async () => {
+  behaviour = () => ({ content: [{ type: 'thinking', thinking: '' }] });
+  assert.equal(await complete(args), '');
+});

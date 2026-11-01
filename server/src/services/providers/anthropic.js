@@ -16,7 +16,11 @@ export async function complete({ apiKey, model, system, prompt, maxTokens, tempe
     if (err.status !== 400 || !/temperature/i.test(err.message)) throw err;
     res = await client.messages.create(request);
   }
-  return res.content[0].text;
+  // Newer models may put a thinking block before the text
+  return res.content
+    .filter((block) => typeof block.text === 'string')
+    .map((block) => block.text)
+    .join('');
 }
 
 export async function listModels({ apiKey }) {
