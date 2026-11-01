@@ -99,6 +99,46 @@ test('the scene marker title uses the interface font and its glyph keeps its sta
   assert.equal(declares(".editor hr[data-scene][data-status='done']::before", /color: var\(--teal\)/), true);
 });
 
+// Layout: sidebar and top bar (handoff Components and Ornaments)
+test('the sidebar glows from the top and its brand sits over a double rule', () => {
+  assert.match(bodyOf('.sidebar'), /var\(--glow\)/);
+  assert.match(bodyOf('.sidebar'), /var\(--sidebar-bg\)/);
+  assert.match(bodyOf('.sidebar-brand'), /border-bottom: 3px double var\(--gold-dim\)/);
+  assert.match(bodyOf('.sidebar-brand-link'), /font-family: var\(--font-display\)/);
+  assert.match(bodyOf('.sidebar-brand-link'), /font-size: 1\.5rem/);
+});
+
+test('the selected sidebar item is gold with a 2px gold bar and a faint fill', () => {
+  assert.match(bodyOf('.sidebar-nav-indicator'), /width: 2px/);
+  assert.match(bodyOf('.sidebar-nav-indicator'), /background: var\(--gold\)/);
+  assert.match(bodyOf('.sidebar-nav-item.active'), /color: var\(--gold\)/);
+  assert.match(bodyOf('.sidebar-nav-item'), /color: var\(--text-muted\)/);
+  assert.match(bodyOf('.sidebar-nav-item:hover'), /color: var\(--text\)/);
+});
+
+test('the rose window and the room icons are drawn in CSS', () => {
+  assert.match(bodyOf('.rose'), /repeating-conic-gradient\(var\(--glass-1\)[^)]*var\(--glass-2\)/);
+  assert.match(bodyOf('.rose'), /border: 1px solid var\(--gold-dim\)/);
+  assert.match(bodyOf('.ic'), /background: currentColor/);
+  for (const name of ['shelves', 'room', 'map', 'codex', 'settings', 'users', 'out']) {
+    assert.match(bodyOf(`.ic-${name}`), /mask-image: url\("data:image\/svg\+xml/, `.ic-${name} has no mask`);
+  }
+});
+
+test('the top bar is elevated, with a quiet chapter pill and an outlined draft badge', () => {
+  assert.match(bodyOf('.topbar'), /background: var\(--bg-elevated\)/);
+  assert.match(bodyOf('.topbar-chapter-pill'), /border-left: 1px solid var\(--border\)/);
+  assert.doesNotMatch(bodyOf('.topbar-chapter-pill'), /border-radius: 999px/);
+  assert.match(bodyOf('.topbar-draft-badge'), /color: var\(--purple\)/);
+  assert.match(bodyOf('.topbar-draft-badge'), /border: 1px solid var\(--purple\)/);
+  assert.match(bodyOf('.save-status.saved'), /color: var\(--success\)/);
+});
+
+test('the page text is 15px interface text with a 1.55 line height', () => {
+  assert.match(bodyOf('body'), /font-size: var\(--type-body\)/);
+  assert.match(bodyOf('body'), /line-height: 1\.55/);
+});
+
 test('the helpers find rules by selector', () => {
   assert.ok(rulesFor(':focus-visible').length > 0);
   assert.match(bodyOf(':focus-visible'), /outline: 2px solid var\(--border-focus\)/);

@@ -130,8 +130,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: var(--type-body);
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -187,12 +187,37 @@ a:hover {
 }
 
 /* ============================================================
+   Ornaments
+   Drawn in CSS: no images to load. They stay out of the writing area.
+   ============================================================ */
+.rose {
+  width: 28px; height: 28px; flex: none; border-radius: 50%; position: relative; border: 1px solid var(--gold-dim);
+  background: repeating-conic-gradient(var(--glass-1) 0 22.5deg, var(--glass-2) 22.5deg 45deg);
+}
+.rose::after { content: ""; position: absolute; inset: 32%; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 1px var(--bg-input); }
+.rose.lg { width: 64px; height: 64px; }
+
+/* Icons: simple geometric marks, drawn in the current text colour */
+.ic { width: 16px; height: 16px; flex: none; display: inline-block; background: currentColor; -webkit-mask-position: center; mask-position: center; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-size: contain; mask-size: contain; }
+.ic-shelves { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 2h3v11H2zM6 4h3v9H6zM10 3l3-.6 2 10.6-3 .6zM1 14h14v1H1z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 2h3v11H2zM6 4h3v9H6zM10 3l3-.6 2 10.6-3 .6zM1 14h14v1H1z'/%3E%3C/svg%3E"); }
+.ic-room { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 15V7Q3.5 3.5 8 1Q12.500 3.5 13 7V15zM5 13h6V7.500Q10.500 5.500 8 3.500Q5.500 5.500 5 7.500z' fill-rule='evenodd'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 15V7Q3.5 3.5 8 1Q12.500 3.5 13 7V15zM5 13h6V7.500Q10.500 5.500 8 3.500Q5.500 5.500 5 7.500z' fill-rule='evenodd'/%3E%3C/svg%3E"); }
+.ic-map { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0l2 6 6 2-6 2-2 6-2-6-6-2 6-2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0l2 6 6 2-6 2-2 6-2-6-6-2 6-2z'/%3E%3C/svg%3E"); }
+.ic-codex { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 1h9v14H3zM5 3v10h5V3zM12 6h3v4h-3z' fill-rule='evenodd'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 1h9v14H3zM5 3v10h5V3zM12 6h3v4h-3z' fill-rule='evenodd'/%3E%3C/svg%3E"); }
+.ic-settings { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='3.800' r='3.300'/%3E%3Ccircle cx='8' cy='12.200' r='3.300'/%3E%3Ccircle cx='3.800' cy='8' r='3.300'/%3E%3Ccircle cx='12.200' cy='8' r='3.300'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='3.800' r='3.300'/%3E%3Ccircle cx='8' cy='12.200' r='3.300'/%3E%3Ccircle cx='3.800' cy='8' r='3.300'/%3E%3Ccircle cx='12.200' cy='8' r='3.300'/%3E%3C/svg%3E"); }
+.ic-users { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='4.500' r='3'/%3E%3Cpath d='M2 15v-2.500Q2.500 9 8 9t6 3.500V15z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='4.500' r='3'/%3E%3Cpath d='M2 15v-2.500Q2.500 9 8 9t6 3.500V15z'/%3E%3C/svg%3E"); }
+.ic-out { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 15V6Q2.500 3 6 1Q9.500 3 10 6v2H8V6.500Q7.500 5 6 3.800Q4.500 5 4 6.500V13h4v-2h2v4zM9 8.500h3V6.500L16 9.500l-4 3v-2H9z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 15V6Q2.500 3 6 1Q9.500 3 10 6v2H8V6.500Q7.500 5 6 3.800Q4.500 5 4 6.500V13h4v-2h2v4zM9 8.500h3V6.500L16 9.500l-4 3v-2H9z'/%3E%3C/svg%3E"); }
+
+/* ============================================================
    Sidebar
    ============================================================ */
+/* Candlelight from the top and faint stone courses; the sidebar is the only place for the glow */
 .sidebar {
   width: var(--sidebar-width);
   min-width: var(--sidebar-width);
-  background: var(--sidebar-bg);
+  background:
+    radial-gradient(ellipse 130% 28% at 50% 0%, var(--glow), transparent 72%),
+    repeating-linear-gradient(0deg, transparent 0 27px, rgba(255, 255, 255, 0.02) 27px 28px),
+    var(--sidebar-bg);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -204,25 +229,27 @@ a:hover {
 .sidebar-nav-indicator {
   position: absolute;
   left: 0;
-  width: 3px;
+  width: 2px;
   background: var(--gold);
-  border-radius: 0 2px 2px 0;
   pointer-events: none;
   will-change: top, height;
 }
 
 .sidebar-brand {
-  padding: 1.25rem 1rem 1rem;
-  border-bottom: 1px solid var(--border);
+  padding: 11px 14px;
+  border-bottom: 3px double var(--gold-dim);
 }
 
 .sidebar-brand-link {
-  font-size: 1.2rem;
-  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
   color: var(--gold);
-  letter-spacing: 0.02em;
   text-decoration: none;
-  font-family: var(--font-ui);
+  font-family: var(--font-display);
 }
 .sidebar-brand-link:hover {
   color: var(--gold-hover);
@@ -230,41 +257,39 @@ a:hover {
 
 .sidebar-nav {
   flex: 1;
-  padding: 0.5rem 0;
+  padding: 10px 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .sidebar-nav-item {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.55rem 1rem;
+  gap: 10px;
+  padding: 8px 15px;
   color: var(--text-muted);
   text-decoration: none;
-  font-size: 0.9rem;
-  border-left: 3px solid transparent;
+  font-size: var(--type-body);
+  border-left: 2px solid transparent;
   transition: color var(--transition), background var(--transition), border-color var(--transition);
 }
 .sidebar-nav-item:hover {
   color: var(--text);
-  background: color-mix(in srgb, var(--gold) 6%, transparent);
+  background: rgba(255, 255, 255, 0.03);
 }
 .sidebar-nav-item.active {
   color: var(--gold);
-  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  background: rgba(255, 255, 255, 0.035);
 }
 
+/* The icon itself is the .ic mask (see Ornaments) */
 .sidebar-nav-icon {
-  font-size: 1rem;
-  width: 1.25rem;
-  text-align: center;
   flex-shrink: 0;
 }
 
 .sidebar-nav-label {
-  font-size: 0.9rem;
+  font-size: var(--type-body);
 }
 
 .sidebar-bottom {
@@ -291,39 +316,43 @@ a:hover {
   background: var(--bg-elevated);
   display: flex;
   align-items: center;
-  padding: 0 1rem;
-  gap: 0.75rem;
+  padding: 0 16px;
+  gap: 12px;
   flex-shrink: 0;
 }
 
 .topbar-brand {
-  font-size: 1.1rem;
+  font-size: var(--type-heading);
   color: var(--gold);
-  font-family: var(--font-ui);
+  font-family: var(--font-display);
 }
 
 .topbar-title {
-  font-size: 0.95rem;
+  font-size: var(--type-body);
+  line-height: 1.2;
   color: var(--text);
-  font-weight: normal;
+  font-weight: 500;
 }
 
+/* Not a capsule: a quiet note after a rule */
 .topbar-chapter-pill {
-  background: color-mix(in srgb, var(--gold) 12%, transparent);
-  color: var(--gold);
-  border: 1px solid var(--gold-dim);
-  border-radius: 999px;
-  padding: 0.1rem 0.6rem;
-  font-size: 0.8rem;
+  color: var(--text-muted);
+  border-left: 1px solid var(--border);
+  padding-left: 12px;
+  font-size: var(--type-small);
 }
 
+/* An outlined badge: no fill, one colour for text and border */
 .topbar-draft-badge {
-  background: color-mix(in srgb, var(--purple) 15%, transparent);
+  display: inline-flex;
+  align-items: center;
   color: var(--purple);
-  border: 1px solid color-mix(in srgb, var(--purple) 30%, transparent);
+  border: 1px solid var(--purple);
   border-radius: var(--radius-sm);
-  padding: 0.1rem 0.5rem;
-  font-size: 0.75rem;
+  padding: 1px 7px;
+  font-size: var(--type-label);
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 .topbar-spacer {
@@ -331,7 +360,7 @@ a:hover {
 }
 
 .save-status {
-  font-size: 0.8rem;
+  font-size: var(--type-small);
 }
 .save-status.saved { color: var(--success); }
 .save-status.saving { color: var(--text-muted); }
