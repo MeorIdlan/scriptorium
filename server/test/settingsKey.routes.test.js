@@ -50,6 +50,29 @@ test('removing a key clears it: hasKey is false and the preview is gone', async 
   assert.equal(read.body.providers.anthropic.model, 'claude-sonnet-4-6');
 });
 
+test('removing a key leaves no piece of it in the stored document', async () => {
+  // Save Settings round-trips the masked fields, so a stored provider can carry
+  // the key's first and last characters as keyPreview, and a stale hasKey
+  await seed({
+    providers: {
+      anthropic: {
+        apiKey: 'sk-ant-1234567890abcdef',
+        keyPreview: 'sk-ant-1…cdef',
+        hasKey: true,
+        model: 'claude-sonnet-4-6',
+      },
+      openai: { apiKey: '', model: 'gpt-4o' },
+    },
+  });
+  await call('delete', keyPath('anthropic'));
+  const provider = (await stored()).providers.anthropic;
+  assert.equal(provider.apiKey, '');
+  assert.equal('keyPreview' in provider, false);
+  assert.equal('hasKey' in provider, false);
+  assert.equal(provider.model, 'claude-sonnet-4-6');
+  assert.doesNotMatch(JSON.stringify(await stored()), /sk-ant-1/);
+});
+
 test('saving a blank or whitespace key does not remove the saved key', async () => {
   await seed();
   for (const apiKey of ['', '   ']) {

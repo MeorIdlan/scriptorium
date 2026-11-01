@@ -37,9 +37,16 @@ export async function removeProviderKey(userId, providerId) {
   if (!Object.hasOwn(DEFAULT_SETTINGS.providers, providerId)) {
     throw httpError(404, 'UNKNOWN_PROVIDER', `Unknown provider: ${providerId}`);
   }
+  // Save Settings round-trips the masked fields into the document, so a stored
+  // provider can also hold keyPreview (the key's first 8 and last 4 characters)
+  // and a stale hasKey; none of the key may stay behind
+  const path = `providers.${providerId}`;
   await Settings.updateOne(
     { _id: userId },
-    { $set: { [`providers.${providerId}.apiKey`]: '', updatedAt: new Date().toISOString() } }
+    {
+      $set: { [`${path}.apiKey`]: '', updatedAt: new Date().toISOString() },
+      $unset: { [`${path}.keyPreview`]: '', [`${path}.hasKey`]: '' },
+    }
   );
   return getSettings(userId);
 }
