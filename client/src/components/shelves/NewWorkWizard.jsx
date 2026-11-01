@@ -41,6 +41,12 @@ export default function NewWorkWizard({ onClose }) {
   const firstHook = useRef(null);
   const returnFocus = useReturnFocus();
   const titleId = useId();
+  const workTitleId = useId();
+  const genreId = useId();
+  const povId = useId();
+  const toneId = useId();
+  const protagonistId = useId();
+  const premiseId = useId();
   const { dialogProps, backdropProps } = useModal({ onClose, initialFocusRef: titleRef });
 
   function update(field, value) {
@@ -109,8 +115,9 @@ export default function NewWorkWizard({ onClose }) {
               <h3 className="wizard-step-title">The Basics</h3>
 
               <div className="form-group">
-                <label className="form-label">Title *</label>
+                <label className="form-label" htmlFor={workTitleId}>Title *</label>
                 <input
+                  id={workTitleId}
                   ref={titleRef}
                   className="form-input"
                   type="text"
@@ -121,8 +128,9 @@ export default function NewWorkWizard({ onClose }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Genre</label>
+                <label className="form-label" htmlFor={genreId}>Genre</label>
                 <select
+                  id={genreId}
                   className="form-select"
                   value={form.genre}
                   onChange={(e) => update('genre', e.target.value)}
@@ -136,8 +144,9 @@ export default function NewWorkWizard({ onClose }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Point of View</label>
+                <label className="form-label" htmlFor={povId}>Point of View</label>
                 <select
+                  id={povId}
                   className="form-select"
                   value={form.pov}
                   onChange={(e) => update('pov', e.target.value)}
@@ -155,8 +164,9 @@ export default function NewWorkWizard({ onClose }) {
               <h3 className="wizard-step-title">Your Story</h3>
 
               <div className="form-group">
-                <label className="form-label">Tone</label>
+                <label className="form-label" htmlFor={toneId}>Tone</label>
                 <input
+                  id={toneId}
                   className="form-input"
                   type="text"
                   value={form.tone}
@@ -166,8 +176,9 @@ export default function NewWorkWizard({ onClose }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Protagonist</label>
+                <label className="form-label" htmlFor={protagonistId}>Protagonist</label>
                 <input
+                  id={protagonistId}
                   className="form-input"
                   type="text"
                   value={form.protagonist}
@@ -177,8 +188,9 @@ export default function NewWorkWizard({ onClose }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">One-line Premise</label>
+                <label className="form-label" htmlFor={premiseId}>One-line Premise</label>
                 <input
+                  id={premiseId}
                   className="form-input"
                   type="text"
                   value={form.premise}

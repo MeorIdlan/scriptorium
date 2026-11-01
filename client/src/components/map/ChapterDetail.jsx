@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../utils/api.js';
 import { useAI } from '../../hooks/useAI.js';
@@ -38,6 +38,11 @@ function MetricCard({ label, value }) {
 
 export default function ChapterDetail({ workId, chapterId, chapters, pov = '', onSaved }) {
   const navigate = useNavigate();
+  const tensionId = useId();
+  const actId = useId();
+  const beatId = useId();
+  const notesId = useId();
+  const scenesId = useId();
   const { dispatch: uiDispatch } = useUI();
   const { loading: aiLoading, error: aiError, result: aiResult, call: aiCall } = useAI();
   const { aiOn } = useAiState();
@@ -121,10 +126,11 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
         </div>
 
         <div className="chapter-detail-field">
-          <label className="chapter-detail-label">
+          <label className="chapter-detail-label" htmlFor={tensionId}>
             Tension Score: <strong>{tension}</strong>
           </label>
           <input
+            id={tensionId}
             type="range"
             min="0"
             max="100"
@@ -143,8 +149,9 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
         </div>
 
         <div className="chapter-detail-field">
-          <label className="chapter-detail-label">Act</label>
+          <label className="chapter-detail-label" htmlFor={actId}>Act</label>
           <select
+            id={actId}
             className="form-select"
             value={act}
             onChange={(e) => handleActChange(e.target.value)}
@@ -157,8 +164,9 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
         </div>
 
         <div className="chapter-detail-field">
-          <label className="chapter-detail-label">Beat</label>
+          <label className="chapter-detail-label" htmlFor={beatId}>Beat</label>
           <select
+            id={beatId}
             className="form-select"
             value={beat}
             onChange={(e) => handleBeatChange(e.target.value)}
@@ -173,19 +181,20 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
         {/* Summaries exist only for AI help */}
         {aiOn && (
           <div className="chapter-detail-field">
-            <label className="chapter-detail-label">
+            <span className="chapter-detail-label">
               Chapter summary{' '}
               <span className={`summary-status summary-status--${chapter.summaryStatus || 'none'}`}>
                 {SUMMARY_STATUS_LABELS[chapter.summaryStatus || 'none']}
               </span>
-            </label>
+            </span>
             <p className="chapter-summary-text">{chapter.summary?.text || '—'}</p>
           </div>
         )}
 
         <div className="chapter-detail-field">
-          <label className="chapter-detail-label">Notes</label>
+          <label className="chapter-detail-label" htmlFor={notesId}>Notes</label>
           <textarea
+            id={notesId}
             className="form-textarea"
             rows={4}
             value={notes}
@@ -196,11 +205,11 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
         </div>
 
         <div className="chapter-detail-field">
-          <label className="chapter-detail-label">Scenes</label>
+          <span id={scenesId} className="chapter-detail-label">Scenes</span>
           {(chapter.scenes || []).length === 0 ? (
             <p className="chapter-detail-muted">No scene breaks in this chapter.</p>
           ) : (
-            <ul className="map-scene-list">
+            <ul className="map-scene-list" aria-labelledby={scenesId}>
               {scenesForPov(chapter, pov).map((s) => {
                 const meta = [s.pov, s.location].filter((v) => typeof v === 'string' && v.trim()).join(' · ');
                 return (

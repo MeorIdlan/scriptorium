@@ -1,11 +1,16 @@
+import { useId } from 'react';
+
 export default function ParamSliders({ maxTokens, temperature, onChange }) {
+  const maxTokensId = useId();
+  const temperatureId = useId();
   return (
     <div className="param-sliders">
       <div className="form-group">
-        <label className="form-label">
+        <label className="form-label" htmlFor={maxTokensId}>
           Max Tokens: <strong>{maxTokens || 2048}</strong>
         </label>
         <input
+          id={maxTokensId}
           type="range"
           className="param-slider"
           min="256"
@@ -21,10 +26,11 @@ export default function ParamSliders({ maxTokens, temperature, onChange }) {
       </div>
 
       <div className="form-group">
-        <label className="form-label">
+        <label className="form-label" htmlFor={temperatureId}>
           Temperature: <strong>{(temperature ?? 0.7).toFixed(2)}</strong>
         </label>
         <input
+          id={temperatureId}
           type="range"
           className="param-slider"
           min="0"
