@@ -32,6 +32,7 @@ function AddEntityModal({ type, onConfirm, onClose }) {
   }
 
   const titleId = useId();
+  const nameId = useId();
   const { dialogProps, backdropProps } = useModal({ onClose, initialFocusRef: inputRef });
 
   const label = type === 'character' ? 'Character' : 'Place';
@@ -45,8 +46,9 @@ function AddEntityModal({ type, onConfirm, onClose }) {
         </div>
         <div className="modal-body">
           <div className="form-group">
-            <label className="form-label">{label} name</label>
+            <label className="form-label" htmlFor={nameId}>{label} name</label>
             <input
+              id={nameId}
               ref={inputRef}
               className="form-input"
               type="text"
@@ -80,6 +82,8 @@ function AddRuleModal({ onConfirm, onClose }) {
   const textareaRef = useRef(null);
 
   const titleId = useId();
+  const categoryId = useId();
+  const ruleId = useId();
   const { dialogProps, backdropProps } = useModal({ onClose, initialFocusRef: textareaRef });
 
   return (
@@ -91,8 +95,9 @@ function AddRuleModal({ onConfirm, onClose }) {
         </div>
         <div className="modal-body">
           <div className="form-group">
-            <label className="form-label">Category</label>
+            <label className="form-label" htmlFor={categoryId}>Category</label>
             <select
+              id={categoryId}
               className="form-select"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -103,8 +108,9 @@ function AddRuleModal({ onConfirm, onClose }) {
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Rule</label>
+            <label className="form-label" htmlFor={ruleId}>Rule</label>
             <textarea
+              id={ruleId}
               ref={textareaRef}
               className="form-textarea"
               value={ruleText}
