@@ -63,10 +63,12 @@ export function useAutosave(workId) {
       const pending = pendingRef.current;
       pendingRef.current = null;
       if (!pending || !workIdRef.current) return;
-      savePending(workIdRef.current, pending).catch((err) => {
-        console.error('Autosave failed:', err);
-        setSaveStatus('error');
-      });
+      savePending(workIdRef.current, pending)
+        .then((saved) => applySaved(pending.chapterId, saved))
+        .catch((err) => {
+          console.error('Autosave failed:', err);
+          setSaveStatus('error');
+        });
     },
     [setSaveStatus]
   );

@@ -83,6 +83,14 @@ test('unmounting with unsaved text saves it to its own chapter', async () => {
   );
 });
 
+test('the save on unmount refreshes the Total', async () => {
+  const view = await openEditor({ 'PUT /works/w1/chapters/c1': { id: 'c1', wordCount: 3 } });
+  await act(async () => editor.setContent('new words here', '<p>new words here</p>'));
+  await leave();
+  assert.equal(puts(view).length, 1);
+  assert.match(view.text(), /Total: 13 words/);
+});
+
 test('no save on unmount when nothing changed', async () => {
   const view = await openEditor();
   await leave();
