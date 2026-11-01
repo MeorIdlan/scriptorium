@@ -67,6 +67,10 @@ template's README.
 
 5. **Admin account**: register at `/register` with `ADMIN_EMAIL`. That
    account is flagged as admin and can manage users at `/admin/users`.
+   If a verified account with that email already exists, restarting the
+   server flags it as admin too. The flag is only ever added: changing
+   `ADMIN_EMAIL` later doesn't remove admin from the previous account, so
+   unset `isAdmin` on it in mongosh if it shouldn't keep it.
 
 ## Updating
 
