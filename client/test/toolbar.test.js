@@ -316,6 +316,58 @@ test('choosing 19 turns the size-7 font elements into spans of 19px and keeps th
   }
 });
 
+// What the editor's input handler sees: autosave copies innerHTML each time input fires. A real
+// execCommand fires input before the font elements are rewritten, so the toolbar must fire it again.
+test('choosing 19 fires input again once the spans are in, so the saved HTML has no size 7', async () => {
+  const env = setup();
+  const ranges = stubFontSizeSeven(env);
+  try {
+    const view = await renderToolbar(env);
+    document.dispatchEvent(new window.Event('selectionchange'));
+    const seen = [];
+    env.editor.addEventListener('input', () => seen.push(env.editor.innerHTML));
+    const size = view.query('select[title="Font size"]');
+    size.focus();
+    await change(size, '19');
+    assert.equal(seen.length >= 1, true, 'input never fired after the rewrite');
+    const last = seen[seen.length - 1];
+    assert.match(last, /<span style="font-size: 19px">/);
+    assert.doesNotMatch(last, /font size="7"/);
+    await view.unmount();
+  } finally {
+    ranges.restore();
+    env.restore();
+  }
+});
+
+test('choosing 19 leaves size-7 text that was already in the chapter alone', async () => {
+  const env = setup();
+  const ranges = stubFontSizeSeven(env);
+  try {
+    env.editor.innerHTML = '<p><font size="7" id="old">Pasted headline</font> and the lamp.</p>';
+    // execCommand wraps only the selection: add one new size-7 element beside the old one
+    document.execCommand = (command, ui, value) => {
+      env.calls.push([command, value]);
+      const made = document.createElement('font');
+      made.setAttribute('size', String(value));
+      made.textContent = 'the lamp';
+      env.editor.querySelector('p').appendChild(made);
+    };
+    const view = await renderToolbar(env);
+    document.dispatchEvent(new window.Event('selectionchange'));
+    const size = view.query('select[title="Font size"]');
+    size.focus();
+    await change(size, '19');
+    assert.equal(env.editor.querySelectorAll('font[size="7"]').length, 1, 'the pasted run keeps its size');
+    assert.equal(env.editor.querySelector('#old').tagName.toLowerCase(), 'font');
+    assert.equal(env.editor.querySelectorAll('span[style="font-size: 19px"]').length, 1);
+    await view.unmount();
+  } finally {
+    ranges.restore();
+    env.restore();
+  }
+});
+
 test('choosing 19 with the mouse leaves focus in the editor', async () => {
   const env = setup();
   const ranges = stubFontSizeSeven(env);

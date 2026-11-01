@@ -80,6 +80,25 @@ test('no jsx file has a palette-coloured literal', () => {
   assert.deepEqual(offenders, []);
 });
 
+// The Map's SVG and missing-beat dot take their colour from tokens through classes; without
+// these rules the curve loses its stroke and the dots turn black
+test('the tension curve and missing-beat dot are painted from tokens', () => {
+  assert.equal(declares('.tension-grid', /stroke: var\(--border\)/), true);
+  assert.equal(declares('.tension-line', /stroke: var\(--gold\)/), true);
+  assert.equal(declares('.tension-dot', /fill: var\(--gold\)/), true);
+  assert.equal(declares('.tension-dot--beat', /fill: var\(--amber\)/), true);
+  assert.equal(declares('.tension-beat-label', /fill: var\(--amber\)/), true);
+  assert.equal(declares('.chapter-block-missing-dot', /background: var\(--amber\)/), true);
+});
+
+test('the scene marker title uses the interface font and its glyph keeps its status colours', () => {
+  assert.equal(declares('.editor hr[data-scene]::after', /font-family: var\(--font-ui\)/), true);
+  assert.equal(declares('.editor hr[data-scene]::before', /color: var\(--gold\)/), true);
+  assert.equal(declares(".editor hr[data-scene][data-status='todo']::before", /color: var\(--text-dim\)/), true);
+  assert.equal(declares(".editor hr[data-scene][data-status='revise']::before", /color: var\(--amber\)/), true);
+  assert.equal(declares(".editor hr[data-scene][data-status='done']::before", /color: var\(--teal\)/), true);
+});
+
 test('the helpers find rules by selector', () => {
   assert.ok(rulesFor(':focus-visible').length > 0);
   assert.match(bodyOf(':focus-visible'), /outline: 2px solid var\(--border-focus\)/);

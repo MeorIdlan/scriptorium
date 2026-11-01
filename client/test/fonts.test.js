@@ -53,10 +53,7 @@ test('the body text uses the interface font', () => {
   assert.match(body[1], /font-family:\s*var\(--font-ui\)\s*;/);
 });
 
-// A font-family is a token or inherit. The scene marker's glyph is the one exception: it
-// needs a face that has the asterism character, which the three gothic faces lack.
-const EXCEPTIONS = { '.editor hr[data-scene]::after': /^system-ui, sans-serif$/ };
-
+// A font-family is a font token or inherit; nothing else
 test('every font-family in index.css is a font token', () => {
   const offenders = [];
   for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
@@ -64,7 +61,6 @@ test('every font-family in index.css is a font token', () => {
     for (const [, value] of body.matchAll(/font-family:\s*([^;}]+)/g)) {
       const v = value.trim();
       if (v === 'inherit' || /^var\(--font-(display|reading|ui)\)$/.test(v)) continue;
-      if (EXCEPTIONS[clean]?.test(v)) continue;
       offenders.push(`${clean}: ${v}`);
     }
   }

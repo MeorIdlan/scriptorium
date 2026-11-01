@@ -128,14 +128,24 @@ export default function Toolbar({ editorRef }) {
     const root = editorRef.current;
     // A bare caret has no text to resize, and size 7 would leave the next words huge
     if (!root || currentRange()?.collapsed) return;
+    // Size-7 text already in the chapter (pasted or imported) is not ours to rewrite
+    const existing = new Set(root.querySelectorAll('font[size="7"]'));
     execOnSelection(control, 'fontSize', 7);
-    const spans = [...root.querySelectorAll('font[size="7"]')].map((font) => {
-      const span = document.createElement('span');
-      span.setAttribute('style', `font-size: ${DEFAULT_SIZE}px`);
-      span.append(...font.childNodes);
-      font.replaceWith(span);
-      return span;
-    });
+    const spans = [...root.querySelectorAll('font[size="7"]')]
+      .filter((font) => !existing.has(font))
+      .map((font) => {
+        const span = document.createElement('span');
+        span.setAttribute('style', `font-size: ${DEFAULT_SIZE}px`);
+        span.append(...font.childNodes);
+        font.replaceWith(span);
+        return span;
+      });
+    // execCommand fired input before the rewrite, and autosave copies the HTML each time input
+    // fires, so tell the editor again or it would save the size-7 elements
+    if (spans.length) {
+      const EventType = root.ownerDocument?.defaultView?.Event ?? Event;
+      root.dispatchEvent(new EventType('input', { bubbles: true }));
+    }
     // Moving the text dropped the writer's selection; select the new spans so more formatting can follow
     const sel = document.getSelection();
     if (!spans.length || !sel || typeof document.createRange !== 'function') return;

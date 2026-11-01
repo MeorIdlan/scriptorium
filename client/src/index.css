@@ -1131,7 +1131,7 @@ a:hover {
 .editor hr[data-scene]::after {
   content: attr(data-title);
   display: block;
-  font-family: system-ui, sans-serif;
+  font-family: var(--font-ui);
   font-size: 0.72rem;
   letter-spacing: 0.04em;
 }
