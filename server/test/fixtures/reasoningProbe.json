@@ -1,0 +1,886 @@
+[
+  {
+    "provider": "anthropic",
+    "model": "claude-sonnet-5-5",
+    "worksToday": false,
+    "attempts": [
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 113,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "temperature": 0.7
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "`temperature` is deprecated for this model.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "thinking": {
+            "type": "disabled"
+          }
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "To turn thinking off on this model, send \"thinking\": {\"type\": \"between_tools\"} instead of {\"type\": \"disabled\"}. The model does not think before responding. The short updates it writes between tool calls come back as thinking blocks.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "thinking": {
+            "type": "between_tools"
+          }
+        },
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 98,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "output_config": {
+            "effort": "low"
+          }
+        },
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 139,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "output_config": {
+            "effort": "minimal"
+          }
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "output_config.effort: Input should be 'low', 'medium', 'high', 'xhigh' or 'max'",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 387,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 378,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {
+          "thinking": {
+            "type": "between_tools"
+          }
+        },
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 341,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {
+          "thinking": {
+            "type": "between_tools"
+          }
+        },
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 363,
+        "error": null,
+        "prompt": "chapter"
+      }
+    ]
+  },
+  {
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "worksToday": false,
+    "attempts": [
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 116,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "temperature": 0.7
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "`temperature` is deprecated for this model.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "thinking": {
+            "type": "disabled"
+          }
+        },
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 95,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "thinking": {
+            "type": "between_tools"
+          }
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "\"thinking.type.between_tools\" is not supported for this model.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "output_config": {
+            "effort": "low"
+          }
+        },
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 129,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "output_config": {
+            "effort": "minimal"
+          }
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "output_config.effort: Input should be 'low', 'medium', 'high', 'xhigh' or 'max'",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 318,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 329,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {
+          "thinking": {
+            "type": "disabled"
+          }
+        },
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 243,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {
+          "thinking": {
+            "type": "disabled"
+          }
+        },
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 337,
+        "error": null,
+        "prompt": "chapter"
+      }
+    ]
+  },
+  {
+    "provider": "anthropic",
+    "model": "claude-opus-5-5",
+    "worksToday": false,
+    "attempts": [
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 90,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "temperature": 0.7
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "`temperature` is deprecated for this model.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "thinking": {
+            "type": "disabled"
+          }
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "\"thinking.type.disabled\" is not supported for this model. Use \"thinking.type.adaptive\" and \"output_config.effort\" to control thinking behavior.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "thinking": {
+            "type": "between_tools"
+          }
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "\"thinking.type.between_tools\" is not supported for this model.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "output_config": {
+            "effort": "low"
+          }
+        },
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 89,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "output_config": {
+            "effort": "minimal"
+          }
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "output_config.effort: Input should be 'low', 'medium', 'high', 'xhigh' or 'max'",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 446,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "max_tokens",
+        "textLength": 328,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {
+          "output_config": {
+            "effort": "low"
+          }
+        },
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 433,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {
+          "output_config": {
+            "effort": "low"
+          }
+        },
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 468,
+        "error": null,
+        "prompt": "chapter"
+      }
+    ]
+  },
+  {
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-6",
+    "worksToday": true,
+    "attempts": [
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 129,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "temperature": 0.7
+        },
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 157,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "thinking": {
+            "type": "disabled"
+          }
+        },
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 151,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "thinking": {
+            "type": "between_tools"
+          }
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "\"thinking.type.between_tools\" is not supported for this model.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "output_config": {
+            "effort": "low"
+          }
+        },
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 151,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "output_config": {
+            "effort": "minimal"
+          }
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "output_config.effort: Input should be 'low', 'medium', 'high', 'xhigh' or 'max'",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "end_turn",
+        "textLength": 414,
+        "error": null,
+        "prompt": "chapter"
+      }
+    ]
+  },
+  {
+    "provider": "openai",
+    "model": "gpt-5-mini",
+    "worksToday": false,
+    "attempts": [
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 105,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "temperature": 0.7
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "minimal"
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 122,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "low"
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 108,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "length",
+        "textLength": 0,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "length",
+        "textLength": 0,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "minimal"
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 346,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "minimal"
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 330,
+        "error": null,
+        "prompt": "chapter"
+      }
+    ]
+  },
+  {
+    "provider": "openai",
+    "model": "o3",
+    "worksToday": false,
+    "attempts": [
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 107,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "temperature": 0.7
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "minimal"
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "Unsupported value: 'reasoning_effort' does not support 'minimal' with this model. Supported values are: 'low', 'medium', 'high', and 'xhigh'.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "low"
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 108,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 264,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 336,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "low"
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 337,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "low"
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 351,
+        "error": null,
+        "prompt": "chapter"
+      }
+    ]
+  },
+  {
+    "provider": "openai",
+    "model": "gpt-6-luna",
+    "worksToday": false,
+    "attempts": [
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 77,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "temperature": 0.7
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "minimal"
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "Unsupported value: 'reasoning_effort' does not support 'minimal' with this model. Supported values are: 'none', 'low', 'medium', 'high', and 'xhigh'.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "low"
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 82,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {},
+        "repeat": 1,
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 77,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {},
+        "repeat": 2,
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 82,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {},
+        "repeat": 3,
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 77,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {},
+        "repeat": 4,
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 83,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 220,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 263,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 212,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 214,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "low"
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 213,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "low"
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 184,
+        "error": null,
+        "prompt": "chapter"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "low"
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 218,
+        "error": null,
+        "prompt": "chapter"
+      }
+    ]
+  },
+  {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "worksToday": true,
+    "attempts": [
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 138,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "temperature": 0.7
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 111,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "minimal"
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "Unrecognized request argument supplied: reasoning_effort",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "low"
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "Unrecognized request argument supplied: reasoning_effort",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 334,
+        "error": null,
+        "prompt": "chapter"
+      }
+    ]
+  },
+  {
+    "provider": "openai",
+    "model": "gpt-5.5",
+    "worksToday": true,
+    "attempts": [
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 93,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "temperature": 0.7
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "minimal"
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "Unsupported value: 'reasoning_effort' does not support 'minimal' with this model. Supported values are: 'none', 'low', 'medium', 'high', and 'xhigh'.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "low"
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 99,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 300,
+        "error": null,
+        "prompt": "chapter"
+      }
+    ]
+  },
+  {
+    "provider": "openai",
+    "model": "gpt-5.4-mini",
+    "worksToday": true,
+    "attempts": [
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 102,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "temperature": 0.7
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 123,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "minimal"
+        },
+        "status": 400,
+        "stopReason": null,
+        "textLength": 0,
+        "error": "Unsupported value: 'reasoning_effort' does not support 'minimal' with this model. Supported values are: 'none', 'low', 'medium', 'high', and 'xhigh'.",
+        "prompt": "sentence"
+      },
+      {
+        "controls": {
+          "reasoning_effort": "low"
+        },
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 98,
+        "error": null,
+        "prompt": "sentence"
+      },
+      {
+        "controls": {},
+        "status": "ok",
+        "stopReason": "stop",
+        "textLength": 418,
+        "error": null,
+        "prompt": "chapter"
+      }
+    ]
+  }
+]
