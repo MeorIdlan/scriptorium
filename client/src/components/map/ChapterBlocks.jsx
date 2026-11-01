@@ -1,10 +1,11 @@
 import { useUI } from '../../context/UIContext.jsx';
 import { scenesForPov } from '../../utils/sceneMap.js';
 
+// Act colours are palette tokens, so each palette tints the Map in its own colours
 const ACT_COLORS = {
-  'Act I': '#5DCAA5',
-  'Act II': '#7F77DD',
-  'Act III': '#D85A30',
+  'Act I': 'var(--teal)',
+  'Act II': 'var(--purple)',
+  'Act III': 'var(--coral)',
 };
 
 function getActColor(act) {
@@ -61,7 +62,6 @@ export default function ChapterBlocks({ chapters, pov = '' }) {
               {ch.beat === null || ch.beat === undefined ? (
                 <span
                   className="chapter-block-missing-dot"
-                  style={{ background: '#e8a030' }}
                   title="No beat assigned"
                 />
               ) : null}

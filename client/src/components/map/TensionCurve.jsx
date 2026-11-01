@@ -41,7 +41,7 @@ export default function TensionCurve({ chapters }) {
             y1={getY(v)}
             x2={WIDTH - PADDING.right}
             y2={getY(v)}
-            stroke="#2a2a38"
+            className="tension-grid"
             strokeWidth="1"
           />
         ))}
@@ -50,7 +50,7 @@ export default function TensionCurve({ chapters }) {
         <polyline
           points={points}
           fill="none"
-          stroke="#c9a96e"
+          className="tension-line"
           strokeWidth="2"
           strokeLinejoin="round"
         />
@@ -62,7 +62,7 @@ export default function TensionCurve({ chapters }) {
             cx={getX(i)}
             cy={getY(ch.tensionScore)}
             r="3"
-            fill={ch.beat ? '#e8a030' : '#c9a96e'}
+            className={ch.beat ? 'tension-dot tension-dot--beat' : 'tension-dot'}
           />
         ))}
 
@@ -76,7 +76,7 @@ export default function TensionCurve({ chapters }) {
               y={getY(ch.tensionScore) - 8}
               textAnchor="middle"
               fontSize="9"
-              fill="#e8a030"
+              className="tension-beat-label"
             >
               {ch.beat}
             </text>

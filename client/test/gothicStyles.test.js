@@ -2,7 +2,7 @@
 // its own tests here, written before the CSS they pin.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -41,6 +41,43 @@ test('the editor uses the reading font at 19px with a 1.7 line height', () => {
   assert.match(editor, /font-family: var\(--font-reading\)/);
   assert.match(editor, /font-size: var\(--type-reading\)/);
   assert.match(editor, /line-height: 1\.7(?:;|$)/);
+});
+
+// Palette colours come from tokens, so Nave and Reliquary never show Votive's tints. Black and white
+// (scrims, shadows, neutral hovers) are the only literals left.
+function literalColours(text) {
+  const found = [];
+  for (const [literal] of text.matchAll(/rgba?\([^)]*\)|#[0-9a-fA-F]{3,8}\b/g)) {
+    const hex = literal.match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+    const channels = hex
+      ? (hex[1].length === 3 ? [...hex[1]].map((c) => parseInt(c + c, 16)) : [0, 2, 4].map((i) => parseInt(hex[1].slice(i, i + 2), 16)))
+      : literal.match(/rgba?\(([^)]*)\)/)[1].split(',').slice(0, 3).map((n) => Number(n));
+    const neutral = channels.every((c) => c === 0) || channels.every((c) => c === 255);
+    if (!neutral) found.push(literal);
+  }
+  return found;
+}
+
+test('index.css has no palette-coloured literals outside the palette blocks', () => {
+  const tokenBlocks = /(?:^|\n)\s*(?::root,\s*\[data-palette="votive"\]|\[data-palette="nave"\]|\[data-palette="reliquary"\])\s*\{[^}]*\}/g;
+  assert.deepEqual(literalColours(css.replace(tokenBlocks, '\n')), []);
+});
+
+test('no jsx file has a palette-coloured literal', () => {
+  const srcDir = join(here, '..', 'src');
+  const offenders = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) walk(path);
+      else if (name.endsWith('.jsx')) {
+        const found = literalColours(readFileSync(path, 'utf8'));
+        if (found.length) offenders.push(`${path.slice(srcDir.length + 1)}: ${found.join(', ')}`);
+      }
+    }
+  };
+  walk(srcDir);
+  assert.deepEqual(offenders, []);
 });
 
 test('the helpers find rules by selector', () => {

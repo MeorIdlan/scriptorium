@@ -249,11 +249,11 @@ a:hover {
 }
 .sidebar-nav-item:hover {
   color: var(--text);
-  background: rgba(201, 169, 110, 0.06);
+  background: color-mix(in srgb, var(--gold) 6%, transparent);
 }
 .sidebar-nav-item.active {
   color: var(--gold);
-  background: rgba(201, 169, 110, 0.08);
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
 }
 
 .sidebar-nav-icon {
@@ -309,7 +309,7 @@ a:hover {
 }
 
 .topbar-chapter-pill {
-  background: rgba(201, 169, 110, 0.12);
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
   color: var(--gold);
   border: 1px solid var(--gold-dim);
   border-radius: 999px;
@@ -318,9 +318,9 @@ a:hover {
 }
 
 .topbar-draft-badge {
-  background: rgba(127, 119, 221, 0.15);
+  background: color-mix(in srgb, var(--purple) 15%, transparent);
   color: var(--purple);
-  border: 1px solid rgba(127, 119, 221, 0.3);
+  border: 1px solid color-mix(in srgb, var(--purple) 30%, transparent);
   border-radius: var(--radius-sm);
   padding: 0.1rem 0.5rem;
   font-size: 0.75rem;
@@ -371,12 +371,12 @@ a:hover {
 }
 
 .btn-secondary {
-  background: rgba(201, 169, 110, 0.15);
+  background: color-mix(in srgb, var(--gold) 15%, transparent);
   color: var(--gold);
   border: 1px solid var(--gold-dim);
 }
 .btn-secondary:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: rgba(201, 169, 110, 0.25);
+  background: color-mix(in srgb, var(--gold) 25%, transparent);
 }
 
 .btn-ghost {
@@ -395,7 +395,7 @@ a:hover {
   color: var(--error);
 }
 .btn-ghost.danger:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: rgba(224, 122, 122, 0.1);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
   border-color: var(--error);
 }
 
@@ -654,7 +654,7 @@ a:hover {
 }
 .wizard-hook-card.selected {
   border-color: var(--gold);
-  background: rgba(201, 169, 110, 0.08);
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
 }
 
 /* ============================================================
@@ -796,7 +796,7 @@ a:hover {
 
 .work-card-genre {
   display: inline-block;
-  background: rgba(201, 169, 110, 0.1);
+  background: color-mix(in srgb, var(--gold) 10%, transparent);
   color: var(--gold-dim);
   border-radius: 999px;
   padding: 0.1rem 0.55rem;
@@ -865,7 +865,7 @@ a:hover {
   padding-top: 0.6rem;
 }
 .backup-reminder--banner {
-  background: rgba(201, 169, 110, 0.08);
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
   border: 1px solid var(--gold-dim);
   border-radius: var(--radius);
   padding: 0.6rem 0.9rem;
@@ -1010,7 +1010,7 @@ a:hover {
 .chapter-item.active {
   color: var(--gold);
   border-left-color: var(--gold);
-  background: rgba(201, 169, 110, 0.07);
+  background: color-mix(in srgb, var(--gold) 7%, transparent);
 }
 
 .chapter-item-num {
@@ -1045,7 +1045,7 @@ a:hover {
   display: inline-block;
 }
 .chapter-item-badge.outline {
-  background: rgba(127, 119, 221, 0.15);
+  background: color-mix(in srgb, var(--purple) 15%, transparent);
   color: var(--purple);
 }
 
@@ -1192,12 +1192,12 @@ a:hover {
 .toolbar-spark {
   color: var(--gold-dim);
   border-color: var(--gold-dim);
-  background: rgba(201, 169, 110, 0.06);
+  background: color-mix(in srgb, var(--gold) 6%, transparent);
 }
 .toolbar-spark:hover {
   color: var(--gold);
   border-color: var(--gold);
-  background: rgba(201, 169, 110, 0.12);
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
 }
 
 /* ============================================================
@@ -1213,7 +1213,7 @@ a:hover {
   flex-shrink: 0;
 }
 .word-counter-total { color: var(--text-dim); }
-.word-counter-daily { color: var(--gold, #c9a96e); }
+.word-counter-daily { color: var(--gold); }
 .word-counter-bar {
   display: inline-block;
   width: 4rem;
@@ -1227,7 +1227,7 @@ a:hover {
 .word-counter-bar > span {
   display: block;
   height: 100%;
-  background: var(--gold, #c9a96e);
+  background: var(--gold);
 }
 
 /* ============================================================
@@ -1292,8 +1292,8 @@ a:hover {
 .panel-error {
   font-size: 0.82rem;
   color: var(--error);
-  background: rgba(224, 122, 122, 0.08);
-  border: 1px solid rgba(224, 122, 122, 0.2);
+  background: color-mix(in srgb, var(--error) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--error) 20%, transparent);
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.75rem;
   margin-top: 0.5rem;
@@ -1468,7 +1468,7 @@ a:hover {
 
 .codex-flag-card {
   background: var(--bg-card);
-  border: 1px solid rgba(232, 160, 48, 0.25);
+  border: 1px solid color-mix(in srgb, var(--amber) 25%, transparent);
   border-radius: var(--radius);
   padding: 0.65rem 0.75rem;
 }
@@ -1512,7 +1512,7 @@ a:hover {
   flex-direction: column;
   gap: 6px;
 }
-.scene-row.current { border-color: rgba(201, 169, 110, 0.5); }
+.scene-row.current { border-color: color-mix(in srgb, var(--gold) 50%, transparent); }
 .scene-row.dragging { opacity: 0.5; }
 .scene-row.drop-target { border-color: var(--gold); border-style: dashed; }
 .scene-row-main {
@@ -1548,8 +1548,8 @@ a:hover {
   color: var(--text-muted);
 }
 .scene-status--todo { color: var(--text-dim); }
-.scene-status--revise { color: var(--amber); border-color: rgba(232, 160, 48, 0.4); }
-.scene-status--done { color: var(--teal); border-color: rgba(93, 202, 165, 0.4); }
+.scene-status--revise { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 40%, transparent); }
+.scene-status--done { color: var(--teal); border-color: color-mix(in srgb, var(--teal) 40%, transparent); }
 .scene-row-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .scene-row-confirm p, .scene-row-error { font-size: 0.8rem; margin: 0 0 6px; }
 .scene-row-error { color: var(--error); }
@@ -1593,7 +1593,7 @@ a:hover {
 .catch-filter-btn.active {
   color: var(--gold);
   border-color: var(--gold-dim);
-  background: rgba(201, 169, 110, 0.07);
+  background: color-mix(in srgb, var(--gold) 7%, transparent);
 }
 
 .catch-group {
@@ -1609,7 +1609,7 @@ a:hover {
   border-radius: var(--radius);
   padding: 0.65rem 0.75rem;
 }
-.catch-group.current .catch-row { border-color: rgba(201, 169, 110, 0.3); }
+.catch-group.current .catch-row { border-color: color-mix(in srgb, var(--gold) 30%, transparent); }
 
 .catch-row-text {
   font-size: 0.85rem;
@@ -1639,7 +1639,7 @@ a:hover {
 
 .catch-row-chapter {
   display: inline-block;
-  background: rgba(93, 202, 165, 0.1);
+  background: color-mix(in srgb, var(--teal) 10%, transparent);
   color: var(--teal);
   border-radius: 999px;
   padding: 0.05rem 0.45rem;
@@ -1734,6 +1734,13 @@ a:hover {
   display: block;
 }
 
+/* SVG paint comes from tokens through classes, since an attribute can't hold var() */
+.tension-grid { stroke: var(--border); }
+.tension-line { stroke: var(--gold); }
+.tension-dot { fill: var(--gold); }
+.tension-dot--beat { fill: var(--amber); }
+.tension-beat-label { fill: var(--amber); }
+
 .tension-curve-empty {
   padding: 1rem;
   text-align: center;
@@ -1798,7 +1805,7 @@ a:hover {
   transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
 }
 .chapter-block:hover {
-  box-shadow: 0 0 0 1px rgba(201, 169, 110, 0.3);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 30%, transparent);
 }
 .chapter-block.selected {
   box-shadow: 0 0 0 2px var(--gold);
@@ -1817,6 +1824,7 @@ a:hover {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  background: var(--amber);
 }
 
 .beat-row {
@@ -1892,9 +1900,9 @@ a:hover {
 .thread-lane-gap {
   grid-row: 1;
   align-self: stretch;
-  background: repeating-linear-gradient(135deg, rgba(232, 160, 48, 0.28) 0 4px, transparent 4px 8px);
-  border-left: 1px dashed #e8a030;
-  border-right: 1px dashed #e8a030;
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--amber) 28%, transparent) 0 4px, transparent 4px 8px);
+  border-left: 1px dashed var(--amber);
+  border-right: 1px dashed var(--amber);
 }
 .thread-open-end { margin-top: 12px; }
 .thread-open-end-title { margin: 0 0 6px; font-size: 0.85rem; font-weight: normal; color: var(--text-muted); }
@@ -1994,8 +2002,8 @@ a:hover {
 }
 
 .chapter-detail-warning {
-  background: rgba(232, 160, 48, 0.08);
-  border: 1px solid rgba(232, 160, 48, 0.25);
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 25%, transparent);
   border-radius: var(--radius);
   padding: 0.65rem 0.75rem;
   font-size: 0.82rem;
@@ -2101,7 +2109,7 @@ a:hover {
 .codex-entity-item.active {
   color: var(--gold);
   border-left-color: var(--gold);
-  background: rgba(201, 169, 110, 0.07);
+  background: color-mix(in srgb, var(--gold) 7%, transparent);
 }
 
 .codex-entity-flag-dot {
@@ -2178,7 +2186,7 @@ a:hover {
 
 .codex-flag-panel-item {
   background: var(--bg-card);
-  border: 1px solid rgba(232, 160, 48, 0.2);
+  border: 1px solid color-mix(in srgb, var(--amber) 20%, transparent);
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.65rem;
   margin-bottom: 0.5rem;
@@ -2248,7 +2256,7 @@ a:hover {
 }
 
 .codex-suggest-trigger:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: rgba(201, 169, 110, 0.08);
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
 }
 
 .codex-suggest-header {
@@ -2309,7 +2317,7 @@ a:hover {
 
 .codex-suggest-error {
   font-size: 0.8rem;
-  color: var(--error, #e05c5c);
+  color: var(--error);
   margin-top: 0.5rem;
 }
 
@@ -2457,7 +2465,7 @@ a:hover {
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0.4rem 0;
-  border-bottom: 1px solid rgba(42, 42, 56, 0.5);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
 }
 .inline-field:last-child { border-bottom: none; }
 
@@ -2547,8 +2555,8 @@ button.inline-field-value {
 }
 
 .flag-item {
-  background: rgba(232, 160, 48, 0.05);
-  border: 1px solid rgba(232, 160, 48, 0.2);
+  background: color-mix(in srgb, var(--amber) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 20%, transparent);
   border-radius: var(--radius);
   padding: 0.6rem 0.75rem;
   margin-bottom: 0.5rem;
@@ -2620,11 +2628,11 @@ button.rule-item {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.rule-cat-magic { background: rgba(127, 119, 221, 0.15); color: var(--purple); }
-.rule-cat-politics { background: rgba(216, 90, 48, 0.12); color: var(--coral); }
-.rule-cat-geography { background: rgba(93, 202, 165, 0.12); color: var(--teal); }
-.rule-cat-society { background: rgba(232, 160, 48, 0.12); color: var(--amber); }
-.rule-cat-other { background: rgba(138, 133, 120, 0.12); color: var(--text-muted); }
+.rule-cat-magic { background: color-mix(in srgb, var(--purple) 15%, transparent); color: var(--purple); }
+.rule-cat-politics { background: color-mix(in srgb, var(--coral) 12%, transparent); color: var(--coral); }
+.rule-cat-geography { background: color-mix(in srgb, var(--teal) 12%, transparent); color: var(--teal); }
+.rule-cat-society { background: color-mix(in srgb, var(--amber) 12%, transparent); color: var(--amber); }
+.rule-cat-other { background: color-mix(in srgb, var(--text-dim) 12%, transparent); color: var(--text-muted); }
 
 .rule-text {
   display: block;
@@ -2760,7 +2768,7 @@ button.rule-item {
 }
 
 .key-set-badge {
-  background: rgba(159, 219, 160, 0.12);
+  background: color-mix(in srgb, var(--success) 12%, transparent);
   color: var(--success);
   border-radius: 999px;
   padding: 0.05rem 0.45rem;
@@ -2819,14 +2827,14 @@ button.rule-item {
   margin-top: 0.75rem;
 }
 .test-result.success {
-  background: rgba(159, 219, 160, 0.1);
+  background: color-mix(in srgb, var(--success) 10%, transparent);
   color: var(--success);
-  border: 1px solid rgba(159, 219, 160, 0.2);
+  border: 1px solid color-mix(in srgb, var(--success) 20%, transparent);
 }
 .test-result.error {
-  background: rgba(224, 122, 122, 0.1);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
   color: var(--error);
-  border: 1px solid rgba(224, 122, 122, 0.2);
+  border: 1px solid color-mix(in srgb, var(--error) 20%, transparent);
 }
 
 .settings-toast {
@@ -3068,7 +3076,7 @@ button.rule-item {
 .format-btn.active {
   border-color: var(--gold);
   color: var(--gold);
-  background: rgba(201, 169, 110, 0.08);
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
 }
 
 .checkbox-group {
@@ -3190,7 +3198,7 @@ button.rule-item {
 .history-item:hover { background: var(--bg-card); }
 .history-item.active {
   border-color: var(--gold-dim);
-  background: rgba(201, 169, 110, 0.08);
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
 }
 .history-item-label { font-size: 0.85rem; }
 .history-item-label--named { color: var(--gold); }
@@ -3290,7 +3298,7 @@ button.rule-item {
   word-break: break-word;
 }
 .version-diff-change {
-  background: rgba(201, 169, 110, 0.07);
+  background: color-mix(in srgb, var(--gold) 7%, transparent);
   border-radius: var(--radius-sm);
 }
 .version-diff-collapsed {
@@ -3309,11 +3317,11 @@ button.rule-item {
 
 /* There was no destructive button style before this */
 .btn-danger {
-  background: rgba(224, 122, 122, 0.12);
-  border: 1px solid rgba(224, 122, 122, 0.4);
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--error) 40%, transparent);
   color: var(--error);
 }
-.btn-danger:hover:not(:disabled):not([aria-disabled="true"]) { background: rgba(224, 122, 122, 0.2); }
+.btn-danger:hover:not(:disabled):not([aria-disabled="true"]) { background: color-mix(in srgb, var(--error) 20%, transparent); }
 
 .chapter-sidebar-actions { display: flex; gap: 0.25rem; }
 
@@ -3347,8 +3355,8 @@ button.rule-item {
   color: var(--text-muted);
 }
 .milestone-state--changed { color: var(--gold); border-color: var(--gold-dim); }
-.milestone-state--new { color: var(--teal); border-color: rgba(93, 202, 165, 0.4); }
-.milestone-state--deleted { color: var(--coral); border-color: rgba(216, 90, 48, 0.4); }
+.milestone-state--new { color: var(--teal); border-color: color-mix(in srgb, var(--teal) 40%, transparent); }
+.milestone-state--deleted { color: var(--coral); border-color: color-mix(in srgb, var(--coral) 40%, transparent); }
 
 @media (max-width: 640px) {
   .milestone-table th:nth-child(3),
@@ -3362,20 +3370,20 @@ button.rule-item {
 }
 
 .quill-ai-btn--polish {
-  border-color: rgba(201, 169, 110, 0.25);
+  border-color: color-mix(in srgb, var(--gold) 25%, transparent);
   color: var(--gold);
 }
 .quill-ai-btn--polish:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: rgba(201, 169, 110, 0.08);
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
   border-color: var(--gold);
 }
 
 .quill-ai-btn--editor {
-  border-color: rgba(93, 202, 165, 0.2);
+  border-color: color-mix(in srgb, var(--teal) 20%, transparent);
   color: var(--teal);
 }
 .quill-ai-btn--editor:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: rgba(93, 202, 165, 0.07);
+  background: color-mix(in srgb, var(--teal) 7%, transparent);
   border-color: var(--teal);
 }
 
@@ -3410,8 +3418,8 @@ button.rule-item {
 }
 
 .editor-review-summary {
-  background: rgba(93, 202, 165, 0.07);
-  border: 1px solid rgba(93, 202, 165, 0.2);
+  background: color-mix(in srgb, var(--teal) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--teal) 20%, transparent);
   border-radius: var(--radius);
   padding: 0.85rem 1rem;
   font-size: 0.9rem;
@@ -3561,7 +3569,7 @@ button.rule-item {
    Selection
    ============================================================ */
 ::selection {
-  background: rgba(201, 169, 110, 0.25);
+  background: color-mix(in srgb, var(--gold) 25%, transparent);
   color: var(--text);
 }
 
@@ -3751,9 +3759,9 @@ button.rule-item {
 .polish-change {
   border-radius: var(--radius-sm);
   padding: 0 0.1rem;
-  background: rgba(201, 169, 110, 0.07);
+  background: color-mix(in srgb, var(--gold) 7%, transparent);
 }
-.polish-change--accepted { background: rgba(93, 202, 165, 0.08); }
+.polish-change--accepted { background: color-mix(in srgb, var(--teal) 8%, transparent); }
 .polish-change--rejected { background: none; }
 
 .polish-del { color: var(--coral); text-decoration: line-through; }

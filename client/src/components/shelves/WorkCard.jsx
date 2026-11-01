@@ -111,7 +111,8 @@ export default function WorkCard({ work, onDelete, onExport }) {
     handleCardClick();
   }
 
-  const coverColor = work.coverColor || '#2a2a3e';
+  // The cover colour is the writer's own data; a work without one takes the palette's accent
+  const coverColor = work.coverColor || 'var(--accent)';
 
   return (
     <div className="work-card" onClick={handleCardClick}>

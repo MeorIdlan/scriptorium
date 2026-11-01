@@ -132,16 +132,24 @@ function hexChannels(hex) {
   return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 }
 
+// A tint written as color-mix(in srgb, var(--token) N%, transparent) becomes the rgba() the browser
+// paints for the current palette; an rgba() passes through
+function tintOf(expression) {
+  const mix = expression.match(/color-mix\(in srgb,\s*var\(--([\w-]+)\)\s+([\d.]+)%,\s*transparent\)/);
+  if (!mix) return expression;
+  return `rgba(${hexChannels(token(mix[1])).join(',')}, ${Number(mix[2]) / 100})`;
+}
+
 test('rule category badges meet AA on their tint, on every background', () => {
   const badges = [...css.matchAll(/\n\.(rule-cat-[\w-]+)\s*\{([^}]*)\}/g)];
   assert.equal(badges.length, 5, 'expected one badge rule per category');
   eachPalette((palette) => {
     for (const [, name, body] of badges) {
-      const tint = body.match(/background:\s*(rgba\([^)]*\))/);
+      const tint = body.match(/background:\s*(rgba\([^)]*\)|color-mix\([^;]*\))/);
       const text = body.match(/color:\s*var\(--([\w-]+)\)/);
       assert.ok(tint && text, `.${name} needs a tint background and a colour token`);
       for (const bg of BACKGROUNDS) {
-        const ratio = contrast(paint(token(text[1]), token(bg)), paint(tint[1], token(bg)));
+        const ratio = contrast(paint(token(text[1]), token(bg)), paint(tintOf(tint[1]), token(bg)));
         assert.ok(ratio >= 4.5, `${palette}: .${name} text on its tint over --${bg} is ${ratio.toFixed(2)}:1, needs 4.5:1`);
       }
     }
@@ -170,17 +178,18 @@ test('dimmed text meets AA on every background, with no opacity', () => {
 // The selected block paints its act colour at 20% over --bg-card; its number must read on that tint
 test('selected chapter block number meets AA on each act tint', () => {
   const blocksSource = readFileSync(join(srcDir, 'components', 'map', 'ChapterBlocks.jsx'), 'utf8');
-  const actColours = [...blocksSource.matchAll(/'Act [IVX]+':\s*'(#[0-9a-fA-F]{6})'/g)].map((m) => m[1]);
-  assert.equal(actColours.length, 3, 'expected one colour per act in ChapterBlocks.jsx');
+  // The act colours are palette tokens (var(--teal) and so on), so the tint is worked out per palette
+  const actTokens = [...blocksSource.matchAll(/'Act [IVX]+':\s*'var\(--([\w-]+)\)'/g)].map((m) => m[1]);
+  assert.equal(actTokens.length, 3, 'expected one colour token per act in ChapterBlocks.jsx');
   const body = ruleBody('.chapter-block.selected .chapter-block-num');
   const text = body.match(/color:\s*var\(--([\w-]+)\)/);
   assert.ok(text, '.chapter-block.selected .chapter-block-num needs a colour token');
   eachPalette((palette) => {
     // An unknown act falls back to the control border token
-    for (const act of [...actColours, token('border-control')]) {
-      const tint = paint(`rgba(${hexChannels(act).join(',')}, 0.2)`, token('bg-card'));
+    for (const act of [...actTokens, 'border-control']) {
+      const tint = paint(`rgba(${hexChannels(token(act)).join(',')}, 0.2)`, token('bg-card'));
       const ratio = contrast(token(text[1]), tint);
-      assert.ok(ratio >= 4.5, `${palette}: selected chapter number on the ${act} tint is ${ratio.toFixed(2)}:1, needs 4.5:1`);
+      assert.ok(ratio >= 4.5, `${palette}: selected chapter number on the --${act} tint is ${ratio.toFixed(2)}:1, needs 4.5:1`);
     }
   });
   // The selected rule must come after the dimmed one, or a dimmed selected block keeps the dim colour
