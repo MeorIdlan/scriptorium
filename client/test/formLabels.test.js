@@ -17,7 +17,6 @@ const UNFIXED = new Set([
   'components/settings/ModelSelect.jsx',
   'components/settings/ParamSliders.jsx',
   'components/settings/ProviderSelect.jsx',
-  'components/shelves/NewWorkWizard.jsx',
   'pages/Settings.jsx',
 ]);
 
