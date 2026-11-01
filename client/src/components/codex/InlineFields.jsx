@@ -75,7 +75,7 @@ export function InlineTextarea({ label, value, onSave, rows = 4 }) {
   }
 
   return (
-    <div className="inline-field">
+    <div className="inline-field inline-field--wide">
       <span className="inline-field-label">{label}</span>
       {editing ? (
         <textarea

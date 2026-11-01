@@ -6,6 +6,7 @@ import { createElement as h } from 'react';
 import { renderApp } from './support/app.js';
 import ChapterBlocks from '../src/components/map/ChapterBlocks.jsx';
 import ChapterDetail from '../src/components/map/ChapterDetail.jsx';
+import CharacterSheet from '../src/components/codex/CharacterSheet.jsx';
 
 const chapter = (over) => ({ id: 'c1', number: 1, title: 'One', act: 'Act I', wordCount: 1000, scenes: [], beat: 'x', ...over });
 
@@ -16,6 +17,15 @@ test('a block carries its act colour token as --act', async () => {
     assert.match(view.query('.chapter-block').getAttribute('style'), new RegExp(`--act:\\s*${token.replace(/[()]/g, '\\$&')}`), act);
     await view.unmount();
   }
+});
+
+test('the long-text Codex field spans both sheet columns', async () => {
+  const character = { id: 'k1', name: 'Ilse', role: 'Lead', notes: 'Counts steps.', flags: [] };
+  const view = await renderApp(h(CharacterSheet, { workId: 'w1', character, onUpdate() {}, onFlagsChange() {} }));
+  const wide = view.queryAll('.inline-field--wide');
+  assert.ok(wide.length >= 1, 'no wide field on the character sheet');
+  assert.match(wide[wide.length - 1].textContent, /Notes/);
+  await view.unmount();
 });
 
 test('the chapter detail has the corner frame', async () => {

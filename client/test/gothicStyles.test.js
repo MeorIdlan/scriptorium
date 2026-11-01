@@ -462,6 +462,26 @@ test('the small-screen rules hold no palette-coloured literal and no raw font', 
   }
 });
 
+// Codex sheet: two columns of fields, label above value, long text across both columns
+test('the Codex sheet is two columns; each field is a label over a ruled value', () => {
+  assert.match(bodyOf('.codex-entry-fields'), /display: grid/);
+  assert.match(bodyOf('.codex-entry-fields'), /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(bodyOf('.codex-section-divider'), /grid-column: 1 \/ -1/);
+  assert.match(bodyOf('.inline-field--wide'), /grid-column: 1 \/ -1/);
+  assert.match(bodyOf('.inline-field'), /flex-direction: column/);
+  assert.match(bodyOf('.inline-field-label'), /text-transform: uppercase/);
+  assert.match(bodyOf('.inline-field-label'), /letter-spacing: 0\.1em/);
+  assert.match(bodyOf('.inline-field-value'), /border-bottom: 1px solid var\(--border-control\)/);
+  assert.match(bodyOf('.inline-field-value:hover'), /border-bottom-color: var\(--gold\)/);
+});
+
+// Found in the side-by-side check against the boards (A1)
+test('page widths follow the boards: a 66ch writing column, full-width Shelves, 28px by 32px Map padding', () => {
+  assert.match(bodyOf('.editor'), /max-width: 66ch/);
+  assert.doesNotMatch(bodyOf('.shelves-page'), /max-width/);
+  assert.match(bodyOf('.map-view'), /padding: 28px 32px/);
+});
+
 test('the helpers find rules by selector', () => {
   assert.ok(rulesFor(':focus-visible').length > 0);
   assert.match(bodyOf(':focus-visible'), /outline: 2px solid var\(--border-focus\)/);

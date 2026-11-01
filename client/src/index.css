@@ -764,7 +764,6 @@ input[type="range"] {
    ============================================================ */
 .shelves-page {
   padding: 28px 32px 48px;
-  max-width: 1200px;
 }
 
 .shelves-header {
@@ -1249,7 +1248,7 @@ input[type="range"] {
 
 .editor {
   min-height: 100%;
-  max-width: 680px;
+  max-width: 66ch;
   margin: 0 auto;
   font-family: var(--font-reading);
   font-size: var(--type-reading);
@@ -1269,7 +1268,7 @@ input[type="range"] {
 }
 
 .editor-loading-note {
-  max-width: 680px;
+  max-width: 66ch;
   margin: 0 auto 0.5rem;
   font-size: 0.8rem;
   color: var(--text-muted);
@@ -1868,7 +1867,7 @@ input[type="range"] {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 1.5rem;
+  padding: 28px 32px;
   gap: 1rem;
   overflow-y: auto;
 }
@@ -2629,9 +2628,9 @@ input[type="range"] {
 }
 
 .codex-entry-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
   margin-bottom: 1.25rem;
 }
 
@@ -2645,6 +2644,7 @@ input[type="range"] {
   font-weight: 400;
   line-height: 1;
   color: var(--gold-dim);
+  grid-column: 1 / -1;
   padding: 0.75rem 0 0.25rem;
   margin-bottom: 0.25rem;
 }
@@ -2657,41 +2657,42 @@ input[type="range"] {
 /* ============================================================
    Inline Field
    ============================================================ */
+/* A field is a small label over its value, which sits on a rule */
 .inline-field {
   display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
-.inline-field:last-child { border-bottom: none; }
+/* Long text takes the whole row */
+.inline-field--wide { grid-column: 1 / -1; }
 
 .inline-field-label {
-  font-size: 0.78rem;
+  font-size: var(--type-label);
+  font-weight: 500;
   color: var(--text-dim);
-  width: 110px;
-  flex-shrink: 0;
-  padding-top: 0.05rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .inline-field-value {
-  font-size: 0.88rem;
+  font-size: var(--type-body);
   color: var(--text);
   cursor: pointer;
-  line-height: 1.5;
-  flex: 1;
-  border-bottom: 1px dashed transparent;
+  line-height: 1.4;
+  padding: 4px 2px;
+  border-bottom: 1px solid var(--border-control);
   transition: border-color var(--transition);
 }
 .inline-field-value:hover {
-  border-bottom-color: var(--text-dim);
+  border-bottom-color: var(--gold);
 }
 /* The value is a button so the keyboard can open it: reset it to the span's look */
 button.inline-field-value {
   background: none;
   border: 0;
-  border-bottom: 1px dashed transparent;
-  padding: 0;
+  border-bottom: 1px solid var(--border-control);
+  padding: 4px 2px;
   margin: 0;
   font-family: inherit;
   text-align: left;
