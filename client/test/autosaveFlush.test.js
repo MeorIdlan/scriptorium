@@ -120,4 +120,18 @@ test('a failed save on unmount shows the error', async () => {
     console.error = logged;
   }
   assert.equal(editor.state.saveStatus, 'error');
+  assert.match(view.text(), /Total: 12 words/);
+});
+
+test('a failed timed save leaves the Total alone', async (t) => {
+  const view = await openEditor({ 'PUT /works/w1/chapters/c1': new HttpError(500, 'SERVER_ERROR') });
+  const logged = console.error;
+  console.error = () => {};
+  try {
+    await typeAndAutosave(t, 'new words here');
+  } finally {
+    console.error = logged;
+  }
+  assert.equal(editor.state.saveStatus, 'error');
+  assert.match(view.text(), /Total: 12 words/);
 });
