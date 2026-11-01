@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getSettings, saveSettings, maskSettings, validateAiToggle } from '../services/settingsService.js';
+import { getSettings, saveSettings, maskSettings, validateAiToggle, removeProviderKey } from '../services/settingsService.js';
 import { listProviders } from '../services/llmService.js';
 import { httpError } from '../middleware/errorHandler.js';
 import * as anthropicProvider from '../services/providers/anthropic.js';
@@ -66,6 +66,16 @@ router.put('/', async (req, res, next) => {
 
     const updated = await saveSettings(req.user.id, partial);
     res.json(maskSettings(updated));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/settings/providers/:id/key — the only way to remove a saved key;
+// an empty apiKey on PUT is ignored on purpose
+router.delete('/providers/:id/key', async (req, res, next) => {
+  try {
+    res.json(maskSettings(await removeProviderKey(req.user.id, req.params.id)));
   } catch (err) {
     next(err);
   }

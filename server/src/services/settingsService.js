@@ -29,6 +29,28 @@ export async function saveSettings(userId, partial) {
   return merged;
 }
 
+// Clears one provider's saved key with a single atomic $set that touches no
+// other field. The id lands in a dotted Mongo path, so it must be a known provider. aiEnabled
+// is left alone: with the key gone AI reads as off (isAiAvailable), and a later
+// key brings it back unless the writer had turned it off.
+export async function removeProviderKey(userId, providerId) {
+  if (!Object.hasOwn(DEFAULT_SETTINGS.providers, providerId)) {
+    throw httpError(404, 'UNKNOWN_PROVIDER', `Unknown provider: ${providerId}`);
+  }
+  // Save Settings round-trips the masked fields into the document, so a stored
+  // provider can also hold keyPreview (the key's first 8 and last 4 characters)
+  // and a stale hasKey; none of the key may stay behind
+  const path = `providers.${providerId}`;
+  await Settings.updateOne(
+    { _id: userId },
+    {
+      $set: { [`${path}.apiKey`]: '', updatedAt: new Date().toISOString() },
+      $unset: { [`${path}.keyPreview`]: '', [`${path}.hasKey`]: '' },
+    }
+  );
+  return getSettings(userId);
+}
+
 // AI can only run when the active provider has a key
 export function isAiAvailable(settings) {
   return Boolean(settings.providers?.[settings.activeProvider]?.apiKey);

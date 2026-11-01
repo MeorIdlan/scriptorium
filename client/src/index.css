@@ -2704,6 +2704,15 @@ button.rule-item {
   flex-shrink: 0;
 }
 
+/* "Remove key?" with its two answers, in place of the Remove key button */
+.api-key-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+}
+
 .param-sliders {
   display: flex;
   flex-direction: column;
