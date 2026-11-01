@@ -369,43 +369,54 @@ a:hover {
 /* ============================================================
    Buttons
    ============================================================ */
+/* A plain .btn is the primary look: an accent fill with a gold-dim edge */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  border: none;
+  gap: 6px;
+  border: 1px solid var(--gold-dim);
   border-radius: var(--radius);
-  padding: 0.45rem 1rem;
+  background: var(--accent);
+  color: var(--text);
+  padding: 8px 14px;
   font-family: var(--font-ui);
-  font-size: 0.9rem;
+  font-size: var(--type-small);
+  font-weight: 500;
+  line-height: 1.2;
   cursor: pointer;
-  transition: background var(--transition), color var(--transition), opacity var(--transition);
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
   white-space: nowrap;
 }
 
+/* Disabled and busy (aria-disabled) buttons look the same: no fill, a dashed edge, dim text */
 .btn:disabled,
 .btn[aria-disabled="true"] {
-  opacity: 0.5;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px dashed var(--border-control);
   cursor: not-allowed;
 }
 
 .btn-primary {
-  background: var(--gold);
-  color: var(--bg);
-  font-weight: bold;
+  background: var(--accent);
+  color: var(--text);
+  border-color: var(--gold-dim);
 }
 .btn-primary:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: var(--gold-hover);
+  background: var(--accent-hover);
+  border-color: var(--gold);
 }
 
 .btn-secondary {
-  background: color-mix(in srgb, var(--gold) 15%, transparent);
+  background: transparent;
   color: var(--gold);
   border: 1px solid var(--gold-dim);
 }
 .btn-secondary:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: color-mix(in srgb, var(--gold) 25%, transparent);
+  background: var(--bg-card);
+  color: var(--gold-hover);
+  border-color: var(--gold);
 }
 
 .btn-ghost {
@@ -414,9 +425,9 @@ a:hover {
   border: 1px solid var(--border-control);
 }
 .btn-ghost:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--bg-card);
   color: var(--text);
   border-color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.04);
 }
 
 .btn-ghost.danger,
@@ -424,13 +435,13 @@ a:hover {
   color: var(--error);
 }
 .btn-ghost.danger:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: color-mix(in srgb, var(--error) 10%, transparent);
+  background: var(--bg-card);
   border-color: var(--error);
 }
 
 .btn-sm {
-  padding: 0.25rem 0.65rem;
-  font-size: 0.8rem;
+  padding: 5px 10px;
+  font-size: var(--type-label);
 }
 
 /* ============================================================
@@ -444,9 +455,9 @@ a:hover {
 }
 
 .form-label {
-  font-size: 0.85rem;
+  font-size: var(--type-small);
+  font-weight: 500;
   color: var(--text-muted);
-  letter-spacing: 0.02em;
 }
 
 .form-input,
@@ -457,16 +468,33 @@ a:hover {
   border-radius: var(--radius);
   color: var(--text);
   font-family: var(--font-ui);
-  font-size: 0.9rem;
-  padding: 0.5rem 0.75rem;
+  font-size: var(--type-body);
+  padding: 8px 10px;
   transition: border-color var(--transition);
   width: 100%;
 }
 
-.form-input:focus,
-.form-select:focus,
-.form-textarea:focus {
-  border-color: var(--gold);
+.form-input:hover,
+.form-select:hover,
+.form-textarea:hover {
+  border-color: var(--text-muted);
+}
+
+/* The ring sits 1px off the field so it reads against the field's own border */
+.form-input:focus-visible,
+.form-select:focus-visible,
+.form-textarea:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+  border-color: var(--border-focus);
+}
+
+.form-input:disabled,
+.form-select:disabled,
+.form-textarea:disabled {
+  color: var(--text-dim);
+  border-style: dashed;
+  cursor: not-allowed;
 }
 
 .form-input::placeholder,
@@ -493,14 +521,21 @@ a:hover {
 }
 
 .form-hint {
-  font-size: 0.78rem;
-  color: var(--text-dim);
+  font-size: var(--type-small);
+  color: var(--text-muted);
 }
 
 .form-error {
   color: var(--error);
-  font-size: 0.85rem;
+  font-size: var(--type-small);
   margin-top: 0.5rem;
+}
+
+/* Checkboxes, radios and sliders are the real controls, tinted gold */
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"] {
+  accent-color: var(--gold);
 }
 
 /* ============================================================
@@ -509,8 +544,8 @@ a:hover {
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem;
+  border-radius: var(--radius);
+  padding: 16px;
 }
 
 /* ============================================================
@@ -519,7 +554,7 @@ a:hover {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.62);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -529,7 +564,7 @@ a:hover {
 
 .modal {
   background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  border: 1px solid var(--gold-dim);
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 540px;
@@ -543,14 +578,16 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--border);
+  padding: 14px 20px 12px;
+  border-bottom: 3px double var(--gold-dim);
 }
 
 .modal-title {
-  font-size: 1.2rem;
+  font-size: var(--type-heading);
+  font-weight: 400;
+  line-height: 1.2;
   color: var(--gold);
-  font-family: var(--font-ui);
+  font-family: var(--font-display);
 }
 
 .modal-close {
@@ -2870,12 +2907,13 @@ button.rule-item {
   position: fixed;
   bottom: 1.5rem;
   right: 1.5rem;
-  background: var(--bg-card);
-  border: 1px solid var(--gold-dim);
-  color: var(--gold);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-control);
+  border-left: 3px double var(--gold);
+  color: var(--text);
   border-radius: var(--radius);
-  padding: 0.65rem 1.1rem;
-  font-size: 0.88rem;
+  padding: 10px 14px;
+  font-size: var(--type-small);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   z-index: 200;
   animation: slideInUp 0.2s ease;
@@ -3346,11 +3384,11 @@ button.rule-item {
 
 /* There was no destructive button style before this */
 .btn-danger {
-  background: color-mix(in srgb, var(--error) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--error) 40%, transparent);
+  background: transparent;
+  border: 1px solid var(--error);
   color: var(--error);
 }
-.btn-danger:hover:not(:disabled):not([aria-disabled="true"]) { background: color-mix(in srgb, var(--error) 20%, transparent); }
+.btn-danger:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--bg-card); }
 
 .chapter-sidebar-actions { display: flex; gap: 0.25rem; }
 

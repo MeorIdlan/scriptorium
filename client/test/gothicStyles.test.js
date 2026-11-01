@@ -139,6 +139,74 @@ test('the page text is 15px interface text with a 1.55 line height', () => {
   assert.match(bodyOf('body'), /line-height: 1\.55/);
 });
 
+// Shared components (handoff Components table). Hover and disabled rules carry the :not() guards the
+// app already uses, so a busy (aria-disabled) button keeps its disabled look and never takes the hover.
+const NOT_BUSY = ':hover:not(:disabled):not([aria-disabled="true"])';
+const BUSY = ['.btn:disabled', '.btn[aria-disabled="true"]'];
+
+test('buttons: primary is accent, secondary is outlined gold, ghost is quiet, danger is error', () => {
+  assert.match(bodyOf('.btn'), /border: 1px solid var\(--gold-dim\)/);
+  assert.match(bodyOf('.btn'), /font-size: var\(--type-small\)/);
+  assert.match(bodyOf('.btn-primary'), /background: var\(--accent\)/);
+  assert.match(bodyOf('.btn-primary'), /color: var\(--text\)/);
+  assert.match(bodyOf(`.btn-primary${NOT_BUSY}`), /background: var\(--accent-hover\)/);
+  assert.match(bodyOf(`.btn-primary${NOT_BUSY}`), /border-color: var\(--gold\)/);
+  assert.match(bodyOf('.btn-secondary'), /background: transparent/);
+  assert.match(bodyOf('.btn-secondary'), /color: var\(--gold\)/);
+  assert.match(bodyOf(`.btn-secondary${NOT_BUSY}`), /background: var\(--bg-card\)/);
+  assert.match(bodyOf(`.btn-secondary${NOT_BUSY}`), /color: var\(--gold-hover\)/);
+  assert.match(bodyOf('.btn-ghost'), /border: 1px solid var\(--border-control\)/);
+  assert.match(bodyOf(`.btn-ghost${NOT_BUSY}`), /background: var\(--bg-card\)/);
+  assert.match(bodyOf('.btn-danger'), /color: var\(--error\)/);
+  assert.match(bodyOf('.btn-danger'), /border: 1px solid var\(--error\)/);
+  assert.match(bodyOf('.btn-danger'), /background: transparent/);
+  assert.match(bodyOf('.btn-sm'), /font-size: var\(--type-label\)/);
+});
+
+test('buttons: disabled and busy look the same, dashed, with no opacity', () => {
+  for (const selector of BUSY) {
+    const disabled = bodyOf(selector);
+    assert.match(disabled, /border: 1px dashed var\(--border-control\)/, selector);
+    assert.match(disabled, /color: var\(--text-dim\)/, selector);
+    assert.match(disabled, /background: transparent/, selector);
+    assert.doesNotMatch(disabled, /opacity/, selector);
+  }
+});
+
+test('fields: input fill, control border, hover, focus ring with a 1px offset, dashed when disabled', () => {
+  assert.match(bodyOf('.form-input'), /background: var\(--bg-input\)/);
+  assert.match(bodyOf('.form-input'), /border: 1px solid var\(--border-control\)/);
+  assert.match(bodyOf('.form-input'), /font-size: var\(--type-body\)/);
+  assert.match(bodyOf('.form-input:hover'), /border-color: var\(--text-muted\)/);
+  const focus = bodyOf('.form-input:focus-visible');
+  assert.match(focus, /outline: 2px solid var\(--border-focus\)/);
+  assert.match(focus, /outline-offset: 1px/);
+  assert.match(focus, /border-color: var\(--border-focus\)/);
+  assert.match(bodyOf('.form-input:disabled'), /border-style: dashed/);
+  assert.match(bodyOf('.form-input:disabled'), /color: var\(--text-dim\)/);
+  assert.match(bodyOf('.form-label'), /color: var\(--text-muted\)/);
+});
+
+test('checkboxes, radios and sliders are gold', () => {
+  assert.match(bodyOf('input[type="checkbox"]'), /accent-color: var\(--gold\)/);
+  assert.match(bodyOf('input[type="range"]'), /accent-color: var\(--gold\)/);
+});
+
+test('panels, modals and toasts: flat card, gold-dim modal over a double rule, double-edged toast', () => {
+  assert.match(bodyOf('.card'), /background: var\(--bg-card\)/);
+  assert.match(bodyOf('.card'), /border: 1px solid var\(--border\)/);
+  assert.match(bodyOf('.modal'), /background: var\(--bg-elevated\)/);
+  assert.match(bodyOf('.modal'), /border: 1px solid var\(--gold-dim\)/);
+  assert.match(bodyOf('.modal-header'), /border-bottom: 3px double var\(--gold-dim\)/);
+  assert.match(bodyOf('.modal-title'), /font-family: var\(--font-display\)/);
+  assert.match(bodyOf('.modal-title'), /font-size: var\(--type-heading\)/);
+  assert.match(bodyOf('.modal-footer'), /border-top: 1px solid var\(--border\)/);
+  assert.match(bodyOf('.modal-backdrop'), /rgba\(0, 0, 0, 0\.62\)/);
+  assert.match(bodyOf('.settings-toast'), /background: var\(--bg-elevated\)/);
+  assert.match(bodyOf('.settings-toast'), /border: 1px solid var\(--border-control\)/);
+  assert.match(bodyOf('.settings-toast'), /border-left: 3px double var\(--gold\)/);
+});
+
 test('the helpers find rules by selector', () => {
   assert.ok(rulesFor(':focus-visible').length > 0);
   assert.match(bodyOf(':focus-visible'), /outline: 2px solid var\(--border-focus\)/);
