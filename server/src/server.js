@@ -7,6 +7,7 @@ import { connectMongo } from './db.js';
 import * as devAuthService from './services/devAuthService.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { migrateDraftHistory } from './services/snapshotMigration.js';
+import { promoteAdminEmail } from './services/adminBootstrap.js';
 
 import authRouter from './routes/auth.js';
 import { requireAuth } from './middleware/requireAuth.js';
@@ -81,6 +82,12 @@ async function start() {
     await migrateDraftHistory();
   } catch (err) {
     console.error('Draft history migration failed:', err);
+  }
+  try {
+    const promoted = await promoteAdminEmail();
+    if (promoted) console.log(`Promoted ${promoted} account(s) matching ADMIN_EMAIL to admin`);
+  } catch (err) {
+    console.error('Admin promotion failed:', err);
   }
   if (devAuthService.isBypassEnabled()) {
     await devAuthService.ensureDevUser();
