@@ -6,6 +6,14 @@
     <title>Scriptorium</title>
   </head>
   <body>
+    <script>
+      // Paint the cached palette before the bundle loads, so the page never flashes the wrong one.
+      // Keep the names and key in step with src/utils/palette.js.
+      try {
+        var p = localStorage.getItem('scriptorium.palette');
+        if (['votive', 'nave', 'reliquary'].indexOf(p) > -1) document.documentElement.dataset.palette = p;
+      } catch (e) {}
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

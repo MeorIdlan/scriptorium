@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { api } from '../utils/api.js';
 import { useAuth } from './AuthContext.jsx';
+import { syncPalette } from '../utils/palette.js';
 
 const AiContext = createContext(null);
 
@@ -22,8 +23,13 @@ export function AiProvider({ children }) {
   const refresh = useCallback(async () => {
     const started = version.current;
     try {
-      const next = pick(await api.get('/settings'));
-      if (version.current === started) setState(next);
+      const settings = await api.get('/settings');
+      const next = pick(settings);
+      if (version.current === started) {
+        setState(next);
+        // The writer's palette rides on this read, so the app makes one settings request
+        syncPalette(settings?.palette);
+      }
     } catch {
       // Keeps the last known state; before any load that is off
     }
@@ -42,6 +48,7 @@ export function AiProvider({ children }) {
   const setAiState = useCallback((settings) => {
     version.current += 1;
     setState(pick(settings));
+    syncPalette(settings?.palette);
     setReady(true);
   }, []);
 
