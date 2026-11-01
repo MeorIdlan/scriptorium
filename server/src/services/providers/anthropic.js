@@ -1,26 +1,33 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { requestControls, runRecovering } from './reasoning.js';
 
 export async function complete({ apiKey, model, system, prompt, maxTokens, temperature }) {
   const client = new Anthropic({ apiKey });
-  const request = {
+  // Ask for the least thinking the model allows; thinking tokens count against the cap
+  const { temperature: takesTemperature, controls } = requestControls('anthropic', model);
+  const params = {
     model,
     max_tokens: maxTokens,
     system,
     messages: [{ role: 'user', content: prompt }],
+    ...(takesTemperature ? { temperature } : {}),
+    ...Object.fromEntries(controls.map((c) => [c.field, c.value])),
   };
-  let res;
-  try {
-    res = await client.messages.create({ ...request, temperature });
-  } catch (err) {
-    // Newer Claude models reject `temperature` outright; retry once without it
-    if (err.status !== 400 || !/temperature/i.test(err.message)) throw err;
-    res = await client.messages.create(request);
-  }
-  // Newer models may put a thinking block before the text
-  return res.content
-    .filter((block) => typeof block.text === 'string')
-    .map((block) => block.text)
-    .join('');
+  return runRecovering({
+    model,
+    params,
+    controls,
+    capField: 'max_tokens',
+    send: (p) => client.messages.create(p),
+    // Newer models may put a thinking block before the text
+    read: (res) => ({
+      text: res.content
+        .filter((block) => typeof block.text === 'string')
+        .map((block) => block.text)
+        .join(''),
+      cutOff: res.stop_reason === 'max_tokens',
+    }),
+  });
 }
 
 export async function listModels({ apiKey }) {
