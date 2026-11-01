@@ -76,6 +76,14 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
   }
 
   const titleId = useId();
+  const formatId = useId();
+  const layoutId = useId();
+  const fontId = useId();
+  const authorId = useId();
+  const surnameId = useId();
+  const contactId = useId();
+  const headerTitleId = useId();
+  const optionsId = useId();
   const { dialogProps, backdropProps } = useModal({ onClose: handleClose });
 
   // Fills the manuscript fields with the writer's saved details. Asked once
@@ -163,8 +171,8 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
 
         <div className="modal-body">
           <div className="form-group">
-            <label className="form-label">Format</label>
-            <div className="format-selector">
+            <span id={formatId} className="form-label">Format</span>
+            <div className="format-selector" role="group" aria-labelledby={formatId}>
               {FORMATS.map((f) => (
                 <button
                   key={f.id}
@@ -179,8 +187,8 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
 
           {format !== 'epub' && (
             <div className="form-group">
-              <label className="form-label">Layout</label>
-              <div className="format-selector">
+              <span id={layoutId} className="form-label">Layout</span>
+              <div className="format-selector" role="group" aria-labelledby={layoutId}>
                 {LAYOUTS.map((l) => (
                   <button
                     key={l.id}
@@ -198,8 +206,8 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
           {manuscriptOn && (
             <>
               <div className="form-group">
-                <label className="form-label">Font</label>
-                <div className="format-selector">
+                <span id={fontId} className="form-label">Font</span>
+                <div className="format-selector" role="group" aria-labelledby={fontId}>
                   <button
                     className={`format-btn${manuscript.font === 'serif' ? ' active' : ''}`}
                     data-testid="ms-font-serif"
@@ -218,8 +226,9 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
               </div>
 
               <div className="form-group">
-                <label className="form-label">Author name</label>
+                <label className="form-label" htmlFor={authorId}>Author name</label>
                 <input
+                  id={authorId}
                   className="form-input"
                   type="text"
                   data-testid="ms-author"
@@ -229,8 +238,9 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
               </div>
 
               <div className="form-group">
-                <label className="form-label">Surname (for the header)</label>
+                <label className="form-label" htmlFor={surnameId}>Surname (for the header)</label>
                 <input
+                  id={surnameId}
                   className="form-input"
                   type="text"
                   data-testid="ms-surname"
@@ -240,8 +250,9 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
               </div>
 
               <div className="form-group">
-                <label className="form-label">Contact block</label>
+                <label className="form-label" htmlFor={contactId}>Contact block</label>
                 <textarea
+                  id={contactId}
                   className="form-textarea"
                   data-testid="ms-contact"
                   value={manuscript.contactBlock}
@@ -250,8 +261,9 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
               </div>
 
               <div className="form-group">
-                <label className="form-label">Header title</label>
+                <label className="form-label" htmlFor={headerTitleId}>Header title</label>
                 <input
+                  id={headerTitleId}
                   className="form-input"
                   type="text"
                   data-testid="ms-header-title"
@@ -276,8 +288,8 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
           )}
 
           <div className="form-group">
-            <label className="form-label">Options</label>
-            <div className="checkbox-group">
+            <span id={optionsId} className="form-label">Options</span>
+            <div className="checkbox-group" role="group" aria-labelledby={optionsId}>
               {!manuscriptOn && (
                 <label className="checkbox-label">
                   <input
@@ -300,7 +312,7 @@ function ExportDialog({ format, setFormat, includeNotes, setIncludeNotes, includ
           </div>
 
           <div className="form-group">
-            <label className="form-label">Full backup</label>
+            <span className="form-label">Full backup</span>
             <p className="form-hint">
               A complete copy of this work: chapters as HTML and Markdown, history, milestones,
               plot threads, Codex and Map. It is not a manuscript.

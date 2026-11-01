@@ -13,7 +13,6 @@ const srcDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'src');
 
 // Files still being fixed (card PdTKm196). Each fix task removes its files.
 const UNFIXED = new Set([
-  'components/overlays/ExportModal.jsx',
   'components/settings/ApiKeyField.jsx',
   'components/settings/ModelSelect.jsx',
   'components/settings/ParamSliders.jsx',
