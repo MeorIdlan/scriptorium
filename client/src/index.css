@@ -4252,3 +4252,60 @@ button.rule-item {
     font-size: 16px;
   }
 }
+
+/* Phones and tablets: the Main Room surface */
+@media (max-width: 1099px) {
+  .main-room-body,
+  .editor-area {
+    min-width: 0;
+  }
+  .editor-wrap {
+    padding: 28px 24px;
+  }
+  /* Notes above the editor wrap inside its width instead of widening it */
+  .editor-area > .backup-reminder--banner,
+  .editor-loading-note {
+    overflow-wrap: anywhere;
+  }
+  .topbar {
+    gap: 8px;
+    padding: 0 16px;
+  }
+  .topbar-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .save-status {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .word-counter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+  }
+  .word-counter-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .word-counter-panel {
+    flex-shrink: 0;
+  }
+}
+@media (max-width: 640px) {
+  .editor-wrap {
+    padding: 20px 16px;
+  }
+  .topbar-draft-badge {
+    display: none;
+  }
+  .topbar-chapter-pill {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

@@ -74,3 +74,28 @@ test('useLayoutMode does not ask matchMedia again on every render', async () => 
   assert.ok(calls <= 4, `matchMedia was called ${calls} times`);
   await view.unmount();
 });
+
+// The body of the first rule for `selector` inside an @media block whose query is `query`
+function ruleIn(css, query, selector) {
+  for (const match of css.matchAll(/@media\s+([^{]+)\{/g)) {
+    if (match[1].trim() !== query) continue;
+    let depth = 1;
+    let i = match.index + match[0].length;
+    const start = i;
+    while (depth > 0 && i < css.length) {
+      if (css[i] === '{') depth += 1;
+      else if (css[i] === '}') depth -= 1;
+      i += 1;
+    }
+    const block = css.slice(start, i - 1);
+    const rule = block.match(new RegExp(`(?:^|[\\s,}])${selector.replace('.', '\\.')}\\s*(?:,[^{]*)?\\{([^}]*)\\}`));
+    if (rule) return rule[1];
+  }
+  return null;
+}
+
+test('the editor gets less side padding on tablets (28px 24px) and phones (20px 16px)', () => {
+  const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+  assert.match(ruleIn(css, '(max-width: 1099px)', '.editor-wrap') ?? '', /padding:\s*28px 24px/);
+  assert.match(ruleIn(css, '(max-width: 640px)', '.editor-wrap') ?? '', /padding:\s*20px 16px/);
+});

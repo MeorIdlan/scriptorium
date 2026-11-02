@@ -107,6 +107,7 @@ test('on desktop the panel is exactly the inline panel it was (A4)', async () =>
   assert.equal(panel(view).className, 'right-panel');
   for (const name of ['inert', 'role', 'id', 'aria-modal', 'tabindex']) assert.equal(panel(view).hasAttribute(name), false, name);
   assert.equal(panelButton(view), null);
+  assert.ok(view.query('.word-counter-text') === null, 'desktop word counter keeps its own markup');
   assert.equal(view.query('.right-panel .drawer-close'), null);
   assert.equal(view.query('.drawer-backdrop'), null);
   await view.unmount();
@@ -160,4 +161,13 @@ test('the tab indicator is measured again when the layout mode changes and when 
   } finally {
     stub.restore();
   }
+});
+
+test('on a phone the word counter holds its text beside the Panel button', async () => {
+  const view = await open(390);
+  const bar = view.query('.word-counter');
+  assert.ok(view.query('.word-counter-text'));
+  assert.ok(bar.contains(panelButton(view)));
+  assert.match(view.query('.word-counter-text').textContent, /words/);
+  await view.unmount();
 });

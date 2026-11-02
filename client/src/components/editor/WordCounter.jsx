@@ -24,8 +24,8 @@ export default function WordCounter() {
     (ch) => ch.id === editorState.chapterId
   );
 
-  return (
-    <div className="word-counter">
+  const text = (
+    <>
       {currentChapter && (
         <span>Ch. {currentChapter.number} — {formatNumber(chapterWords)} words</span>
       )}
@@ -45,18 +45,24 @@ export default function WordCounter() {
           )}
         </span>
       )}
-      {/* On phones and tablets the right panel is a drawer, and this opens it */}
-      {mode !== 'desktop' && (
-        <button
-          type="button"
-          className="word-counter-panel"
-          aria-expanded={uiState.drawer === 'panel'}
-          aria-controls={drawerId('panel')}
-          onClick={() => dispatch({ type: 'OPEN_DRAWER', name: 'panel' })}
-        >
-          Panel
-        </button>
-      )}
+    </>
+  );
+
+  // Desktop keeps the bar's children as they were. On phones and tablets the text sits in its
+  // own box so the Panel button can stay beside it
+  if (mode === 'desktop') return <div className="word-counter">{text}</div>;
+  return (
+    <div className="word-counter">
+      <span className="word-counter-text">{text}</span>
+      <button
+        type="button"
+        className="word-counter-panel"
+        aria-expanded={uiState.drawer === 'panel'}
+        aria-controls={drawerId('panel')}
+        onClick={() => dispatch({ type: 'OPEN_DRAWER', name: 'panel' })}
+      >
+        Panel
+      </button>
     </div>
   );
 }
