@@ -1,5 +1,5 @@
 # Builds the server and client images, pushes them to GHCR, and deploys to the
-# cell1337 droplet using the shared workflow in MeorIdlan/deploy-workflows.
+# cell1337 server using the shared workflow in MeorIdlan/deploy-workflows.
 # Rollback: Actions → Deploy → Run workflow, with image-tag = an earlier tag.
 # The test suites (test.yml) run first and must pass before anything is built;
 # a rollback skips them, since its images were built from tested commits.

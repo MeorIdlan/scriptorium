@@ -140,7 +140,7 @@ Existing features (FR-1 to FR-12) are already built. For MVP 1 each is accepted 
 
 ## 8. Constraints and dependencies
 - **Stack (kept):** React 18 + Vite client; Express (ESM) + MongoDB/Mongoose server; plain CSS; passkey + email one-time-code auth; AI through the writer's own Anthropic or OpenAI key; pdfkit, nodepub and docx for export. Tests use Node's built-in runner (`node --test`), with `linkedom` as the client DOM. No linter.
-- **Hosting:** one instance, operated by the dev, on a droplet behind a Cloudflare Tunnel with a shared MongoDB. A push to `main` builds images and deploys. nginx and the tunnel allow requests up to 100 seconds.
+- **Hosting:** one instance, operated by the dev, on a Tencent Cloud Lighthouse instance behind a Cloudflare Tunnel with a shared MongoDB. A push to `main` builds images and deploys. nginx and the tunnel allow requests up to 100 seconds.
 - **External services:** Mailgun for code emails; AI provider APIs and their rate limits, billed to each writer's key.
 - **Game-mode art (Later):** scenes are pre-rendered clips the dev makes with a third-party video generator, from prompts and a storyboard designed in Claude Design; they are served as static assets, outside the app bundle. Each clip has a still-frame fallback for reduced motion, narrow screens and failed loads.
 - **Known technical limits:** EPUB builds must run one at a time and need a cover image (nodepub). Chapter text is sanitized HTML with scene markers; replacing the editor model (TipTap) is deferred to Later.

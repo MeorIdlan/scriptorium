@@ -3,16 +3,16 @@
 #   spaces-upload.sh [archive]
 # Without an archive it uses the newest $BACKUP_DIR/<db>-*.archive.gz. The
 # local archive is never touched, so a failed upload loses nothing; it logs
-# FAILED and exits 1. Spaces keeps its own copies for as long as the bucket's
+# FAILED and exits 1. COS keeps its own copies for as long as the bucket's
 # lifecycle rule says (spaces-lifecycle.xml).
-# Installed on the droplet as /usr/local/sbin/scriptorium-spaces-upload and run
+# Installed on the server as /usr/local/sbin/scriptorium-spaces-upload and run
 # by scriptorium-backup-run after a successful dump. See
 # docs/deployment.md → Data.
 set -euo pipefail
 
 DB="${DB:-scriptorium}"
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/scriptorium}"
-# s3cmd config with the Spaces endpoint and key: root-only, never in the repo.
+# s3cmd config with the COS endpoint and key: root-only, never in the repo.
 SPACES_CONFIG="${SPACES_CONFIG:-/etc/scriptorium-backup/s3cfg}"
 # The bucket is shared by the dev's apps; scriptorium keeps to scriptorium/.
 SPACES_URI="${SPACES_URI:-s3://cell1337-bucket-1523630779/scriptorium/backups/}"

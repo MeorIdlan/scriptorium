@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # The nightly backup job: dump, then (only if the dump succeeded) the upload to
-# Spaces, then a ping to a Healthchecks.io check. Success pings the check URL;
+# COS, then a ping to a Healthchecks.io check. Success pings the check URL;
 # a failed dump or upload pings <url>/fail with the tail of this run's output,
 # so the alert email shows the FAILED line. If no ping arrives at all (cron or
-# the droplet down), Healthchecks alerts once the grace period runs out.
+# the server down), Healthchecks alerts once the grace period runs out.
 # Step output is passed through to stdout, which cron appends to the log.
 # Exits with the backup's own status; a failed ping never changes it.
-# Installed on the droplet as /usr/local/sbin/scriptorium-backup-run and run
+# Installed on the server as /usr/local/sbin/scriptorium-backup-run and run
 # from /etc/cron.d/scriptorium-backup. See docs/deployment.md → Data.
 set -uo pipefail
 

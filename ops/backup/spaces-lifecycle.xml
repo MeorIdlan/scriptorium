@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Scriptorium's retention rule for its dump copies in the shared DO Space
+<!-- Scriptorium's retention rule for its dump copies in the COS bucket
      (docs/deployment.md → Data). setlifecycle REPLACES the bucket's whole
      lifecycle config, so merge this <Rule> with any rules other apps already
      have (getlifecycle first) and apply the merged file with a Full Access

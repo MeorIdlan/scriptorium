@@ -53,7 +53,7 @@ scriptorium/
 ├── docker-compose.prod.yml     # prod: Dockerfile.prod images, shared-mongo + shared-edge networks
 ├── .env.example                # server env vars
 ├── docs/                       # deployment.md; agent-workflow.md (subagent roles + dispatch rules); superpowers/ (plans + specs)
-├── ops/backup/                 # nightly mongodump + DO Spaces upload + Healthchecks ping + restore drill + cron entry, installed on the droplet (docs/deployment.md → Data)
+├── ops/backup/                 # nightly mongodump + COS upload + Healthchecks ping + restore drill + cron entry, installed on the server (docs/deployment.md → Data)
 ├── server/
 │   ├── Dockerfile, Dockerfile.prod
 │   ├── package.json            # ESM; express, mongoose, @simplewebauthn/server, mailgun.js, @anthropic-ai/sdk, openai, pdfkit, nodepub, docx
