@@ -4294,6 +4294,27 @@ button.rule-item {
   .word-counter-panel {
     flex-shrink: 0;
   }
+  /* The toolbar is one row that scrolls inside itself, with touch-size targets */
+  .toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .toolbar::-webkit-scrollbar {
+    display: none;
+  }
+  .toolbar > * {
+    flex-shrink: 0;
+  }
+  .toolbar-btn {
+    min-width: 44px;
+    height: 44px;
+  }
+  .toolbar-select {
+    height: 44px;
+    font-size: 16px;
+  }
 }
 @media (max-width: 640px) {
   .editor-wrap {

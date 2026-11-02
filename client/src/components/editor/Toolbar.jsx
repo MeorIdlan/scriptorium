@@ -21,6 +21,10 @@ export default function Toolbar({ editorRef }) {
   const { state: editorState } = useEditor();
   const { aiOn } = useAiState();
   const mode = useLayoutMode();
+  // On a touch screen a tap on a toolbar button would take focus from the editor and drop the
+  // on-screen keyboard and the selection. Cancelling the mouse press the tap produces keeps both.
+  // Left alone on desktop, where the buttons behave as they always have.
+  const keepFocus = mode === 'desktop' ? undefined : (e) => e.preventDefault();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   // The writer's selection inside the editor, kept for the font and size selects
@@ -199,6 +203,7 @@ export default function Toolbar({ editorRef }) {
 
       <button
         className="toolbar-btn"
+        onMouseDown={keepFocus}
         onClick={() => exec('bold')}
         aria-pressed={formats.bold}
         title="Bold (Ctrl+B)"
@@ -207,6 +212,7 @@ export default function Toolbar({ editorRef }) {
       </button>
       <button
         className="toolbar-btn toolbar-italic"
+        onMouseDown={keepFocus}
         onClick={() => exec('italic')}
         aria-pressed={formats.italic}
         title="Italic (Ctrl+I)"
@@ -215,6 +221,7 @@ export default function Toolbar({ editorRef }) {
       </button>
       <button
         className="toolbar-btn toolbar-underline"
+        onMouseDown={keepFocus}
         onClick={() => exec('underline')}
         aria-pressed={formats.underline}
         title="Underline (Ctrl+U)"
@@ -226,6 +233,7 @@ export default function Toolbar({ editorRef }) {
 
       <button
         className="toolbar-btn"
+        onMouseDown={keepFocus}
         onClick={() => exec('justifyLeft')}
         title="Align left"
         aria-label="Align left"
@@ -234,6 +242,7 @@ export default function Toolbar({ editorRef }) {
       </button>
       <button
         className="toolbar-btn"
+        onMouseDown={keepFocus}
         onClick={() => exec('justifyCenter')}
         title="Align center"
         aria-label="Align center"
@@ -242,6 +251,7 @@ export default function Toolbar({ editorRef }) {
       </button>
       <button
         className="toolbar-btn"
+        onMouseDown={keepFocus}
         onClick={() => exec('justifyRight')}
         title="Align right"
         aria-label="Align right"
