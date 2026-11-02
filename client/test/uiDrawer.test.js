@@ -143,3 +143,13 @@ test('an open drawer clears the transform its placement sets, for every placemen
     assert.match(css, open, placement);
   }
 });
+
+test('drawers and their backdrop are positioned inside .layout, which follows the visual viewport', () => {
+  // `.layout` tracks the visual viewport (keyboard, iOS pan); a fixed drawer would stay anchored to the
+  // layout viewport and end up under the keyboard
+  const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+  for (const selector of ['.drawer', '.drawer-backdrop']) {
+    const rule = css.match(new RegExp(`(?:^|\\n)\\${selector}\\s*\\{([^}]*)\\}`))[1];
+    assert.match(rule, /position:\s*absolute/, selector);
+  }
+});

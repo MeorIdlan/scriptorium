@@ -22,6 +22,5 @@ test('a caret above the visible band scrolls up', () => {
 test('a band too short for the margin still gives a sensible answer', () => {
   // 40px tall band: both margins cannot be met, so the caret's bottom wins
   const delta = caretScrollDelta({ caretTop: 130, caretBottom: 152, viewTop: 100, viewBottom: 140, margin: 24 });
-  assert.equal(typeof delta, 'number');
-  assert.ok(Number.isFinite(delta));
+  assert.equal(delta, 152 - (140 - 24));
 });

@@ -72,6 +72,8 @@ export function useAutosave(workId) {
         .catch((err) => {
           console.error('Autosave failed:', err);
           setSaveStatus('error');
+          // Keep the edit for the next hide or for leaving the chapter, unless a newer one has taken its place
+          if (pendingRef.current === null) pendingRef.current = pending;
         });
     }
     function onVisibilityChange() {

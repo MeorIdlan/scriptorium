@@ -120,3 +120,36 @@ test('the save status follows the flush: saved on success, error on failure', as
   assert.equal(editor.state.saveStatus, 'error');
   await failing.unmount();
 });
+
+test('a failed flush keeps the edit, so the next hide retries it', async () => {
+  let fail = true;
+  const view = await openEditor({
+    'PUT /works/w1/chapters/c1': () => (fail ? new HttpError(500, 'boom') : { id: 'c1', wordCount: 2 }),
+  });
+  await act(async () => editor.setContent('new words', '<p>new words</p>'));
+  await hide();
+  assert.equal(puts(view).length, 1);
+  assert.equal(editor.state.saveStatus, 'error');
+  fail = false;
+  await hide();
+  assert.equal(puts(view).length, 2, 'the edit was dropped after the failed flush');
+  assert.deepEqual(puts(view)[1].body, { content: 'new words', contentHtml: '<p>new words</p>' });
+  assert.equal(editor.state.saveStatus, 'saved');
+});
+
+test('a failed flush does not overwrite a newer edit when it fails', async () => {
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const view = await openEditor({ 'PUT /works/w1/chapters/c1': async () => { await gate; return new HttpError(500, 'boom'); } });
+  await act(async () => editor.setContent('first', '<p>first</p>'));
+  setVisibility('hidden');
+  document.dispatchEvent(new window.Event('visibilitychange'));
+  await act(async () => editor.setContent('second', '<p>second</p>'));
+  release();
+  await flush();
+  await hide();
+  const bodies = puts(view).map((c) => c.body.content);
+  assert.equal(bodies[bodies.length - 1], 'second', 'the newer edit must be the one retried');
+});

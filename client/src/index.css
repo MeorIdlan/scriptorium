@@ -4157,8 +4157,10 @@ button.rule-item {
    file: the drawers override position and width that the sidebar, chapter list and
    panel rules set at the same specificity.
    ============================================================ */
+/* Absolute, inside .layout: on phones and tablets .layout follows the visual viewport, so a
+   drawer positioned against it stays above the on-screen keyboard (a fixed one would not) */
 .drawer {
-  position: fixed;
+  position: absolute;
   z-index: 90;
   visibility: hidden;
   transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.22s;
@@ -4204,7 +4206,7 @@ button.rule-item {
   transform: translateY(100%);
 }
 .drawer-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 80;
   background: rgba(0, 0, 0, 0.62);
@@ -4294,7 +4296,6 @@ button.rule-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    text-align: left;
   }
   .word-counter-text {
     flex: 1;

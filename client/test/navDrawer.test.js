@@ -137,3 +137,19 @@ test('the nav indicator is measured again when the layout mode changes', async (
     proto.getBoundingClientRect = original;
   }
 });
+
+test('the Catch overlay is not inside .layout, whose stacking context would put it under the modals', async () => {
+  const view = await open(390);
+  await act(async () => {
+    const event = new window.Event('keydown', { bubbles: true });
+    Object.defineProperty(event, 'key', { value: 'I' });
+    Object.defineProperty(event, 'ctrlKey', { value: true });
+    Object.defineProperty(event, 'shiftKey', { value: true });
+    window.dispatchEvent(event);
+  });
+  await flush();
+  const overlay = view.query('.catch-overlay');
+  assert.ok(overlay, 'the overlay did not open');
+  assert.ok(overlay.closest('.layout') === null, 'the overlay is inside .layout');
+  await view.unmount();
+});

@@ -49,20 +49,24 @@ function Layout() {
   }, [dispatch]);
 
   return (
-    <div className="layout">
-      <Sidebar />
-      <div className="main-area">
-        <TopBar />
-        <div className="content" tabIndex={-1}>
-          <div key={pageKey(location.pathname)} className="page-enter">
-            <Outlet />
+    <>
+      <div className="layout">
+        <Sidebar />
+        <div className="main-area">
+          <TopBar />
+          <div className="content" tabIndex={-1}>
+            <div key={pageKey(location.pathname)} className="page-enter">
+              <Outlet />
+            </div>
           </div>
         </div>
+        <DrawerBackdrop />
+        <ExportModal />
       </div>
-      <DrawerBackdrop />
+      {/* Outside .layout: on phones and tablets .layout is fixed, which makes it a stacking context,
+          and the overlay (z-index 150) would then sit under the modals portalled to <body> (100) */}
       <CatchOverlay />
-      <ExportModal />
-    </div>
+    </>
   );
 }
 

@@ -99,3 +99,10 @@ test('the editor gets less side padding on tablets (28px 24px) and phones (20px 
   assert.match(ruleIn(css, '(max-width: 1099px)', '.editor-wrap') ?? '', /padding:\s*28px 24px/);
   assert.match(ruleIn(css, '(max-width: 640px)', '.editor-wrap') ?? '', /padding:\s*20px 16px/);
 });
+
+test('the compact word counter keeps the desktop bar\'s centred text', () => {
+  const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+  const rule = ruleIn(css, '(max-width: 1099px)', '.word-counter') ?? '';
+  assert.match(rule, /display:\s*flex/);
+  assert.doesNotMatch(rule, /text-align:\s*left/);
+});

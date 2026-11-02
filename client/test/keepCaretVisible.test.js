@@ -1,6 +1,6 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { render, cleanup, act, flush } from './support/render.js';
+import { render, cleanup, act } from './support/render.js';
 import { createElement as h, useRef } from 'react';
 import { setViewport, resetViewport } from './support/viewport.js';
 import './support/focus.js';
@@ -20,7 +20,14 @@ function stubs() {
   wrap.appendChild(editor);
   document.body.appendChild(wrap);
   caret = { top: 300, bottom: 322 };
-  const range = { collapsed: true, getClientRects: () => [{ top: caret.top, bottom: caret.bottom }], getBoundingClientRect: () => ({ top: caret.top, bottom: caret.bottom }) };
+  const range = {
+    collapsed: true,
+    startContainer: editor,
+    startOffset: 0,
+    getClientRects: () => (caret.noRects ? [] : [{ top: caret.top, bottom: caret.bottom }]),
+    getBoundingClientRect: () => (caret.noRects ? { top: 0, bottom: 0, height: 0 } : { top: caret.top, bottom: caret.bottom, height: caret.bottom - caret.top }),
+  };
+  stubs.range = range;
   const original = document.getSelection;
   document.getSelection = () => ({ rangeCount: 1, isCollapsed: true, getRangeAt: () => range });
   restoreSelection = () => {
@@ -80,5 +87,55 @@ test('nothing scrolls when the editor is not focused, or on desktop', async () =
   editor.focus();
   await act(async () => document.dispatchEvent(new window.Event('selectionchange')));
   assert.equal(wrap.scrollTop, 0, 'scrolled while inactive');
-  assert.ok(flush);
+});
+
+test('moving the caret above the band scrolls up', async () => {
+  setViewport(390);
+  stubs();
+  wrap.scrollTop = 500;
+  await render(h(Probe, { active: true }));
+  editor.focus();
+  caret = { top: 110, bottom: 132 };
+  await act(async () => document.dispatchEvent(new window.Event('selectionchange')));
+  assert.equal(wrap.scrollTop, 500 + (110 - (100 + 24)));
+});
+
+test('the band starts at the visual viewport\'s offset when that is lower than the editor', async () => {
+  setViewport(390);
+  const vv = stubs();
+  vv.offsetTop = 200; // iOS panned the page: the visible band is 200 to 500
+  vv.height = 300;
+  wrap.scrollTop = 500;
+  await render(h(Probe, { active: true }));
+  editor.focus();
+  caret = { top: 210, bottom: 232 };
+  await act(async () => document.dispatchEvent(new window.Event('selectionchange')));
+  assert.equal(wrap.scrollTop, 500 + (210 - (200 + 24)));
+});
+
+test('a caret on an empty line, with no rect, is measured from the block before it', async () => {
+  setViewport(390);
+  stubs();
+  const block = document.createElement('p');
+  block.getBoundingClientRect = () => ({ top: 690, bottom: 712, height: 22 });
+  editor.appendChild(block);
+  stubs.range.startContainer = editor;
+  stubs.range.startOffset = 1; // after the one paragraph
+  await render(h(Probe, { active: true }));
+  editor.focus();
+  caret = { noRects: true };
+  await act(async () => document.dispatchEvent(new window.Event('selectionchange')));
+  assert.equal(wrap.scrollTop, 712 - (700 - 24));
+});
+
+test('a fallback box taller than the visible band is ignored rather than scrolled to its end', async () => {
+  setViewport(390);
+  stubs();
+  editor.getBoundingClientRect = () => ({ top: -4000, bottom: 2000, height: 6000 });
+  stubs.range.startContainer = editor; // an editor with no children: only the editor's own box is left
+  await render(h(Probe, { active: true }));
+  editor.focus();
+  caret = { noRects: true };
+  await act(async () => document.dispatchEvent(new window.Event('selectionchange')));
+  assert.equal(wrap.scrollTop, 0);
 });

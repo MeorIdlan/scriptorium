@@ -11,8 +11,12 @@ function caretRect(range) {
   const box = range.getBoundingClientRect?.();
   if (box && (box.height || box.top)) return box;
   const node = range.startContainer;
-  const el = node?.nodeType === 1 ? node : node?.parentElement;
-  return el ? el.getBoundingClientRect() : null;
+  if (node?.nodeType === 1) {
+    // A caret between blocks (an empty line): the block before it, else the one after, else the container
+    const near = node.childNodes[range.startOffset - 1] ?? node.childNodes[range.startOffset];
+    return (near?.nodeType === 1 ? near : node).getBoundingClientRect();
+  }
+  return node?.parentElement?.getBoundingClientRect() ?? null;
 }
 
 // While the editor has focus and `active` is true (phones and tablets), keeps the caret inside
@@ -34,6 +38,8 @@ export function useKeepCaretVisible(editorRef, active) {
       const box = wrap.getBoundingClientRect();
       const viewTop = Math.max(box.top, vv ? vv.offsetTop : 0);
       const viewBottom = Math.min(box.bottom, vv ? vv.offsetTop + vv.height : window.innerHeight);
+      // A box taller than the visible band is not a caret line (a whole editor or block): leave the scroll alone
+      if (rect.bottom - rect.top > viewBottom - viewTop) return;
       const delta = caretScrollDelta({ caretTop: rect.top, caretBottom: rect.bottom, viewTop, viewBottom, margin: MARGIN });
       if (delta) wrap.scrollTop += delta;
     }
