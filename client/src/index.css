@@ -4337,6 +4337,51 @@ button.rule-item {
   }
 }
 
+/* Settings (and the admin users page, which uses its layout) */
+@media (max-width: 640px) {
+  .settings-page {
+    padding: 20px 16px 40px;
+  }
+  .settings-section {
+    padding: 16px;
+  }
+  .settings-actions,
+  .api-key-field,
+  .api-key-confirm {
+    flex-wrap: wrap;
+  }
+  .api-key-field .form-input {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .settings-radio-option {
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: 44px;
+  }
+  /* iOS zooms the page when a field under 16px takes focus */
+  .settings-page .form-input,
+  .settings-page .form-select,
+  .settings-page .form-textarea {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .settings-page .btn {
+    min-height: 44px;
+  }
+  .param-slider {
+    min-height: 44px;
+  }
+  .pick {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .settings-toast {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+  }
+}
+
 /* The Map */
 @media (max-width: 640px) {
   .map-view {
