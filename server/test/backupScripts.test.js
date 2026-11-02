@@ -120,7 +120,7 @@ test('container wrapper runs podman as deploy from a directory deploy can enter'
   assert.equal(r.stdout, 'ARCHIVE', 'stdin reaches the container');
   assert.equal(
     fs.readFileSync(log, 'utf8'),
-    '/ | -u deploy -- env XDG_RUNTIME_DIR=/run/user/1234 podman exec -i mongo_mongo_1 mongorestore\n',
+    '/ | -u deploy -- env XDG_RUNTIME_DIR=/run/user/1234 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1234/bus podman exec -i mongo_mongo_1 mongorestore\n',
   );
 });
 

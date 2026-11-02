@@ -5,4 +5,8 @@
 # deploy can't enter root's home, where cron runs. See docs/deployment.md.
 set -euo pipefail
 cd /
-exec runuser -u deploy -- env "XDG_RUNTIME_DIR=/run/user/$(id -u deploy)" podman "$@"
+uid=$(id -u deploy)
+# Without the bus address podman can't reach deploy's systemd session, and
+# `podman exec` then fails to join the container's cgroup.
+exec runuser -u deploy -- env "XDG_RUNTIME_DIR=/run/user/$uid" \
+  "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$uid/bus" podman "$@"
