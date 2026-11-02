@@ -54,22 +54,28 @@ export default function MapView() {
         {state.work && <p className="map-subtitle">{state.work.title}</p>}
       </div>
 
-      <div className="map-curve-section">
-        <TensionCurve chapters={chapters} />
-      </div>
+      {/* The curve, the blocks and the beat row scroll sideways together in this one box, so a long
+          work never widens the Map itself. --chapters sizes the inner box to the blocks row */}
+      <div className="map-timeline">
+        <div className="map-timeline-inner" style={{ '--chapters': chapters.length }}>
+          <div className="map-curve-section">
+            <TensionCurve chapters={chapters} />
+          </div>
 
-      <div className="map-blocks-section">
-        {povs.length > 0 && (
-          <label className="map-pov-filter">
-            POV
-            <select className="form-select" value={pov} onChange={(e) => setPov(e.target.value)}>
-              <option value="">All POVs</option>
-              {povs.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </label>
-        )}
-        <ChapterBlocks chapters={chapters} pov={pov} />
-        <BeatRow chapters={chapters} />
+          <div className="map-blocks-section">
+            {povs.length > 0 && (
+              <label className="map-pov-filter">
+                POV
+                <select className="form-select" value={pov} onChange={(e) => setPov(e.target.value)}>
+                  <option value="">All POVs</option>
+                  {povs.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </label>
+            )}
+            <ChapterBlocks chapters={chapters} pov={pov} />
+            <BeatRow chapters={chapters} />
+          </div>
+        </div>
       </div>
 
       <div className="map-threads-section">

@@ -440,6 +440,26 @@ a:hover {
   flex: 1;
 }
 
+/* Opens the Catch panel where there is no Ctrl/Cmd+Shift+I; rendered only on phones, tablets
+   and touch screens, never on a desktop with a mouse */
+.topbar-catch {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius);
+  color: var(--gold);
+  font-family: var(--font-ui);
+  font-size: var(--type-small);
+  cursor: pointer;
+}
+.topbar-catch:hover { color: var(--gold-hover); border-color: var(--gold); }
+
 .save-status {
   font-size: var(--type-small);
 }
@@ -1946,6 +1966,21 @@ input[type="range"] {
   color: var(--text-muted);
 }
 
+/* The curve, the blocks and the beat row scroll sideways together here, and only here. The inner
+   box is at least as wide as the blocks row (74px a chapter: a 68px block and a 6px gap, plus the
+   section's padding and borders), so the curve and the beat row stay level with the blocks. A short
+   work needs less than the full width, and then the inner box is just the full width. */
+.map-timeline {
+  overflow-x: auto;
+}
+
+.map-timeline-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: max(100%, calc(var(--chapters, 0) * 74px + 2rem - 4px));
+}
+
 .map-curve-section {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -2007,8 +2042,9 @@ input[type="range"] {
   overflow: hidden;
 }
 
+/* No scrolling of its own: the blocks scroll with the curve and the beat row, in .map-timeline */
 .chapter-blocks-wrap {
-  overflow-x: auto;
+  min-width: 0;
 }
 
 .chapter-blocks {
@@ -2377,6 +2413,10 @@ input[type="range"] {
   font-size: 0.82rem;
   color: var(--text-dim);
 }
+
+/* The two Add modals; their widths used to be inline, which the phone rule couldn't override */
+.add-entity-modal { max-width: 380px; }
+.add-rule-modal { max-width: 460px; }
 
 .codex-detail-col {
   flex: 1;
@@ -4145,6 +4185,235 @@ button.rule-item {
 .thread-markers { display: inline-flex; gap: 4px; align-items: center; }
 .thread-marker { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .scene-card-threads { display: flex; flex-direction: column; gap: 4px; font-size: 0.75rem; color: var(--text-muted); }
+
+/* ============================================================
+   Phones: the other rooms and every modal
+   Only inside media queries, so a mouse-and-desktop layout keeps its exact rules. The
+   Drawers block below stays last in the file.
+   ============================================================ */
+@media (max-width: 640px) {
+  /* A modal fills the screen. `.modal-backdrop .modal` outranks the width and height that each
+     modal variant (.history-modal, .export-modal, ...) sets with one class */
+  .modal-backdrop {
+    padding: 0;
+    align-items: stretch;
+  }
+  .modal-backdrop .modal {
+    width: 100%;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+  .modal-backdrop .modal-header {
+    flex-shrink: 0;
+  }
+  .modal-backdrop .modal-body {
+    min-height: 0;
+  }
+  .modal-backdrop .modal-footer {
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .modal-backdrop .modal-footer-right {
+    flex-direction: column;
+  }
+  .modal-backdrop .modal-footer .btn {
+    min-height: 44px;
+  }
+  .modal-close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  /* iOS zooms the page when a field under 16px takes focus */
+  .modal input,
+  .modal select,
+  .modal textarea {
+    font-size: 16px;
+  }
+
+  /* The Catch panel is a full-width sheet under the top bar, not a corner box */
+  .catch-overlay {
+    top: var(--topbar-height);
+    left: 0;
+    right: 0;
+    width: auto;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+  .catch-overlay-input,
+  .catch-chapter-select {
+    font-size: 16px;
+  }
+  .catch-overlay-close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Shelves, the auth pages and the admin users table */
+@media (max-width: 640px) {
+  .shelves-page {
+    padding: 20px 16px 40px;
+  }
+  .shelves-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  /* minmax(0, 1fr), not 1fr: a long title can't stretch the column past the screen */
+  .work-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .work-card-menu-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .auth-page {
+    padding: 16px;
+  }
+  .auth-card {
+    width: 100%;
+    max-width: none;
+    padding: 20px 16px 22px;
+  }
+  .auth-card input {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .auth-card button {
+    min-height: 44px;
+  }
+  /* The table scrolls inside itself, so the page never scrolls sideways */
+  .admin-users-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+/* The Codex below 1100px: one scrolling column that shows the list (with the open flags under it)
+   or one entry, with a Back button between them. CodexView adds .codex-view--detail while an
+   entry is open */
+@media (max-width: 1099px) {
+  .codex-view {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .codex-list-col,
+  .codex-flags-col {
+    width: 100%;
+    min-width: 0;
+    flex-shrink: 0;
+    border: 0;
+  }
+  .codex-list-col {
+    border-bottom: 1px solid var(--border);
+  }
+  /* The page scrolls, so the list takes the height of its rows */
+  .codex-entity-list {
+    flex: none;
+    overflow-y: visible;
+  }
+  .codex-detail-col {
+    display: none;
+    flex: none;
+    overflow-y: visible;
+    padding: 16px;
+  }
+  .codex-view--detail .codex-detail-col {
+    display: block;
+  }
+  .codex-view--detail .codex-list-col,
+  .codex-view--detail .codex-flags-col {
+    display: none;
+  }
+  .codex-entity-item,
+  .codex-tabs .codex-tab {
+    min-height: 44px;
+  }
+  .codex-back {
+    min-height: 44px;
+    margin-bottom: 12px;
+  }
+}
+
+/* Settings (and the admin users page, which uses its layout) */
+@media (max-width: 640px) {
+  .settings-page {
+    padding: 20px 16px 40px;
+  }
+  .settings-section {
+    padding: 16px;
+  }
+  .settings-actions,
+  .api-key-field,
+  .api-key-confirm {
+    flex-wrap: wrap;
+  }
+  .api-key-field .form-input {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .settings-radio-option {
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: 44px;
+  }
+  /* iOS zooms the page when a field under 16px takes focus */
+  .settings-page .form-input,
+  .settings-page .form-select,
+  .settings-page .form-textarea {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .settings-page .btn {
+    min-height: 44px;
+  }
+  .param-slider {
+    min-height: 44px;
+  }
+  .pick {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .settings-toast {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+  }
+}
+
+/* Fields in the Map's chapter detail and the Codex's entries: their own sizes were under 16px, which
+   makes iOS zoom the page on focus. A Codex entry's fields get a column each: two were about 160px wide */
+@media (max-width: 640px) {
+  .map-view .form-input,
+  .map-view .form-select,
+  .map-view .form-textarea,
+  .inline-field-input,
+  .inline-field-textarea,
+  .inline-field-select {
+    font-size: 16px;
+  }
+  .codex-entry-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The Map */
+@media (max-width: 640px) {
+  .map-view {
+    padding: 16px;
+  }
+  .map-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
 
 /* ============================================================
    Drawers

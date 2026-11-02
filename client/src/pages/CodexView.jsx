@@ -8,6 +8,7 @@ import RuleDetail from '../components/codex/RuleDetail.jsx';
 import CodexAuditModal from '../components/overlays/CodexAuditModal.jsx';
 import { useAiState } from '../context/AiContext.jsx';
 import { useModal } from '../hooks/useModal.js';
+import { useLayoutMode } from '../hooks/useLayoutMode.js';
 import { busyProps, guardBusy } from '../utils/busyButton.js';
 
 const TABS = [
@@ -39,7 +40,7 @@ function AddEntityModal({ type, onConfirm, onClose }) {
 
   return (
     <div className="modal-backdrop" {...backdropProps}>
-      <div className="modal" style={{ maxWidth: 380 }} aria-labelledby={titleId} {...dialogProps}>
+      <div className="modal add-entity-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <span id={titleId} className="modal-title">New {label}</span>
           <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
@@ -88,7 +89,7 @@ function AddRuleModal({ onConfirm, onClose }) {
 
   return (
     <div className="modal-backdrop" {...backdropProps}>
-      <div className="modal" style={{ maxWidth: 460 }} aria-labelledby={titleId} {...dialogProps}>
+      <div className="modal add-rule-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <span id={titleId} className="modal-title">New World Rule</span>
           <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
@@ -154,17 +155,47 @@ export default function CodexView() {
   const indicatorRef = useRef(null);
   const tabMounted = useRef(false);
 
+  // Phones and tablets show the list or one entry, not both. The CSS hides the column that isn't
+  // showing, so the tabs and the list stay mounted (the tab indicator and scroll position survive)
+  const compact = useLayoutMode() !== 'desktop';
+  const listRef = useRef(null);
+  const backRef = useRef(null);
+  // Focus follows a pick or a Back press, never a rotation or a refresh
+  const focusAfter = useRef(null); // 'back' | { row: index of the entry to refocus }
+  // Changes when the list comes back into view on a compact screen (the tabs are measured then),
+  // and never on a desktop
+  const detailKey = compact ? selectedId : null;
+
   useLayoutEffect(() => {
     const tabs = tabsRef.current;
     const indicator = indicatorRef.current;
     if (!tabs || !indicator) return;
     const active = tabs.querySelector('.codex-tab.active');
-    if (!active) return;
+    // Hidden (an entry is open on a phone): nothing to measure, and the list measures again on return
+    if (!active || active.offsetWidth === 0) return;
     indicator.style.transition = tabMounted.current ? SLIDE : 'none';
     indicator.style.left = `${active.offsetLeft}px`;
     indicator.style.width = `${active.offsetWidth}px`;
     tabMounted.current = true;
-  }, [activeTab]);
+  }, [activeTab, detailKey]);
+
+  // Below 1100px the tabs fill the screen, so their position follows its width (a rotation, a
+  // resized tablet window). A desktop never re-measures, exactly as before: its column is a fixed 230px
+  const compactRef = useRef(compact);
+  compactRef.current = compact;
+  useEffect(() => {
+    function remeasure() {
+      if (!compactRef.current) return;
+      const active = tabsRef.current?.querySelector('.codex-tab.active');
+      const indicator = indicatorRef.current;
+      if (!active || !indicator || active.offsetWidth === 0) return;
+      indicator.style.transition = 'none';
+      indicator.style.left = `${active.offsetLeft}px`;
+      indicator.style.width = `${active.offsetWidth}px`;
+    }
+    window.addEventListener('resize', remeasure);
+    return () => window.removeEventListener('resize', remeasure);
+  }, []);
 
   const fetchCodex = useCallback(async () => {
     if (!workId) return;
@@ -180,6 +211,19 @@ export default function CodexView() {
   }, [workId]);
 
   useEffect(() => { fetchCodex(); }, [fetchCodex]);
+
+  useEffect(() => {
+    const target = focusAfter.current;
+    if (!target) return;
+    focusAfter.current = null;
+    if (target === 'back') {
+      backRef.current?.focus();
+      return;
+    }
+    // Back: the row of the entry that was open
+    const rows = listRef.current?.querySelectorAll('.codex-entity-item') || [];
+    [...rows][target.row]?.focus();
+  });
 
   async function handleAudit() {
     aiReset();
@@ -207,6 +251,8 @@ export default function CodexView() {
     try {
       const created = await api.post(`/works/${workId}/codex/rules`, { category, rule });
       setCodex((c) => ({ ...c, worldRules: [...(c?.worldRules || []), created] }));
+      // The new rule opens on a compact screen, which hides the list the modal returned focus to
+      if (compact) focusAfter.current = 'back';
       setSelectedId(created.id);
     } catch (err) {
       console.error('Add rule failed:', err);
@@ -240,6 +286,18 @@ export default function CodexView() {
     : rules;
 
   const selectedItem = listItems.find((item) => item.id === selectedId);
+  // Compact screens show the detail only while an entry is open; a removed entry drops back to the list
+  const showDetail = compact && Boolean(selectedItem);
+
+  function pickEntry(id) {
+    if (compact) focusAfter.current = 'back';
+    setSelectedId(id);
+  }
+
+  function backToList() {
+    focusAfter.current = { row: listItems.findIndex((item) => item.id === selectedId) };
+    setSelectedId(null);
+  }
 
   function ruleListLabel(rule) {
     const text = rule.rule || '';
@@ -247,7 +305,7 @@ export default function CodexView() {
   }
 
   return (
-    <div className="codex-view">
+    <div className={showDetail ? 'codex-view codex-view--detail' : 'codex-view'}>
       {/* Left column: entity list */}
       <div className="codex-list-col">
         <div className="codex-tabs" ref={tabsRef}>
@@ -276,13 +334,13 @@ export default function CodexView() {
           </button>
         </div>
 
-        <div className="codex-entity-list">
+        <div className="codex-entity-list" ref={listRef}>
           <div key={activeTab} className="tab-enter">
           {listItems.map((item) => (
             <button
               key={item.id}
               className={`codex-entity-item${item.id === selectedId ? ' active' : ''}`}
-              onClick={() => setSelectedId(item.id)}
+              onClick={() => pickEntry(item.id)}
             >
               {activeTab === 'rules' ? (
                 <>
@@ -310,6 +368,11 @@ export default function CodexView() {
 
       {/* Center: detail view */}
       <div className="codex-detail-col">
+        {showDetail && (
+          <button type="button" className="btn btn-ghost btn-sm codex-back" ref={backRef} onClick={backToList}>
+            ← Back to list
+          </button>
+        )}
         <div key={activeTab} className="tab-enter">
         {!selectedItem && (
           <div className="codex-detail-empty">

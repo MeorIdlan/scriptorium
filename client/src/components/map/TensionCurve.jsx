@@ -1,5 +1,11 @@
+import { useLayoutMode } from '../../hooks/useLayoutMode.js';
+
+// A desktop's timeline starts to scroll at about this many chapters (74px each in a ~1170px box)
+const DESKTOP_EXACT_FROM = 16;
+
 // TensionCurve: SVG polyline plotting tensionScore across chapters
 export default function TensionCurve({ chapters }) {
+  const mode = useLayoutMode();
   if (!chapters || chapters.length === 0) {
     return (
       <div className="tension-curve-empty">
@@ -8,9 +14,19 @@ export default function TensionCurve({ chapters }) {
     );
   }
 
-  const WIDTH = 900;
+  // A desktop with a short work keeps its 900-unit drawing, stretched over the card. Wherever the
+  // Map scrolls sideways (.map-timeline: any work on a phone or tablet, 16 chapters or more on a
+  // desktop) the drawing is made 1:1 with the chapter blocks under it: 74px a chapter, the first
+  // block's centre 42px in, so each dot sits over its block and nothing is stretched. The SVG is
+  // then exactly 74n + 10 pixels wide, left-aligned like the blocks.
+  const BLOCK_STEP = 74;
+  const SIDE = 42;
+  const scrolls = mode !== 'desktop' || chapters.length >= DESKTOP_EXACT_FROM;
+  const WIDTH = scrolls ? chapters.length * BLOCK_STEP + 10 : 900;
   const HEIGHT = 120;
-  const PADDING = { top: 12, bottom: 20, left: 24, right: 24 };
+  const PADDING = scrolls
+    ? { top: 12, bottom: 20, left: SIDE, right: SIDE }
+    : { top: 12, bottom: 20, left: 24, right: 24 };
 
   const plotWidth = WIDTH - PADDING.left - PADDING.right;
   const plotHeight = HEIGHT - PADDING.top - PADDING.bottom;
@@ -32,6 +48,7 @@ export default function TensionCurve({ chapters }) {
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         preserveAspectRatio="none"
         className="tension-curve-svg"
+        style={scrolls ? { width: WIDTH } : undefined}
       >
         {/* Grid lines */}
         {[0, 25, 50, 75, 100].map((v) => (
