@@ -137,7 +137,14 @@ export default function Toolbar({ editorRef }) {
         const span = document.createElement('span');
         span.setAttribute('style', `font-size: ${DEFAULT_SIZE}px`);
         span.append(...font.childNodes);
-        font.replaceWith(span);
+        if (font.attributes.length === 1) {
+          // Only the size 7 we asked for: the span replaces it
+          font.replaceWith(span);
+        } else {
+          // Chromium put size 7 on a font element that already had a face or colour: keep those
+          font.removeAttribute('size');
+          font.appendChild(span);
+        }
         return span;
       });
     // execCommand fired input before the rewrite, and autosave copies the HTML each time input

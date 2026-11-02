@@ -248,6 +248,8 @@ export default function QuillTab({ workId }) {
         </p>
       )}
 
+      <div className="quatrefoil" aria-hidden="true" />
+
       <div className="quill-actions">
         <p className="quill-actions-label">AI Editor</p>
         <button

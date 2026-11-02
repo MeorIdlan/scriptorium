@@ -368,6 +368,37 @@ test('choosing 19 leaves size-7 text that was already in the chapter alone', asy
   }
 });
 
+// Chromium does not always add a new element: when a font element already wraps the selection it
+// puts size="7" on that one. Its face and colour belong to the writer and must survive.
+test('choosing 19 on text inside a font element with a face and colour keeps them', async () => {
+  const env = setup();
+  const ranges = stubFontSizeSeven(env);
+  try {
+    env.editor.innerHTML = '<p><font face="Arial" size="4" color="#ff0000">styled words</font></p>';
+    document.execCommand = (command, ui, value) => {
+      env.calls.push([command, value]);
+      env.editor.querySelector('font').setAttribute('size', String(value));
+    };
+    const view = await renderToolbar(env);
+    document.dispatchEvent(new window.Event('selectionchange'));
+    const size = view.query('select[title="Font size"]');
+    size.focus();
+    await change(size, '19');
+    const font = env.editor.querySelector('font');
+    assert.ok(font, 'the font element was removed');
+    assert.equal(font.getAttribute('face'), 'Arial');
+    assert.equal(font.getAttribute('color'), '#ff0000');
+    assert.equal(font.getAttribute('size'), null, 'size 7 must not stay');
+    const span = font.querySelector('span[style="font-size: 19px"]');
+    assert.ok(span, 'the 19px span is inside the font element');
+    assert.equal(span.textContent, 'styled words');
+    await view.unmount();
+  } finally {
+    ranges.restore();
+    env.restore();
+  }
+});
+
 test('choosing 19 with the mouse leaves focus in the editor', async () => {
   const env = setup();
   const ranges = stubFontSizeSeven(env);

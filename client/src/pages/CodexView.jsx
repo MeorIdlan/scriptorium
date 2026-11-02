@@ -379,6 +379,8 @@ export default function CodexView() {
         ))}
 
         {aiOn && (
+          <>
+          <div className="quatrefoil" aria-hidden="true" />
           <div className="codex-ai-section">
             <p className="codex-ai-title">AI Assist</p>
             <button
@@ -391,6 +393,7 @@ export default function CodexView() {
             </button>
             {aiError && <p className="codex-suggest-error">{aiError}</p>}
           </div>
+          </>
         )}
       </div>
 

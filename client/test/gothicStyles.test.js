@@ -475,6 +475,21 @@ test('the Codex sheet is two columns; each field is a label over a ruled value',
   assert.match(bodyOf('.inline-field-value:hover'), /border-bottom-color: var\(--gold\)/);
 });
 
+// Found by the final review
+test('the open card menu stays above the cards below it: the menu header makes no stacking context of its own', () => {
+  assert.doesNotMatch(bodyOf('.work-card-header'), /z-index/);
+  assert.match(bodyOf('.work-card-menu'), /z-index: 10/);
+});
+
+test('the quatrefoil divider is a gold-dim line with a four-lobed mask, kept out of the editor', () => {
+  const quatrefoil = bodyOf('.quatrefoil');
+  assert.match(quatrefoil, /color: var\(--gold-dim\)/);
+  assert.match(quatrefoil, /background: currentColor/);
+  assert.match(quatrefoil, /mask: url\("data:image\/svg\+xml/);
+  const insideEditor = rules.filter((r) => r.selectors.some((s) => /^\.editor/.test(s) && s.includes('quatrefoil')));
+  assert.deepEqual(insideEditor, []);
+});
+
 // Found in the side-by-side check against the boards (A1)
 test('page widths follow the boards: a 66ch writing column, full-width Shelves, 28px by 32px Map padding', () => {
   assert.match(bodyOf('.editor'), /max-width: 66ch/);

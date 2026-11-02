@@ -215,6 +215,13 @@ a:hover {
 .ic-users { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='4.500' r='3'/%3E%3Cpath d='M2 15v-2.500Q2.500 9 8 9t6 3.500V15z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='4.500' r='3'/%3E%3Cpath d='M2 15v-2.500Q2.500 9 8 9t6 3.500V15z'/%3E%3C/svg%3E"); }
 .ic-out { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 15V6Q2.500 3 6 1Q9.500 3 10 6v2H8V6.500Q7.500 5 6 3.800Q4.500 5 4 6.500V13h4v-2h2v4zM9 8.500h3V6.500L16 9.500l-4 3v-2H9z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 15V6Q2.500 3 6 1Q9.500 3 10 6v2H8V6.500Q7.500 5 6 3.800Q4.500 5 4 6.500V13h4v-2h2v4zM9 8.500h3V6.500L16 9.500l-4 3v-2H9z'/%3E%3C/svg%3E"); }
 
+/* A four-lobed divider with a rule running out to each side. Drawn with a mask, so it stays out of the writing area. */
+.quatrefoil {
+  height: 12px; color: var(--gold-dim); background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12'%3E%3Cg fill='none' stroke='black'%3E%3Ccircle cx='12' cy='3.2' r='2.6'/%3E%3Ccircle cx='12' cy='8.8' r='2.6'/%3E%3Ccircle cx='6.4' cy='6' r='2.6'/%3E%3Ccircle cx='17.6' cy='6' r='2.6'/%3E%3C/g%3E%3C/svg%3E") center/24px 12px no-repeat, linear-gradient(black, black) left center/calc(50% - 18px) 1px no-repeat, linear-gradient(black, black) right center/calc(50% - 18px) 1px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12'%3E%3Cg fill='none' stroke='black'%3E%3Ccircle cx='12' cy='3.2' r='2.6'/%3E%3Ccircle cx='12' cy='8.8' r='2.6'/%3E%3Ccircle cx='6.4' cy='6' r='2.6'/%3E%3Ccircle cx='17.6' cy='6' r='2.6'/%3E%3C/g%3E%3C/svg%3E") center/24px 12px no-repeat, linear-gradient(black, black) left center/calc(50% - 18px) 1px no-repeat, linear-gradient(black, black) right center/calc(50% - 18px) 1px no-repeat;
+}
+
 /* A pointed-arch window of coloured glass, above the sign-in cards */
 .lancet {
   width: 56px; height: 96px; flex: none;
@@ -857,12 +864,12 @@ input[type="range"] {
   position: relative;
 }
 
-/* The menu sits in the top corner, over the title row */
+/* The menu sits in the top corner, over the title row. No z-index here: it would make a stacking
+   context, and the open menu (z-index 10) would then sit under the next card's corner button. */
 .work-card-header {
   position: absolute;
   top: 10px;
   right: 10px;
-  z-index: 1;
 }
 
 .work-card-menu-wrap {
@@ -2391,10 +2398,10 @@ input[type="range"] {
 /* ============================================================
    Codex AI Assist
    ============================================================ */
+/* The quatrefoil above it is the divider */
 .codex-ai-section {
-  margin-top: 1.5rem;
-  border-top: 1px solid var(--border);
-  padding-top: 1.25rem;
+  margin-top: 0;
+  padding-top: 0.75rem;
 }
 
 .codex-ai-title {
