@@ -34,7 +34,8 @@ export function stubFetch(routes = {}) {
     const method = options.method || 'GET';
     const path = String(url).replace(/^\/api/, '');
     const body = options.body ? JSON.parse(options.body) : undefined;
-    calls.push({ method, path, body });
+    // keepalive is recorded only when the request sets it, so other tests' call shapes are unchanged
+    calls.push({ method, path, body, ...(options.keepalive !== undefined && { keepalive: options.keepalive }) });
     const key = `${method} ${path.split('?')[0]}`;
     let reply = key in routes ? routes[key] : {};
     if (typeof reply === 'function') reply = await reply(body);
