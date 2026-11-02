@@ -27,6 +27,7 @@ export default function Register() {
 
   return (
     <div className="auth-page">
+      <span className="lancet" aria-hidden="true" />
       <form className="auth-card" onSubmit={guardBusy(submitting, handleSubmit)}>
         <h1>Create an account</h1>
         <p>We'll email you a verification code to confirm your address.</p>

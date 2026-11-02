@@ -7,6 +7,14 @@ import { WorksProvider } from './context/WorksContext.jsx';
 import { ActiveWorkProvider } from './context/ActiveWorkContext.jsx';
 import { EditorProvider } from './context/EditorContext.jsx';
 import { UIProvider } from './context/UIContext.jsx';
+// Self-hosted faces (SIL Open Font Licence): Latin only, and only the weights the design uses
+import '@fontsource/pirata-one/latin-400.css';
+import '@fontsource/eb-garamond/latin-400.css';
+import '@fontsource/eb-garamond/latin-400-italic.css';
+import '@fontsource/eb-garamond/latin-700.css';
+import '@fontsource/eb-garamond/latin-700-italic.css';
+import '@fontsource/spectral/latin-400.css';
+import '@fontsource/spectral/latin-500.css';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(

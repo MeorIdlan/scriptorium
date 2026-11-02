@@ -26,9 +26,11 @@ test('with AI on, the two sliders are reached through their labels', async () =>
 test('the Rekindler choices are a radio group named Rekindler', async () => {
   const view = await renderApp(h(Settings), { ai: true });
   await flush();
-  const group = view.queryAll('[role="radiogroup"]')[0];
-  assert.ok(group, 'no radiogroup');
-  const heading = view.container.querySelector(`[id="${group.getAttribute('aria-labelledby')}"]`);
+  // The page has more than one radio group (the palette comes first), so find this one by its heading
+  const headingOf = (g) => view.container.querySelector(`[id="${g.getAttribute('aria-labelledby')}"]`);
+  const group = view.queryAll('[role="radiogroup"]').find((g) => headingOf(g)?.textContent === 'Rekindler');
+  assert.ok(group, 'no radiogroup named Rekindler');
+  const heading = headingOf(group);
   assert.equal(heading.textContent, 'Rekindler');
   assert.equal(group.querySelectorAll('input[type="radio"]').length, 3);
   assert.ok(!view.queryAll('label').some((l) => l.textContent === 'Rekindler'));

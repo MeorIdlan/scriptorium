@@ -5,10 +5,11 @@ import { useAuth } from '../../context/AuthContext.jsx';
 
 const SLIDE = 'top 0.22s cubic-bezier(0.4,0,0.2,1), height 0.22s cubic-bezier(0.4,0,0.2,1)';
 
+// `icon` names the drawn icon (see Ornaments in index.css); it is decoration, so screen readers skip it
 function NavItem({ to, icon, label, active }) {
   return (
     <Link to={to} className={`sidebar-nav-item${active ? ' active' : ''}`}>
-      <span className="sidebar-nav-icon">{icon}</span>
+      <span className={`sidebar-nav-icon ic ic-${icon}`} aria-hidden="true" />
       <span className="sidebar-nav-label">{label}</span>
     </Link>
   );
@@ -51,17 +52,20 @@ export default function Sidebar() {
   }, [location.pathname, activeWorkId]);
 
   return (
-    <nav className="sidebar" ref={sidebarRef}>
+    <nav className="sidebar" ref={sidebarRef} aria-label="Rooms">
       <div ref={indicatorRef} className="sidebar-nav-indicator" />
 
       <div className="sidebar-brand">
-        <Link to="/" className="sidebar-brand-link">Scriptorium</Link>
+        <Link to="/" className="sidebar-brand-link">
+          <span className="rose" aria-hidden="true" />
+          Scriptorium
+        </Link>
       </div>
 
       <div className="sidebar-nav">
         <NavItem
           to="/"
-          icon="☰"
+          icon="shelves"
           label="Shelves"
           active={location.pathname === '/'}
         />
@@ -70,7 +74,7 @@ export default function Sidebar() {
           <>
             <NavItem
               to={`/work/${activeWorkId}`}
-              icon="✍"
+              icon="room"
               label="Main Room"
               active={
                 location.pathname === `/work/${activeWorkId}` ||
@@ -79,13 +83,13 @@ export default function Sidebar() {
             />
             <NavItem
               to={`/work/${activeWorkId}/map`}
-              icon="◈"
+              icon="map"
               label="Map"
               active={isActive(`/work/${activeWorkId}/map`)}
             />
             <NavItem
               to={`/work/${activeWorkId}/codex`}
-              icon="⊞"
+              icon="codex"
               label="Codex"
               active={isActive(`/work/${activeWorkId}/codex`)}
             />
@@ -97,14 +101,14 @@ export default function Sidebar() {
         {user?.isAdmin && (
           <NavItem
             to="/admin/users"
-            icon="👤"
+            icon="users"
             label="Manage Users"
             active={isActive('/admin/users')}
           />
         )}
         <NavItem
           to="/settings"
-          icon="⚙"
+          icon="settings"
           label="Settings"
           active={isActive('/settings')}
         />
@@ -116,7 +120,7 @@ export default function Sidebar() {
             navigate('/login');
           }}
         >
-          <span className="sidebar-nav-icon">⏻</span>
+          <span className="sidebar-nav-icon ic ic-out" aria-hidden="true" />
           <span className="sidebar-nav-label">Log out</span>
         </button>
       </div>

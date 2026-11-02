@@ -10,6 +10,16 @@ import AccountBackup from '../components/settings/AccountBackup.jsx';
 import { aiSwitchState } from '../utils/aiSwitch.js';
 import { busyProps, guardBusy } from '../utils/busyButton.js';
 import { useAiState } from '../context/AiContext.jsx';
+import { applyPalette, DEFAULT_PALETTE } from '../utils/palette.js';
+
+// One card per palette; the values are the names the server accepts. Each card carries
+// data-palette, so its swatches show that palette's own colours.
+const PALETTE_CHOICES = [
+  { value: 'votive', label: 'Votive' },
+  { value: 'nave', label: 'Nave' },
+  { value: 'reliquary', label: 'Reliquary' },
+];
+const SWATCHES = ['--bg-card', '--accent', '--gold', '--text'];
 
 // Pretty display names for known model ids; anything not listed falls back to the id itself
 const MODEL_NAMES = {
@@ -34,6 +44,7 @@ function labelModel(m) {
 
 export default function Settings() {
   const rekindlerId = useId();
+  const paletteId = useId();
   const { aiOn, setAiState } = useAiState();
   const [settings, setSettings] = useState(null);
   const [providers, setProviders] = useState([]);
@@ -43,6 +54,7 @@ export default function Settings() {
   const [testing, setTesting] = useState(false);
   const [savingKey, setSavingKey] = useState(false);
   const [savingAi, setSavingAi] = useState(false);
+  const [savingPalette, setSavingPalette] = useState(false);
   const [removingKey, setRemovingKey] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [pendingApiKey, setPendingApiKey] = useState('');
@@ -276,6 +288,29 @@ export default function Settings() {
     }
   }
 
+  // Saves on its own, like the AI switch, because Save Settings sends only named keys.
+  // The palette changes at once; if the save fails the old one comes back.
+  async function handleChoosePalette(next) {
+    const previous = settings?.palette ?? DEFAULT_PALETTE;
+    if (next === previous) return;
+    setSavingPalette(true);
+    setError(null);
+    setSettings((s) => ({ ...s, palette: next }));
+    applyPalette(next);
+    try {
+      const updated = await api.put('/settings', { palette: next });
+      setSettings((s) => ({ ...s, palette: updated.palette }));
+      // Also caches the palette in this browser
+      setAiState(updated);
+    } catch (err) {
+      setSettings((s) => ({ ...s, palette: previous }));
+      applyPalette(previous);
+      setError(err.message);
+    } finally {
+      setSavingPalette(false);
+    }
+  }
+
   function showToast(msg) {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
@@ -298,6 +333,33 @@ export default function Settings() {
       {error && <p className="error-text settings-error">{error}</p>}
 
       <div className="settings-form">
+        <section className="settings-section">
+          <h2 className="settings-section-title">Appearance</h2>
+          <div className="settings-field">
+            <span id={paletteId} className="settings-label">Palette</span>
+            <div className="pick" role="radiogroup" aria-labelledby={paletteId}>
+              {PALETTE_CHOICES.map(({ value, label }) => (
+                <label key={value} className="pick-card" data-palette={value}>
+                  <input
+                    type="radio"
+                    name="palette"
+                    value={value}
+                    checked={(settings?.palette ?? DEFAULT_PALETTE) === value}
+                    {...busyProps(savingPalette)}
+                    onChange={guardBusy(savingPalette, () => handleChoosePalette(value))}
+                  />
+                  <span className="pick-strip" aria-hidden="true">
+                    {SWATCHES.map((token) => (
+                      <i key={token} style={{ background: `var(${token})` }} />
+                    ))}
+                  </span>
+                  <span className="pick-card-label">{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="settings-section">
           <h2 className="settings-section-title">AI Provider</h2>
 

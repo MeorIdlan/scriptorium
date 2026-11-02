@@ -10,6 +10,8 @@ const settingsSchema = new mongoose.Schema(
     autoFeatures: { type: mongoose.Schema.Types.Mixed, default: {} },
     // No default: unset means the writer hasn't chosen yet (see isAiEnabled)
     aiEnabled: { type: Boolean },
+    // No default: unset means the writer hasn't chosen a palette (reads as votive, see settingsService)
+    palette: { type: String },
     // No default: unset means no daily goal (see progressService)
     dailyWordGoal: { type: Number },
     // No default: unset means no writer defaults yet (see manuscriptDetails)

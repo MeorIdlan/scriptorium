@@ -115,7 +115,7 @@ export default function ChapterDetail({ workId, chapterId, chapters, pov = '', o
   }
 
   return (
-    <div className="chapter-detail">
+    <div className="chapter-detail corners">
       <div className="chapter-detail-left">
         <h3 className="chapter-detail-title">Ch. {chapter.number} — {chapter.title}</h3>
 
