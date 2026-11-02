@@ -148,3 +148,18 @@ test('adding a rule on a phone opens it with focus on Back, not on a hidden butt
   assert.equal(document.activeElement === view.query('.codex-back'), true);
   await view.unmount();
 });
+
+// On main the underline is measured only when the tab changes, so a desktop never re-measures it on
+// a pick or a resize; the compact-screen fixes must not change that (A4, desktop unchanged)
+test('on a desktop a pick or a resize leaves the tab indicator alone', async () => {
+  const view = await open(1280);
+  const active = view.query('.codex-tab.active');
+  Object.defineProperty(active, 'offsetLeft', { configurable: true, get: () => 100 });
+  Object.defineProperty(active, 'offsetWidth', { configurable: true, get: () => 120 });
+  await click(view.button('Mara'));
+  await flush();
+  window.dispatchEvent(new window.Event('resize'));
+  await flush();
+  assert.equal(view.query('.codex-tab-indicator').style.left, '');
+  await view.unmount();
+});

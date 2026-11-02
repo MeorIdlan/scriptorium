@@ -162,6 +162,9 @@ export default function CodexView() {
   const backRef = useRef(null);
   // Focus follows a pick or a Back press, never a rotation or a refresh
   const focusAfter = useRef(null); // 'back' | { row: index of the entry to refocus }
+  // Changes when the list comes back into view on a compact screen (the tabs are measured then),
+  // and never on a desktop
+  const detailKey = compact ? selectedId : null;
 
   useLayoutEffect(() => {
     const tabs = tabsRef.current;
@@ -174,12 +177,15 @@ export default function CodexView() {
     indicator.style.left = `${active.offsetLeft}px`;
     indicator.style.width = `${active.offsetWidth}px`;
     tabMounted.current = true;
-  }, [activeTab, selectedId, compact]);
+  }, [activeTab, detailKey]);
 
   // Below 1100px the tabs fill the screen, so their position follows its width (a rotation, a
-  // resized tablet window); on a desktop the column is a fixed 230px and this never moves anything
+  // resized tablet window). A desktop never re-measures, exactly as before: its column is a fixed 230px
+  const compactRef = useRef(compact);
+  compactRef.current = compact;
   useEffect(() => {
     function remeasure() {
+      if (!compactRef.current) return;
       const active = tabsRef.current?.querySelector('.codex-tab.active');
       const indicator = indicatorRef.current;
       if (!active || !indicator || active.offsetWidth === 0) return;
