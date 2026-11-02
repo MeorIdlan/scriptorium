@@ -1966,6 +1966,21 @@ input[type="range"] {
   color: var(--text-muted);
 }
 
+/* The curve, the blocks and the beat row scroll sideways together here, and only here. The inner
+   box is at least as wide as the blocks row (74px a chapter: a 68px block and a 6px gap, plus the
+   section's padding and borders), so the curve and the beat row stay level with the blocks. A short
+   work needs less than the full width, and then the inner box is just the full width. */
+.map-timeline {
+  overflow-x: auto;
+}
+
+.map-timeline-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: max(100%, calc(var(--chapters, 0) * 74px + 2rem - 4px));
+}
+
 .map-curve-section {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -2027,8 +2042,9 @@ input[type="range"] {
   overflow: hidden;
 }
 
+/* No scrolling of its own: the blocks scroll with the curve and the beat row, in .map-timeline */
 .chapter-blocks-wrap {
-  overflow-x: auto;
+  min-width: 0;
 }
 
 .chapter-blocks {
@@ -4272,6 +4288,18 @@ button.rule-item {
   .admin-users-table {
     display: block;
     overflow-x: auto;
+  }
+}
+
+/* The Map */
+@media (max-width: 640px) {
+  .map-view {
+    padding: 16px;
+  }
+  .map-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 }
 
