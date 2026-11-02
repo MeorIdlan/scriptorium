@@ -8,6 +8,9 @@ import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useAiState } from '../../context/AiContext.jsx';
 import { openCountsByChapter } from '../../utils/catchGroups.js';
+import { useLayoutMode } from '../../hooks/useLayoutMode.js';
+import { useDrawer } from '../../hooks/useDrawer.js';
+import DrawerClose from '../layout/DrawerClose.jsx';
 
 const SLIDE = 'left 0.22s cubic-bezier(0.4,0,0.2,1), width 0.22s cubic-bezier(0.4,0,0.2,1)';
 
@@ -27,6 +30,9 @@ export default function RightPanel({ workId }) {
   const { state: workState } = useActiveWork();
   const { state: editorState } = useEditor();
   const catchCount = openCountsByChapter(workState.catches).get(editorState.chapterId) || 0;
+  // A right drawer on a tablet, a bottom sheet on a phone, inline on desktop
+  const mode = useLayoutMode();
+  const drawer = useDrawer('panel', mode === 'tablet' ? 'right' : mode === 'phone' ? 'bottom' : null, 'Panel');
   const tabsRef = useRef(null);
   const indicatorRef = useRef(null);
   const mounted = useRef(false);
@@ -34,16 +40,24 @@ export default function RightPanel({ workId }) {
   useLayoutEffect(() => {
     const tabs = tabsRef.current;
     const indicator = indicatorRef.current;
-    if (!tabs || !indicator) return;
+    if (!tabs || !indicator) return undefined;
 
-    const active = tabs.querySelector('.panel-tab.active');
-    if (!active) return;
+    function measure(slide) {
+      const active = tabs.querySelector('.panel-tab.active');
+      if (!active) return;
+      indicator.style.transition = slide && mounted.current ? SLIDE : 'none';
+      indicator.style.left = `${active.offsetLeft}px`;
+      indicator.style.width = `${active.offsetWidth}px`;
+      mounted.current = true;
+    }
+    measure(true);
 
-    indicator.style.transition = mounted.current ? SLIDE : 'none';
-    indicator.style.left = `${active.offsetLeft}px`;
-    indicator.style.width = `${active.offsetWidth}px`;
-    mounted.current = true;
-  }, [activePanelTab, catchCount, aiOn, ready]);
+    // The tabs share the panel's width, which follows the window in the drawer modes
+    if (mode === 'desktop') return undefined;
+    const onResize = () => measure(false);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [activePanelTab, catchCount, aiOn, ready, mode]);
 
   // Spark's hook generator shouldn't reopen by itself when AI comes back
   useEffect(() => {
@@ -51,10 +65,17 @@ export default function RightPanel({ workId }) {
   }, [aiOn, state.hookGeneratorOpen, dispatch]);
 
   // Until the AI state loads, which tab opens first isn't known yet
-  if (!ready) return <div className="right-panel" />;
+  if (!ready) {
+    return (
+      <div className={`right-panel${drawer.className}`} {...drawer.attrs}>
+        {drawer.isDrawer && <DrawerClose label="panel" onClose={drawer.close} />}
+      </div>
+    );
+  }
 
   return (
-    <div className="right-panel">
+    <div className={`right-panel${drawer.className}`} {...drawer.attrs}>
+      {drawer.isDrawer && <DrawerClose label="panel" onClose={drawer.close} />}
       <div className="panel-tabs" ref={tabsRef}>
         {tabs.map((tab) => (
           <button

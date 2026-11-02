@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useAiState } from '../../context/AiContext.jsx';
+import { useLayoutMode } from '../../hooks/useLayoutMode.js';
 import ChapterHistoryModal from '../overlays/ChapterHistoryModal.jsx';
 import ChapterSummaryModal from '../overlays/ChapterSummaryModal.jsx';
 import { insertSceneBreak } from '../../utils/scenes.js';
@@ -19,6 +20,11 @@ export default function Toolbar({ editorRef }) {
   const { workId } = useParams();
   const { state: editorState } = useEditor();
   const { aiOn } = useAiState();
+  const mode = useLayoutMode();
+  // On a touch screen a tap on a toolbar button would take focus from the editor and drop the
+  // on-screen keyboard and the selection. Cancelling the mouse press the tap produces keeps both.
+  // Left alone on desktop, where the buttons behave as they always have.
+  const keepFocus = mode === 'desktop' ? undefined : (e) => e.preventDefault();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   // The writer's selection inside the editor, kept for the font and size selects
@@ -197,6 +203,7 @@ export default function Toolbar({ editorRef }) {
 
       <button
         className="toolbar-btn"
+        onMouseDown={keepFocus}
         onClick={() => exec('bold')}
         aria-pressed={formats.bold}
         title="Bold (Ctrl+B)"
@@ -205,6 +212,7 @@ export default function Toolbar({ editorRef }) {
       </button>
       <button
         className="toolbar-btn toolbar-italic"
+        onMouseDown={keepFocus}
         onClick={() => exec('italic')}
         aria-pressed={formats.italic}
         title="Italic (Ctrl+I)"
@@ -213,6 +221,7 @@ export default function Toolbar({ editorRef }) {
       </button>
       <button
         className="toolbar-btn toolbar-underline"
+        onMouseDown={keepFocus}
         onClick={() => exec('underline')}
         aria-pressed={formats.underline}
         title="Underline (Ctrl+U)"
@@ -224,6 +233,7 @@ export default function Toolbar({ editorRef }) {
 
       <button
         className="toolbar-btn"
+        onMouseDown={keepFocus}
         onClick={() => exec('justifyLeft')}
         title="Align left"
         aria-label="Align left"
@@ -232,6 +242,7 @@ export default function Toolbar({ editorRef }) {
       </button>
       <button
         className="toolbar-btn"
+        onMouseDown={keepFocus}
         onClick={() => exec('justifyCenter')}
         title="Align center"
         aria-label="Align center"
@@ -240,6 +251,7 @@ export default function Toolbar({ editorRef }) {
       </button>
       <button
         className="toolbar-btn"
+        onMouseDown={keepFocus}
         onClick={() => exec('justifyRight')}
         title="Align right"
         aria-label="Align right"
@@ -268,9 +280,12 @@ export default function Toolbar({ editorRef }) {
           onClick={() => {
             // The generator lives in the Quill tab: bring that tab forward. When the
             // generator is already open behind another tab, only the tab changes
-            const quillShowing = uiState.activePanelTab === 'quill';
+            // A panel that is a closed drawer shows nothing, whatever tab it is on
+            const quillShowing = uiState.activePanelTab === 'quill' && (mode === 'desktop' || uiState.drawer === 'panel');
             if (!quillShowing) dispatch({ type: 'SET_PANEL_TAB', tab: 'quill' });
             if (!uiState.hookGeneratorOpen || quillShowing) dispatch({ type: 'TOGGLE_HOOK_GENERATOR' });
+            // On a phone or tablet the panel is a drawer: bring it up too, or nothing shows
+            if (mode !== 'desktop') dispatch({ type: 'OPEN_DRAWER', name: 'panel' });
           }}
           title="Open Spark / Hook Generator"
         >

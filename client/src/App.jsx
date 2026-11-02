@@ -18,10 +18,22 @@ import RequireAdmin from './components/auth/RequireAdmin.jsx';
 import UserManagement from './pages/admin/UserManagement.jsx';
 import { useUI } from './context/UIContext.jsx';
 import { pageKey } from './utils/pageKey.js';
+import { useLayoutMode } from './hooks/useLayoutMode.js';
+import { useVisualViewport } from './hooks/useVisualViewport.js';
+import DrawerBackdrop from './components/layout/DrawerBackdrop.jsx';
 
 function Layout() {
   const location = useLocation();
   const { dispatch } = useUI();
+  const mode = useLayoutMode();
+  // On phones and tablets the layout follows the visual viewport, so the keyboard doesn't cover it
+  useVisualViewport();
+
+  // A drawer closes when the page changes or the layout mode does (a rotated
+  // tablet may no longer have that drawer at all)
+  useEffect(() => {
+    dispatch({ type: 'CLOSE_DRAWER' });
+  }, [location.key, mode, dispatch]);
 
   // Global keyboard shortcut: Ctrl/Cmd+Shift+I → Catch overlay
   useEffect(() => {
@@ -37,19 +49,24 @@ function Layout() {
   }, [dispatch]);
 
   return (
-    <div className="layout">
-      <Sidebar />
-      <div className="main-area">
-        <TopBar />
-        <div className="content" tabIndex={-1}>
-          <div key={pageKey(location.pathname)} className="page-enter">
-            <Outlet />
+    <>
+      <div className="layout">
+        <Sidebar />
+        <div className="main-area">
+          <TopBar />
+          <div className="content" tabIndex={-1}>
+            <div key={pageKey(location.pathname)} className="page-enter">
+              <Outlet />
+            </div>
           </div>
         </div>
+        <DrawerBackdrop />
+        <ExportModal />
       </div>
+      {/* Outside .layout: on phones and tablets .layout is fixed, which makes it a stacking context,
+          and the overlay (z-index 150) would then sit under the modals portalled to <body> (100) */}
       <CatchOverlay />
-      <ExportModal />
-    </div>
+    </>
   );
 }
 

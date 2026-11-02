@@ -453,7 +453,8 @@ function mediaBlocks() {
 
 test('the small-screen rules hold no palette-coloured literal and no raw font', () => {
   const blocks = mediaBlocks();
-  assert.equal(blocks.length, 4, 'expected the four existing @media blocks');
+  // The responsive-layout work adds @media blocks on purpose; every one is still checked below
+  assert.ok(blocks.length >= 4, 'expected at least the four original @media blocks');
   for (const block of blocks) {
     assert.deepEqual(literalColours(block), [], block.slice(0, 60));
     for (const [, value] of block.matchAll(/font-family:\s*([^;}]+)/g)) {

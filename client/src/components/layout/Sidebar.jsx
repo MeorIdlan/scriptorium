@@ -1,7 +1,10 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useCallback, useLayoutEffect, useRef } from 'react';
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useLayoutMode } from '../../hooks/useLayoutMode.js';
+import { useDrawer } from '../../hooks/useDrawer.js';
+import DrawerClose from './DrawerClose.jsx';
 
 const SLIDE = 'top 0.22s cubic-bezier(0.4,0,0.2,1), height 0.22s cubic-bezier(0.4,0,0.2,1)';
 
@@ -25,6 +28,17 @@ export default function Sidebar() {
   const sidebarRef = useRef(null);
   const indicatorRef = useRef(null);
   const mounted = useRef(false);
+  // Phones and tablets get the nav as a left drawer; desktop leaves it inline
+  const mode = useLayoutMode();
+  const drawer = useDrawer('nav', mode === 'desktop' ? null : 'left', 'Rooms menu');
+  const { ref: drawerRef, ...drawerAttrs } = drawer.attrs;
+  const setNavRef = useCallback(
+    (el) => {
+      sidebarRef.current = el;
+      if (drawerRef) drawerRef.current = el;
+    },
+    [drawerRef]
+  );
 
   const isActive = (path) => location.pathname === path;
 
@@ -49,10 +63,11 @@ export default function Sidebar() {
     indicator.style.height = `${height}px`;
     indicator.style.opacity = '1';
     mounted.current = true;
-  }, [location.pathname, activeWorkId]);
+  }, [location.pathname, activeWorkId, mode]);
 
   return (
-    <nav className="sidebar" ref={sidebarRef} aria-label="Rooms">
+    <nav className={`sidebar${drawer.className}`} ref={setNavRef} aria-label="Rooms" {...drawerAttrs}>
+      {drawer.isDrawer && <DrawerClose label="menu" onClose={drawer.close} />}
       <div ref={indicatorRef} className="sidebar-nav-indicator" />
 
       <div className="sidebar-brand">

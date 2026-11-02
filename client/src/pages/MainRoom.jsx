@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useReturnFocus } from '../hooks/useReturnFocus.js';
+import { useLayoutMode } from '../hooks/useLayoutMode.js';
+import { useDrawer } from '../hooks/useDrawer.js';
+import { useKeepCaretVisible } from '../hooks/useKeepCaretVisible.js';
+import DrawerClose from '../components/layout/DrawerClose.jsx';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useActiveWork } from '../context/ActiveWorkContext.jsx';
 import { useEditor } from '../context/EditorContext.jsx';
@@ -71,6 +75,10 @@ export default function MainRoom() {
   useEffect(() => () => loaderRef.current.cancel(), []);
 
   const { state: uiState, dispatch: uiDispatch } = useUI();
+  // On a phone the chapter list is a left drawer; elsewhere it stays inline
+  const mode = useLayoutMode();
+  useKeepCaretVisible(editorRef, mode !== 'desktop');
+  const chaptersDrawer = useDrawer('chapters', mode === 'phone' ? 'left' : null, 'Chapters');
 
   useWritingSession(workId, editorState.chapterId);
 
@@ -126,6 +134,7 @@ export default function MainRoom() {
 
   // Changing the URL is enough: the effect above loads the chapter
   function handleChapterSelect(chId) {
+    chaptersDrawer.close();
     if (chId === (urlChapterId || editorState.chapterId)) {
       if (chapterContent.id !== chId) setRetryCount((n) => n + 1);
       return;
@@ -165,7 +174,7 @@ export default function MainRoom() {
 
       <div className="main-room-body">
         {/* Chapter list sidebar */}
-        <aside className="chapter-sidebar">
+        <aside className={`chapter-sidebar${chaptersDrawer.className}`} {...chaptersDrawer.attrs}>
           <div className="chapter-sidebar-header">
             <span className="chapter-sidebar-title">Chapters</span>
             <div className="chapter-sidebar-actions">
@@ -186,6 +195,7 @@ export default function MainRoom() {
               >
                 +
               </button>
+              {chaptersDrawer.isDrawer && <DrawerClose label="chapters" onClose={chaptersDrawer.close} />}
             </div>
           </div>
 
@@ -206,6 +216,8 @@ export default function MainRoom() {
                     handleAddChapter();
                   }
                   if (e.key === 'Escape') {
+                    // Closes this field only, not the drawer around it
+                    e.stopPropagation();
                     returnFocus(addChapterBtn);
                     setAddingChapter(false);
                   }

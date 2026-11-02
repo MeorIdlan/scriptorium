@@ -55,6 +55,40 @@ export function useAutosave(workId) {
     };
   }, [state.content, state.html, state.hasUnsavedChanges, workId, state.chapterId, setSaveStatus]);
 
+  // The page going to the background (a phone locking its screen or switching apps) can freeze
+  // or end it before the 5-second timer runs: save the pending edit now, as the timer would
+  useEffect(() => {
+    function flushNow() {
+      const pending = pendingRef.current;
+      if (!pending || !workIdRef.current) return;
+      pendingRef.current = null;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setSaveStatus('saving');
+      savePending(workIdRef.current, pending, { flush: true })
+        .then((saved) => {
+          applySaved(pending.chapterId, saved);
+          setSaveStatus('saved');
+        })
+        .catch((err) => {
+          console.error('Autosave failed:', err);
+          setSaveStatus('error');
+          // Keep the edit for the next hide or for leaving the chapter, unless a newer one has taken its place
+          if (pendingRef.current === null) pendingRef.current = pending;
+        });
+    }
+    function onVisibilityChange() {
+      if (document.visibilityState === 'hidden') flushNow();
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pagehide', flushNow);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pagehide', flushNow);
+    };
+    // applySaved only reads refs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setSaveStatus]);
+
   // Leaving the chapter (a switch remounts the editor) or the room: save what
   // the timer would have saved, now. Success leaves the status alone, since it
   // belongs to whatever the editor shows next.
@@ -74,6 +108,12 @@ export function useAutosave(workId) {
   );
 }
 
-function savePending(workId, { chapterId, content, contentHtml }) {
-  return api.put(`/works/${workId}/chapters/${chapterId}`, { content, contentHtml });
+// Browsers refuse a keepalive request body over about 64KB, so a long chapter goes without it
+const KEEPALIVE_LIMIT = 60000;
+
+// `flush`: the page is going away, so ask the browser to let the request outlive it
+function savePending(workId, { chapterId, content, contentHtml }, { flush = false } = {}) {
+  const body = { content, contentHtml };
+  const options = flush ? { keepalive: new TextEncoder().encode(JSON.stringify(body)).length < KEEPALIVE_LIMIT } : undefined;
+  return api.put(`/works/${workId}/chapters/${chapterId}`, body, options);
 }

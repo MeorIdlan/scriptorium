@@ -360,6 +360,35 @@ a:hover {
   flex-shrink: 0;
 }
 
+/* Opens the app nav drawer; only rendered on phones and tablets */
+.topbar-menu {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  margin-left: -12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.topbar-menu:hover { color: var(--text); }
+.topbar-menu-bars,
+.topbar-menu-bars::before,
+.topbar-menu-bars::after {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+}
+.topbar-menu-bars { position: relative; }
+.topbar-menu-bars::before,
+.topbar-menu-bars::after { content: ''; position: absolute; left: 0; }
+.topbar-menu-bars::before { top: -6px; }
+.topbar-menu-bars::after { top: 6px; }
+
 .topbar-brand {
   font-size: var(--type-heading);
   color: var(--gold);
@@ -380,6 +409,19 @@ a:hover {
   padding-left: 12px;
   font-size: var(--type-small);
 }
+
+/* On a phone the pill is the button that opens the chapter list */
+.topbar-chapter-button {
+  background: none;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  min-height: 44px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.topbar-chapter-button:hover { color: var(--text); }
 
 /* An outlined badge: no fill, one colour for text and border */
 .topbar-draft-badge {
@@ -4103,3 +4145,212 @@ button.rule-item {
 .thread-markers { display: inline-flex; gap: 4px; align-items: center; }
 .thread-marker { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .scene-card-threads { display: flex; flex-direction: column; gap: 4px; font-size: 0.75rem; color: var(--text-muted); }
+
+/* ============================================================
+   Drawers
+   On phones and tablets the nav, chapter list and panel become drawers: the
+   same elements, moved off-screen and inert while closed (so their state
+   survives), shown over the page when opened. Desktop never gets these classes.
+   Below the modals (z-index 100) and above the top bar. This block stays last in the
+   file: the drawers override position and width that the sidebar, chapter list and
+   panel rules set at the same specificity.
+   ============================================================ */
+/* Absolute, inside .layout: on phones and tablets .layout follows the visual viewport, so a
+   drawer positioned against it stays above the on-screen keyboard (a fixed one would not) */
+.drawer {
+  position: absolute;
+  z-index: 90;
+  visibility: hidden;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.22s;
+}
+.drawer.is-open {
+  visibility: visible;
+  transition-delay: 0s;
+}
+/* Each placement sets its own off-screen transform at the same specificity, so each needs its own reset */
+.drawer.drawer--left.is-open,
+.drawer.drawer--right.is-open,
+.drawer.drawer--bottom.is-open {
+  transform: none;
+}
+.drawer.drawer--left,
+.drawer.drawer--right {
+  top: 0;
+  bottom: 0;
+  min-width: 0;
+  height: auto;
+}
+.drawer.drawer--left {
+  left: 0;
+  width: min(280px, 85vw);
+  border-right: 1px solid var(--border);
+  transform: translateX(-100%);
+}
+.drawer.drawer--right {
+  right: 0;
+  width: min(360px, 90vw);
+  border-left: 1px solid var(--border);
+  transform: translateX(100%);
+}
+.drawer.drawer--bottom {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  min-width: 0;
+  height: calc(var(--app-height, 100dvh) * 0.7);
+  border-left: none;
+  border-top: 1px solid var(--border);
+  transform: translateY(100%);
+}
+.drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.62);
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+.drawer-close {
+  align-self: flex-end;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.drawer-close:hover { color: var(--text); }
+@media (prefers-reduced-motion: reduce) {
+  .drawer { transition: none; }
+}
+.chapter-sidebar-actions .drawer-close { align-self: center; }
+
+/* The button in the word-counter bar that opens the panel; only rendered on phones and tablets */
+.word-counter-panel {
+  min-height: 44px;
+  padding: 0 14px;
+  background: transparent;
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius);
+  color: var(--gold);
+  font-family: var(--font-ui);
+  font-size: var(--type-small);
+  cursor: pointer;
+}
+.word-counter-panel:hover { color: var(--gold-hover); border-color: var(--gold); }
+
+/* iOS zooms the page when a field under 16px takes focus */
+@media (max-width: 1099px) {
+  .right-panel input,
+  .right-panel textarea,
+  .right-panel select,
+  .chapter-add-input {
+    font-size: 16px;
+  }
+}
+
+/* Phones and tablets: the Main Room surface */
+@media (max-width: 1099px) {
+  /* `backwards`, not `both`: a kept translateY(0) would make .page-enter the containing block of the
+     drawers inside it, placing them against the page instead of the layout. Desktop keeps `both`,
+     which leaves its pixels exactly as they were. */
+  .page-enter {
+    animation-fill-mode: backwards;
+  }
+  /* The layout follows the visual viewport (see useVisualViewport), so the on-screen keyboard
+     doesn't cover it, and stays pinned when iOS scrolls the page to show a field */
+  .layout {
+    position: fixed;
+    top: var(--app-top, 0);
+    left: 0;
+    width: 100%;
+    height: var(--app-height, 100dvh);
+    /* `clip`, not `hidden` (which stays scrollable by script): the closed drawers wait outside
+       this box, and nothing should be able to scroll the layout sideways to reveal them */
+    overflow: clip;
+  }
+  .main-room-body,
+  .editor-area {
+    min-width: 0;
+  }
+  .editor-wrap {
+    padding: 28px 24px;
+  }
+  /* Notes above the editor wrap inside its width instead of widening it */
+  .editor-area > .backup-reminder--banner,
+  .editor-loading-note {
+    overflow-wrap: anywhere;
+  }
+  .topbar {
+    gap: 8px;
+    padding: 0 16px;
+  }
+  .topbar-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .save-status {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .word-counter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .word-counter-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .word-counter-panel {
+    flex-shrink: 0;
+  }
+  /* The toolbar is one row that scrolls inside itself, with touch-size targets */
+  .toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    /* A slim bar stays for a mouse, which can't swipe the row; touch screens hide it (below) */
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .toolbar > * {
+    flex-shrink: 0;
+  }
+  .toolbar-btn {
+    min-width: 44px;
+    height: 44px;
+  }
+  .toolbar-select {
+    height: 44px;
+    font-size: 16px;
+  }
+}
+@media (max-width: 640px) {
+  .editor-wrap {
+    padding: 20px 16px;
+  }
+  .topbar-draft-badge {
+    display: none;
+  }
+  .topbar-chapter-pill {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 1099px) and (pointer: coarse) {
+  .toolbar {
+    scrollbar-width: none;
+  }
+  .toolbar::-webkit-scrollbar {
+    display: none;
+  }
+}

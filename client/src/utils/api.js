@@ -60,7 +60,8 @@ async function download(path, body, fallbackName) {
 export const api = {
   get: (path) => apiFetch(path),
   post: (path, body) => apiFetch(path, { method: 'POST', body }),
-  put: (path, body) => apiFetch(path, { method: 'PUT', body }),
+  // `options` reaches fetch, e.g. { keepalive: true } for a request that must outlive the page
+  put: (path, body, options) => apiFetch(path, { ...options, method: 'PUT', body }),
   patch: (path, body) => apiFetch(path, { method: 'PATCH', body }),
   delete: (path) => apiFetch(path, { method: 'DELETE' }),
   download,
