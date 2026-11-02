@@ -1,9 +1,29 @@
 import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
+import { useUI } from '../../context/UIContext.jsx';
+import { useLayoutMode } from '../../hooks/useLayoutMode.js';
+import { drawerId } from '../../hooks/useDrawer.js';
 
 export default function TopBar() {
   const { state: workState } = useActiveWork();
   const { state: editorState } = useEditor();
+  const { state: uiState, dispatch } = useUI();
+  const mode = useLayoutMode();
+
+  // Phones and tablets open the app nav as a drawer from here
+  const menuButton =
+    mode === 'desktop' ? null : (
+      <button
+        type="button"
+        className="topbar-menu"
+        aria-label="Open menu"
+        aria-expanded={uiState.drawer === 'nav'}
+        aria-controls={drawerId('nav')}
+        onClick={() => dispatch({ type: 'OPEN_DRAWER', name: 'nav' })}
+      >
+        <span className="topbar-menu-bars" aria-hidden="true" />
+      </button>
+    );
 
   const work = workState.work;
   const chapters = workState.chapters;
@@ -23,6 +43,7 @@ export default function TopBar() {
   if (!work) {
     return (
       <div className="topbar">
+        {menuButton}
         <span className="topbar-brand">Scriptorium</span>
       </div>
     );
@@ -30,6 +51,7 @@ export default function TopBar() {
 
   return (
     <div className="topbar">
+      {menuButton}
       <span className="topbar-title">{work.title}</span>
 
       {currentChapter && (

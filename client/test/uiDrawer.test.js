@@ -128,3 +128,13 @@ test('page-enter leaves no transform behind', () => {
   const animation = rule.match(/animation:\s*([^;]+);/)[1];
   assert.doesNotMatch(animation, /\b(both|forwards)\b/);
 });
+
+test('an open drawer clears the transform its placement sets, for every placement', () => {
+  // `.drawer.is-open` ties with `.drawer.drawer--left` on specificity and comes first, so each
+  // placement needs its own open rule or the drawer stays off-screen
+  const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+  for (const placement of ['left', 'right', 'bottom']) {
+    const open = new RegExp(`\\.drawer\\.drawer--${placement}\\.is-open[^{]*\\{[^}]*transform:\\s*none`);
+    assert.match(css, open, placement);
+  }
+});

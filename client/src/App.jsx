@@ -18,10 +18,19 @@ import RequireAdmin from './components/auth/RequireAdmin.jsx';
 import UserManagement from './pages/admin/UserManagement.jsx';
 import { useUI } from './context/UIContext.jsx';
 import { pageKey } from './utils/pageKey.js';
+import { useLayoutMode } from './hooks/useLayoutMode.js';
+import DrawerBackdrop from './components/layout/DrawerBackdrop.jsx';
 
 function Layout() {
   const location = useLocation();
   const { dispatch } = useUI();
+  const mode = useLayoutMode();
+
+  // A drawer closes when the page changes or the layout mode does (a rotated
+  // tablet may no longer have that drawer at all)
+  useEffect(() => {
+    dispatch({ type: 'CLOSE_DRAWER' });
+  }, [location.key, mode, dispatch]);
 
   // Global keyboard shortcut: Ctrl/Cmd+Shift+I → Catch overlay
   useEffect(() => {
@@ -47,6 +56,7 @@ function Layout() {
           </div>
         </div>
       </div>
+      <DrawerBackdrop />
       <CatchOverlay />
       <ExportModal />
     </div>

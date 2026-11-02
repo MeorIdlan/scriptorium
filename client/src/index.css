@@ -195,79 +195,6 @@ a:hover {
 }
 
 /* ============================================================
-   Drawers
-   On phones and tablets the nav, chapter list and panel become drawers: the
-   same elements, moved off-screen and inert while closed (so their state
-   survives), shown over the page when opened. Desktop never gets these classes.
-   Below the modals (z-index 100) and above the top bar.
-   ============================================================ */
-.drawer {
-  position: fixed;
-  z-index: 90;
-  visibility: hidden;
-  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.22s;
-}
-.drawer.is-open {
-  visibility: visible;
-  transform: none;
-  transition-delay: 0s;
-}
-.drawer.drawer--left,
-.drawer.drawer--right {
-  top: 0;
-  bottom: 0;
-  min-width: 0;
-  height: auto;
-}
-.drawer.drawer--left {
-  left: 0;
-  width: min(280px, 85vw);
-  border-right: 1px solid var(--border);
-  transform: translateX(-100%);
-}
-.drawer.drawer--right {
-  right: 0;
-  width: min(360px, 90vw);
-  border-left: 1px solid var(--border);
-  transform: translateX(100%);
-}
-.drawer.drawer--bottom {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  min-width: 0;
-  height: calc(var(--app-height, 100dvh) * 0.7);
-  border-left: none;
-  border-top: 1px solid var(--border);
-  transform: translateY(100%);
-}
-.drawer-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  background: rgba(0, 0, 0, 0.62);
-  touch-action: none;
-  overscroll-behavior: contain;
-}
-.drawer-close {
-  align-self: flex-end;
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 1.5rem;
-  line-height: 1;
-}
-.drawer-close:hover { color: var(--text); }
-@media (prefers-reduced-motion: reduce) {
-  .drawer { transition: none; }
-}
-
-/* ============================================================
    Ornaments
    Drawn in CSS: no images to load. They stay out of the writing area.
    ============================================================ */
@@ -432,6 +359,35 @@ a:hover {
   gap: 12px;
   flex-shrink: 0;
 }
+
+/* Opens the app nav drawer; only rendered on phones and tablets */
+.topbar-menu {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  margin-left: -12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.topbar-menu:hover { color: var(--text); }
+.topbar-menu-bars,
+.topbar-menu-bars::before,
+.topbar-menu-bars::after {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+}
+.topbar-menu-bars { position: relative; }
+.topbar-menu-bars::before,
+.topbar-menu-bars::after { content: ''; position: absolute; left: 0; }
+.topbar-menu-bars::before { top: -6px; }
+.topbar-menu-bars::after { top: 6px; }
 
 .topbar-brand {
   font-size: var(--type-heading);
@@ -4178,3 +4134,83 @@ button.rule-item {
 .thread-markers { display: inline-flex; gap: 4px; align-items: center; }
 .thread-marker { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .scene-card-threads { display: flex; flex-direction: column; gap: 4px; font-size: 0.75rem; color: var(--text-muted); }
+
+/* ============================================================
+   Drawers
+   On phones and tablets the nav, chapter list and panel become drawers: the
+   same elements, moved off-screen and inert while closed (so their state
+   survives), shown over the page when opened. Desktop never gets these classes.
+   Below the modals (z-index 100) and above the top bar. This block stays last in the
+   file: the drawers override position and width that the sidebar, chapter list and
+   panel rules set at the same specificity.
+   ============================================================ */
+.drawer {
+  position: fixed;
+  z-index: 90;
+  visibility: hidden;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.22s;
+}
+.drawer.is-open {
+  visibility: visible;
+  transition-delay: 0s;
+}
+/* Each placement sets its own off-screen transform at the same specificity, so each needs its own reset */
+.drawer.drawer--left.is-open,
+.drawer.drawer--right.is-open,
+.drawer.drawer--bottom.is-open {
+  transform: none;
+}
+.drawer.drawer--left,
+.drawer.drawer--right {
+  top: 0;
+  bottom: 0;
+  min-width: 0;
+  height: auto;
+}
+.drawer.drawer--left {
+  left: 0;
+  width: min(280px, 85vw);
+  border-right: 1px solid var(--border);
+  transform: translateX(-100%);
+}
+.drawer.drawer--right {
+  right: 0;
+  width: min(360px, 90vw);
+  border-left: 1px solid var(--border);
+  transform: translateX(100%);
+}
+.drawer.drawer--bottom {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  min-width: 0;
+  height: calc(var(--app-height, 100dvh) * 0.7);
+  border-left: none;
+  border-top: 1px solid var(--border);
+  transform: translateY(100%);
+}
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.62);
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+.drawer-close {
+  align-self: flex-end;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.drawer-close:hover { color: var(--text); }
+@media (prefers-reduced-motion: reduce) {
+  .drawer { transition: none; }
+}
