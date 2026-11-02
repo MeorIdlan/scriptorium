@@ -410,6 +410,19 @@ a:hover {
   font-size: var(--type-small);
 }
 
+/* On a phone the pill is the button that opens the chapter list */
+.topbar-chapter-button {
+  background: none;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  min-height: 44px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.topbar-chapter-button:hover { color: var(--text); }
+
 /* An outlined badge: no fill, one colour for text and border */
 .topbar-draft-badge {
   display: inline-flex;
@@ -4214,3 +4227,4 @@ button.rule-item {
 @media (prefers-reduced-motion: reduce) {
   .drawer { transition: none; }
 }
+.chapter-sidebar-actions .drawer-close { align-self: center; }

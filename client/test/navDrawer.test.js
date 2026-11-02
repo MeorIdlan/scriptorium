@@ -4,6 +4,7 @@ import { createElement as h } from 'react';
 import { renderApp } from './support/app.js';
 import { flush, click, press, act } from './support/render.js';
 import { setViewport, resetViewport } from './support/viewport.js';
+import { clickLink } from './support/link.js';
 import './support/focus.js';
 import App from '../src/App.jsx';
 
@@ -33,16 +34,6 @@ async function openNav(view) {
   const menu = view.query('.topbar-menu');
   menu.focus();
   await click(menu);
-}
-
-// A real left click on a link: react-router ignores a click with no button
-async function clickLink(el) {
-  await act(async () => {
-    const event = new window.Event('click', { bubbles: true, cancelable: true });
-    Object.defineProperty(event, 'button', { value: 0 });
-    el.dispatchEvent(event);
-  });
-  await flush();
 }
 
 test('at 390px the nav is a closed drawer and the top bar has a menu button', async () => {
