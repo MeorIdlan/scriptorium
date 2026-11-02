@@ -4291,6 +4291,52 @@ button.rule-item {
   }
 }
 
+/* The Codex below 1100px: one scrolling column that shows the list (with the open flags under it)
+   or one entry, with a Back button between them. CodexView adds .codex-view--detail while an
+   entry is open */
+@media (max-width: 1099px) {
+  .codex-view {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .codex-list-col,
+  .codex-flags-col {
+    width: 100%;
+    min-width: 0;
+    flex-shrink: 0;
+    border: 0;
+  }
+  .codex-list-col {
+    border-bottom: 1px solid var(--border);
+  }
+  /* The page scrolls, so the list takes the height of its rows */
+  .codex-entity-list {
+    flex: none;
+    overflow-y: visible;
+  }
+  .codex-detail-col {
+    display: none;
+    flex: none;
+    overflow-y: visible;
+    padding: 16px;
+  }
+  .codex-view--detail .codex-detail-col {
+    display: block;
+  }
+  .codex-view--detail .codex-list-col,
+  .codex-view--detail .codex-flags-col {
+    display: none;
+  }
+  .codex-entity-item,
+  .codex-tabs .codex-tab {
+    min-height: 44px;
+  }
+  .codex-back {
+    min-height: 44px;
+    margin-bottom: 12px;
+  }
+}
+
 /* The Map */
 @media (max-width: 640px) {
   .map-view {

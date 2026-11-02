@@ -8,6 +8,7 @@ import RuleDetail from '../components/codex/RuleDetail.jsx';
 import CodexAuditModal from '../components/overlays/CodexAuditModal.jsx';
 import { useAiState } from '../context/AiContext.jsx';
 import { useModal } from '../hooks/useModal.js';
+import { useLayoutMode } from '../hooks/useLayoutMode.js';
 import { busyProps, guardBusy } from '../utils/busyButton.js';
 
 const TABS = [
@@ -154,6 +155,14 @@ export default function CodexView() {
   const indicatorRef = useRef(null);
   const tabMounted = useRef(false);
 
+  // Phones and tablets show the list or one entry, not both. The CSS hides the column that isn't
+  // showing, so the tabs and the list stay mounted (the tab indicator and scroll position survive)
+  const compact = useLayoutMode() !== 'desktop';
+  const listRef = useRef(null);
+  const backRef = useRef(null);
+  // Focus follows a pick or a Back press, never a rotation or a refresh
+  const focusAfter = useRef(null); // 'back' | { row: index of the entry to refocus }
+
   useLayoutEffect(() => {
     const tabs = tabsRef.current;
     const indicator = indicatorRef.current;
@@ -180,6 +189,19 @@ export default function CodexView() {
   }, [workId]);
 
   useEffect(() => { fetchCodex(); }, [fetchCodex]);
+
+  useEffect(() => {
+    const target = focusAfter.current;
+    if (!target) return;
+    focusAfter.current = null;
+    if (target === 'back') {
+      backRef.current?.focus();
+      return;
+    }
+    // Back: the row of the entry that was open
+    const rows = listRef.current?.querySelectorAll('.codex-entity-item') || [];
+    [...rows][target.row]?.focus();
+  });
 
   async function handleAudit() {
     aiReset();
@@ -240,6 +262,18 @@ export default function CodexView() {
     : rules;
 
   const selectedItem = listItems.find((item) => item.id === selectedId);
+  // Compact screens show the detail only while an entry is open; a removed entry drops back to the list
+  const showDetail = compact && Boolean(selectedItem);
+
+  function pickEntry(id) {
+    if (compact) focusAfter.current = 'back';
+    setSelectedId(id);
+  }
+
+  function backToList() {
+    focusAfter.current = { row: listItems.findIndex((item) => item.id === selectedId) };
+    setSelectedId(null);
+  }
 
   function ruleListLabel(rule) {
     const text = rule.rule || '';
@@ -247,7 +281,7 @@ export default function CodexView() {
   }
 
   return (
-    <div className="codex-view">
+    <div className={showDetail ? 'codex-view codex-view--detail' : 'codex-view'}>
       {/* Left column: entity list */}
       <div className="codex-list-col">
         <div className="codex-tabs" ref={tabsRef}>
@@ -276,13 +310,13 @@ export default function CodexView() {
           </button>
         </div>
 
-        <div className="codex-entity-list">
+        <div className="codex-entity-list" ref={listRef}>
           <div key={activeTab} className="tab-enter">
           {listItems.map((item) => (
             <button
               key={item.id}
               className={`codex-entity-item${item.id === selectedId ? ' active' : ''}`}
-              onClick={() => setSelectedId(item.id)}
+              onClick={() => pickEntry(item.id)}
             >
               {activeTab === 'rules' ? (
                 <>
@@ -310,6 +344,11 @@ export default function CodexView() {
 
       {/* Center: detail view */}
       <div className="codex-detail-col">
+        {showDetail && (
+          <button type="button" className="btn btn-ghost btn-sm codex-back" ref={backRef} onClick={backToList}>
+            ← Back to list
+          </button>
+        )}
         <div key={activeTab} className="tab-enter">
         {!selectedItem && (
           <div className="codex-detail-empty">
