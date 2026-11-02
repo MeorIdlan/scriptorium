@@ -8,6 +8,9 @@ import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useAiState } from '../../context/AiContext.jsx';
 import { openCountsByChapter } from '../../utils/catchGroups.js';
+import { useLayoutMode } from '../../hooks/useLayoutMode.js';
+import { useDrawer } from '../../hooks/useDrawer.js';
+import DrawerClose from '../layout/DrawerClose.jsx';
 
 const SLIDE = 'left 0.22s cubic-bezier(0.4,0,0.2,1), width 0.22s cubic-bezier(0.4,0,0.2,1)';
 
@@ -27,6 +30,9 @@ export default function RightPanel({ workId }) {
   const { state: workState } = useActiveWork();
   const { state: editorState } = useEditor();
   const catchCount = openCountsByChapter(workState.catches).get(editorState.chapterId) || 0;
+  // A right drawer on a tablet, a bottom sheet on a phone, inline on desktop
+  const mode = useLayoutMode();
+  const drawer = useDrawer('panel', mode === 'tablet' ? 'right' : mode === 'phone' ? 'bottom' : null, 'Panel');
   const tabsRef = useRef(null);
   const indicatorRef = useRef(null);
   const mounted = useRef(false);
@@ -51,10 +57,11 @@ export default function RightPanel({ workId }) {
   }, [aiOn, state.hookGeneratorOpen, dispatch]);
 
   // Until the AI state loads, which tab opens first isn't known yet
-  if (!ready) return <div className="right-panel" />;
+  if (!ready) return <div className={`right-panel${drawer.className}`} {...drawer.attrs} />;
 
   return (
-    <div className="right-panel">
+    <div className={`right-panel${drawer.className}`} {...drawer.attrs}>
+      {drawer.isDrawer && <DrawerClose label="panel" onClose={drawer.close} />}
       <div className="panel-tabs" ref={tabsRef}>
         {tabs.map((tab) => (
           <button

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useUI } from '../../context/UIContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useAiState } from '../../context/AiContext.jsx';
+import { useLayoutMode } from '../../hooks/useLayoutMode.js';
 import ChapterHistoryModal from '../overlays/ChapterHistoryModal.jsx';
 import ChapterSummaryModal from '../overlays/ChapterSummaryModal.jsx';
 import { insertSceneBreak } from '../../utils/scenes.js';
@@ -19,6 +20,7 @@ export default function Toolbar({ editorRef }) {
   const { workId } = useParams();
   const { state: editorState } = useEditor();
   const { aiOn } = useAiState();
+  const mode = useLayoutMode();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   // The writer's selection inside the editor, kept for the font and size selects
@@ -271,6 +273,8 @@ export default function Toolbar({ editorRef }) {
             const quillShowing = uiState.activePanelTab === 'quill';
             if (!quillShowing) dispatch({ type: 'SET_PANEL_TAB', tab: 'quill' });
             if (!uiState.hookGeneratorOpen || quillShowing) dispatch({ type: 'TOGGLE_HOOK_GENERATOR' });
+            // On a phone or tablet the panel is a drawer: bring it up too, or nothing shows
+            if (mode !== 'desktop') dispatch({ type: 'OPEN_DRAWER', name: 'panel' });
           }}
           title="Open Spark / Hook Generator"
         >

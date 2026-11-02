@@ -4,10 +4,15 @@ import { useWordCount, useChapterWordCounts } from '../../hooks/useWordCount.js'
 import { formatNumber } from '../../utils/wordCount.js';
 import { useDailyProgress } from '../../hooks/useDailyProgress.js';
 import { progressView } from '../../utils/dailyProgress.js';
+import { useUI } from '../../context/UIContext.jsx';
+import { useLayoutMode } from '../../hooks/useLayoutMode.js';
+import { drawerId } from '../../hooks/useDrawer.js';
 
 export default function WordCounter() {
   const { state: editorState } = useEditor();
   const { state: workState } = useActiveWork();
+  const { state: uiState, dispatch } = useUI();
+  const mode = useLayoutMode();
 
   const chapterWords = useWordCount(editorState.content);
   const totalWords = useChapterWordCounts(workState.chapters);
@@ -39,6 +44,18 @@ export default function WordCounter() {
             </span>
           )}
         </span>
+      )}
+      {/* On phones and tablets the right panel is a drawer, and this opens it */}
+      {mode !== 'desktop' && (
+        <button
+          type="button"
+          className="word-counter-panel"
+          aria-expanded={uiState.drawer === 'panel'}
+          aria-controls={drawerId('panel')}
+          onClick={() => dispatch({ type: 'OPEN_DRAWER', name: 'panel' })}
+        >
+          Panel
+        </button>
       )}
     </div>
   );

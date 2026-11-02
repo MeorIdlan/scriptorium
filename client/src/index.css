@@ -4228,3 +4228,27 @@ button.rule-item {
   .drawer { transition: none; }
 }
 .chapter-sidebar-actions .drawer-close { align-self: center; }
+
+/* The button in the word-counter bar that opens the panel; only rendered on phones and tablets */
+.word-counter-panel {
+  min-height: 44px;
+  padding: 0 14px;
+  background: transparent;
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius);
+  color: var(--gold);
+  font-family: var(--font-ui);
+  font-size: var(--type-small);
+  cursor: pointer;
+}
+.word-counter-panel:hover { color: var(--gold-hover); border-color: var(--gold); }
+
+/* iOS zooms the page when a field under 16px takes focus */
+@media (max-width: 1099px) {
+  .right-panel input,
+  .right-panel textarea,
+  .right-panel select,
+  .chapter-add-input {
+    font-size: 16px;
+  }
+}
