@@ -2,6 +2,7 @@ import { useActiveWork } from '../../context/ActiveWorkContext.jsx';
 import { useEditor } from '../../context/EditorContext.jsx';
 import { useUI } from '../../context/UIContext.jsx';
 import { useLayoutMode } from '../../hooks/useLayoutMode.js';
+import { useCoarsePointer } from '../../hooks/useCoarsePointer.js';
 import { drawerId } from '../../hooks/useDrawer.js';
 import { useLocation } from 'react-router-dom';
 import { isMainRoomPath } from '../../utils/mainRoomPath.js';
@@ -11,7 +12,22 @@ export default function TopBar() {
   const { state: editorState } = useEditor();
   const { state: uiState, dispatch } = useUI();
   const mode = useLayoutMode();
+  const coarse = useCoarsePointer();
   const { pathname } = useLocation();
+
+  // Catch otherwise opens only with Ctrl/Cmd+Shift+I, so phones, tablets and touch screens get a
+  // button. A desktop with a mouse renders nothing here, so its layout is unchanged
+  const catchButton =
+    mode === 'desktop' && !coarse ? null : (
+      <button
+        type="button"
+        className="topbar-catch"
+        aria-label="Catch an idea"
+        onClick={() => dispatch({ type: 'OPEN_CATCH' })}
+      >
+        Catch
+      </button>
+    );
 
   // Phones and tablets open the app nav as a drawer from here
   const menuButton =
@@ -48,6 +64,8 @@ export default function TopBar() {
       <div className="topbar">
         {menuButton}
         <span className="topbar-brand">Scriptorium</span>
+        {catchButton && <div className="topbar-spacer" />}
+        {catchButton}
       </div>
     );
   }
@@ -84,6 +102,7 @@ export default function TopBar() {
       <div className="topbar-spacer" />
 
       {saveStatusLabel()}
+      {catchButton}
     </div>
   );
 }

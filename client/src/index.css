@@ -440,6 +440,26 @@ a:hover {
   flex: 1;
 }
 
+/* Opens the Catch panel where there is no Ctrl/Cmd+Shift+I; rendered only on phones, tablets
+   and touch screens, never on a desktop with a mouse */
+.topbar-catch {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius);
+  color: var(--gold);
+  font-family: var(--font-ui);
+  font-size: var(--type-small);
+  cursor: pointer;
+}
+.topbar-catch:hover { color: var(--gold-hover); border-color: var(--gold); }
+
 .save-status {
   font-size: var(--type-small);
 }
@@ -4193,6 +4213,25 @@ button.rule-item {
   .modal select,
   .modal textarea {
     font-size: 16px;
+  }
+
+  /* The Catch panel is a full-width sheet under the top bar, not a corner box */
+  .catch-overlay {
+    top: var(--topbar-height);
+    left: 0;
+    right: 0;
+    width: auto;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+  .catch-overlay-input,
+  .catch-chapter-select {
+    font-size: 16px;
+  }
+  .catch-overlay-close {
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 
