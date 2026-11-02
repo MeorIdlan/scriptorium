@@ -47,6 +47,8 @@ services:
           memory: 24M
 
 networks:
+  # Declared because podman-compose stops on a service using an undeclared default network.
+  default:
   shared-edge:
     external: true
   shared-mongo:

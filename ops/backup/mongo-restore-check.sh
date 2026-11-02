@@ -7,7 +7,9 @@
 # Exits 0 on PASS, 1 on FAIL. Never writes to $DB itself.
 set -euo pipefail
 
-MONGO_CONTAINER="${MONGO_CONTAINER:-mongo-mongo-1}"
+# Mongo runs under rootless Podman as the deploy user, and this script runs as root.
+CONTAINER_CMD="${CONTAINER_CMD:-/usr/local/sbin/scriptorium-container}"
+MONGO_CONTAINER="${MONGO_CONTAINER:-mongo_mongo_1}"
 DB="${DB:-scriptorium}"
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/scriptorium}"
 RESTORE_DB="${RESTORE_DB:-${DB}_restorecheck}"
@@ -48,17 +50,17 @@ drop_restore_db() {
   if $keep; then
     echo "kept throwaway database $RESTORE_DB (drop it with: db.getSiblingDB('$RESTORE_DB').dropDatabase())"
   else
-    docker exec "$MONGO_CONTAINER" mongosh --quiet --eval "db.getSiblingDB('$RESTORE_DB').dropDatabase()" >/dev/null
+    "$CONTAINER_CMD" exec "$MONGO_CONTAINER" mongosh --quiet --eval "db.getSiblingDB('$RESTORE_DB').dropDatabase()" >/dev/null
     echo "dropped throwaway database $RESTORE_DB"
   fi
 }
 trap drop_restore_db EXIT
 
 echo "restoring $archive into $RESTORE_DB"
-docker exec -i "$MONGO_CONTAINER" mongorestore --archive --gzip \
+"$CONTAINER_CMD" exec -i "$MONGO_CONTAINER" mongorestore --archive --gzip \
   --nsInclude "$DB.*" --nsFrom "$DB.*" --nsTo "$RESTORE_DB.*" --drop < "$archive"
 
-counts=$(docker exec "$MONGO_CONTAINER" mongosh --quiet --eval "
+counts=$("$CONTAINER_CMD" exec "$MONGO_CONTAINER" mongosh --quiet --eval "
   for (const [tag, name] of [['live', '$DB'], ['restored', '$RESTORE_DB']]) {
     const d = db.getSiblingDB(name);
     d.getCollectionNames().sort().forEach(c => print(tag, c, d.getCollection(c).countDocuments({})));

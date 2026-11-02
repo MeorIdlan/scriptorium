@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Off-box copy: uploads a dump to a private DigitalOcean Spaces bucket.
+# Off-box copy: uploads a dump to a private Tencent COS bucket.
 #   spaces-upload.sh [archive]
 # Without an archive it uses the newest $BACKUP_DIR/<db>-*.archive.gz. The
 # local archive is never touched, so a failed upload loses nothing; it logs
@@ -15,7 +15,7 @@ BACKUP_DIR="${BACKUP_DIR:-/var/backups/scriptorium}"
 # s3cmd config with the Spaces endpoint and key: root-only, never in the repo.
 SPACES_CONFIG="${SPACES_CONFIG:-/etc/scriptorium-backup/s3cfg}"
 # The bucket is shared by the dev's apps; scriptorium keeps to scriptorium/.
-SPACES_URI="${SPACES_URI:-s3://cell1337-bucket/scriptorium/backups/}"
+SPACES_URI="${SPACES_URI:-s3://cell1337-bucket-1523630779/scriptorium/backups/}"
 UPLOAD_TIMEOUT="${UPLOAD_TIMEOUT:-1800}"  # seconds; a hung upload fails instead of blocking the next night's run
 
 log() { echo "$(date -u +%FT%TZ) spaces-upload[$DB]: $*"; }

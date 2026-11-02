@@ -8,7 +8,9 @@
 # docs/deployment.md → Data.
 set -euo pipefail
 
-MONGO_CONTAINER="${MONGO_CONTAINER:-mongo-mongo-1}"
+# Mongo runs under rootless Podman as the deploy user, and this script runs as root.
+CONTAINER_CMD="${CONTAINER_CMD:-/usr/local/sbin/scriptorium-container}"
+MONGO_CONTAINER="${MONGO_CONTAINER:-mongo_mongo_1}"
 DB="${DB:-scriptorium}"
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/scriptorium}"
 RETENTION_DAYS="${RETENTION_DAYS:-7}"
@@ -28,7 +30,7 @@ final="$BACKUP_DIR/$DB-$(date -u +%Y%m%dT%H%M%SZ).archive.gz"
 tmp="$final.tmp"
 trap 'rm -f "$tmp"' EXIT
 
-if ! timeout "$DUMP_TIMEOUT" docker exec "$MONGO_CONTAINER" mongodump --db "$DB" --archive --gzip > "$tmp"; then
+if ! timeout "$DUMP_TIMEOUT" "$CONTAINER_CMD" exec "$MONGO_CONTAINER" mongodump --db "$DB" --archive --gzip > "$tmp"; then
   log "FAILED: mongodump exited non-zero or timed out; nothing written, nothing pruned"
   exit 1
 fi

@@ -63,6 +63,7 @@ function run(script, env = {}, args = []) {
       PATH: `${bin}:${process.env.PATH}`,
       BACKUP_DIR: backupDir,
       STUB_LOG: stubLog,
+      CONTAINER_CMD: 'docker',
       ...env,
     },
   });
@@ -90,7 +91,37 @@ test('dump writes a timestamped gzip archive readable only by its owner', () => 
   assert.equal(mode(file), 0o600);
   assert.equal(mode(backupDir), 0o700);
   assert.deepEqual(fs.readdirSync(backupDir), files, 'no .tmp file left behind');
-  assert.match(fs.readFileSync(stubLog, 'utf8'), /^exec mongo-mongo-1 mongodump --db scriptorium --archive --gzip$/m);
+  assert.match(fs.readFileSync(stubLog, 'utf8'), /^exec mongo_mongo_1 mongodump --db scriptorium --archive --gzip$/m);
+});
+
+test('dump and restore check default to the rootless Mongo stack', () => {
+  for (const script of ['mongo-dump.sh', 'mongo-restore-check.sh']) {
+    const text = fs.readFileSync(path.join(OPS, script), 'utf8');
+    assert.match(text, /MONGO_CONTAINER:-mongo_mongo_1\}/);
+    assert.match(text, /CONTAINER_CMD:-\/usr\/local\/sbin\/scriptorium-container\}/);
+    assert.doesNotMatch(text, /\bdocker exec\b/);
+  }
+});
+
+test('container wrapper runs podman as deploy from a directory deploy can enter', () => {
+  const log = path.join(tmp, 'wrapper.log');
+  fs.writeFileSync(path.join(bin, 'id'), '#!/usr/bin/env bash\necho 1234\n', { mode: 0o755 });
+  fs.writeFileSync(
+    path.join(bin, 'runuser'),
+    `#!/usr/bin/env bash\necho "$PWD | $*" >> "${log}"\ncat\n`,
+    { mode: 0o755 },
+  );
+  const r = spawnSync('bash', [path.join(OPS, 'container-as-deploy.sh'), 'exec', '-i', 'mongo_mongo_1', 'mongorestore'], {
+    encoding: 'utf8',
+    input: 'ARCHIVE',
+    env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'ARCHIVE', 'stdin reaches the container');
+  assert.equal(
+    fs.readFileSync(log, 'utf8'),
+    '/ | -u deploy -- env XDG_RUNTIME_DIR=/run/user/1234 podman exec -i mongo_mongo_1 mongorestore\n',
+  );
 });
 
 test('dump honours MONGO_CONTAINER and DB overrides', () => {
@@ -449,7 +480,7 @@ test('Spaces lifecycle rule expires only dumps under scriptorium/backups/ after 
   assert.match(rule, /<Expiration>\s*<Days>30<\/Days>\s*<\/Expiration>/);
   assert.match(rule, /<AbortIncompleteMultipartUpload>\s*<DaysAfterInitiation>1<\/DaysAfterInitiation>/);
   // The upload script writes under the same prefix the rule expires.
-  assert.match(fs.readFileSync(path.join(OPS, 'spaces-upload.sh'), 'utf8'), /SPACES_URI:-s3:\/\/cell1337-bucket\/scriptorium\/backups\/\}/);
+  assert.match(fs.readFileSync(path.join(OPS, 'spaces-upload.sh'), 'utf8'), /SPACES_URI:-s3:\/\/cell1337-bucket-1523630779\/scriptorium\/backups\/\}/);
 });
 
 // --- nightly run + Healthchecks ping ---
