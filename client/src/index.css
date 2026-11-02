@@ -4387,6 +4387,22 @@ button.rule-item {
   }
 }
 
+/* Fields in the Map's chapter detail and the Codex's entries: their own sizes were under 16px, which
+   makes iOS zoom the page on focus. A Codex entry's fields get a column each: two were about 160px wide */
+@media (max-width: 640px) {
+  .map-view .form-input,
+  .map-view .form-select,
+  .map-view .form-textarea,
+  .inline-field-input,
+  .inline-field-textarea,
+  .inline-field-select {
+    font-size: 16px;
+  }
+  .codex-entry-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* The Map */
 @media (max-width: 640px) {
   .map-view {

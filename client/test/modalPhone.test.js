@@ -72,3 +72,18 @@ test('no modal sets its width inline, where it would beat the phone rule', () =>
   assert.match(base, /\.add-entity-modal \{[^}]*max-width:\s*380px/);
   assert.match(base, /\.add-rule-modal \{[^}]*max-width:\s*460px/);
 });
+
+// iOS zooms the page when a field under 16px takes focus. The Map's chapter detail and the Codex's
+// inline fields set smaller sizes of their own (found in the 390px browser sweep)
+test('the Map and Codex fields are 16px on a phone', () => {
+  for (const selector of [
+    '.map-view .form-input', '.map-view .form-select', '.map-view .form-textarea',
+    '.inline-field-input', '.inline-field-textarea', '.inline-field-select',
+  ]) {
+    assert.match(phone(selector), /font-size:\s*16px/, selector);
+  }
+});
+
+test('a Codex entry\'s fields stack in one column on a phone', () => {
+  assert.match(phone('.codex-entry-fields'), /grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+});
