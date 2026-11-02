@@ -94,6 +94,8 @@ export default function CatchRow({ item, chapters, showChapter, canInsert, defau
               saveEdit();
             }
             if (e.key === 'Escape') {
+              // Cancels this edit only, not the drawer around it
+              e.stopPropagation();
               returnFocus(editBtn);
               setMode('view');
             }

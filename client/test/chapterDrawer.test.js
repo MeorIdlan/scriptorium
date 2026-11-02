@@ -2,7 +2,7 @@ import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { renderApp } from './support/app.js';
-import { flush, click, press, type } from './support/render.js';
+import { flush, click, press } from './support/render.js';
 import { clickLink } from './support/link.js';
 import { setViewport, resetViewport } from './support/viewport.js';
 import './support/focus.js';

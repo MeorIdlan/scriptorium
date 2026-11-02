@@ -30,6 +30,8 @@ export default function SceneRow({ scene, rowKey, threads = [], current, charact
   };
   const onKeyDown = (e) => {
     if (e.key !== 'Escape') return;
+    // Cancels this edit only, not the drawer around it
+    e.stopPropagation();
     returnFocus(editBtn);
     setEditing(false);
   };

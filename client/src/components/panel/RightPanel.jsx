@@ -40,16 +40,24 @@ export default function RightPanel({ workId }) {
   useLayoutEffect(() => {
     const tabs = tabsRef.current;
     const indicator = indicatorRef.current;
-    if (!tabs || !indicator) return;
+    if (!tabs || !indicator) return undefined;
 
-    const active = tabs.querySelector('.panel-tab.active');
-    if (!active) return;
+    function measure(slide) {
+      const active = tabs.querySelector('.panel-tab.active');
+      if (!active) return;
+      indicator.style.transition = slide && mounted.current ? SLIDE : 'none';
+      indicator.style.left = `${active.offsetLeft}px`;
+      indicator.style.width = `${active.offsetWidth}px`;
+      mounted.current = true;
+    }
+    measure(true);
 
-    indicator.style.transition = mounted.current ? SLIDE : 'none';
-    indicator.style.left = `${active.offsetLeft}px`;
-    indicator.style.width = `${active.offsetWidth}px`;
-    mounted.current = true;
-  }, [activePanelTab, catchCount, aiOn, ready]);
+    // The tabs share the panel's width, which follows the window in the drawer modes
+    if (mode === 'desktop') return undefined;
+    const onResize = () => measure(false);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [activePanelTab, catchCount, aiOn, ready, mode]);
 
   // Spark's hook generator shouldn't reopen by itself when AI comes back
   useEffect(() => {
@@ -57,7 +65,13 @@ export default function RightPanel({ workId }) {
   }, [aiOn, state.hookGeneratorOpen, dispatch]);
 
   // Until the AI state loads, which tab opens first isn't known yet
-  if (!ready) return <div className={`right-panel${drawer.className}`} {...drawer.attrs} />;
+  if (!ready) {
+    return (
+      <div className={`right-panel${drawer.className}`} {...drawer.attrs}>
+        {drawer.isDrawer && <DrawerClose label="panel" onClose={drawer.close} />}
+      </div>
+    );
+  }
 
   return (
     <div className={`right-panel${drawer.className}`} {...drawer.attrs}>

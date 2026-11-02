@@ -3,13 +3,17 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { render, cleanup, click, press, act, flush } from './support/render.js';
+import { setViewport, resetViewport } from './support/viewport.js';
 import './support/focus.js';
 import { UIProvider, uiReducer, useUI } from '../src/context/UIContext.jsx';
 import { useDrawer, drawerId } from '../src/hooks/useDrawer.js';
 import DrawerBackdrop from '../src/components/layout/DrawerBackdrop.jsx';
 import DrawerClose from '../src/components/layout/DrawerClose.jsx';
 
-afterEach(cleanup);
+afterEach(async () => {
+  await cleanup();
+  resetViewport();
+});
 
 let ui;
 function Host({ placement }) {
@@ -31,6 +35,7 @@ function Host({ placement }) {
 }
 
 async function mount(placement) {
+  setViewport(390); // the backdrop is drawn only on phones and tablets
   const view = await render(h(UIProvider, null, h(Host, { placement })));
   const q = (sel) => view.container.querySelector(sel);
   return { view, q };

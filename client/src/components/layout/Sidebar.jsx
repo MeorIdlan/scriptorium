@@ -63,7 +63,7 @@ export default function Sidebar() {
     indicator.style.height = `${height}px`;
     indicator.style.opacity = '1';
     mounted.current = true;
-  }, [location.pathname, activeWorkId]);
+  }, [location.pathname, activeWorkId, mode]);
 
   return (
     <nav className={`sidebar${drawer.className}`} ref={setNavRef} aria-label="Rooms" {...drawerAttrs}>

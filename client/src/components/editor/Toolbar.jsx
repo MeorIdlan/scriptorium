@@ -270,7 +270,8 @@ export default function Toolbar({ editorRef }) {
           onClick={() => {
             // The generator lives in the Quill tab: bring that tab forward. When the
             // generator is already open behind another tab, only the tab changes
-            const quillShowing = uiState.activePanelTab === 'quill';
+            // A panel that is a closed drawer shows nothing, whatever tab it is on
+            const quillShowing = uiState.activePanelTab === 'quill' && (mode === 'desktop' || uiState.drawer === 'panel');
             if (!quillShowing) dispatch({ type: 'SET_PANEL_TAB', tab: 'quill' });
             if (!uiState.hookGeneratorOpen || quillShowing) dispatch({ type: 'TOGGLE_HOOK_GENERATOR' });
             // On a phone or tablet the panel is a drawer: bring it up too, or nothing shows

@@ -2,7 +2,7 @@ import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { renderApp } from './support/app.js';
-import { flush, click, press } from './support/render.js';
+import { flush, click, press, act } from './support/render.js';
 import { setViewport, resetViewport } from './support/viewport.js';
 import './support/focus.js';
 import App from '../src/App.jsx';
@@ -110,4 +110,54 @@ test('on desktop the panel is exactly the inline panel it was (A4)', async () =>
   assert.equal(view.query('.right-panel .drawer-close'), null);
   assert.equal(view.query('.drawer-backdrop'), null);
   await view.unmount();
+});
+
+test('Spark opens the generator again after the sheet was closed with the generator open', async () => {
+  const view = await open(390);
+  const spark = () => view.queryAll('.toolbar-spark').find((b) => b.textContent.includes('Spark'));
+  await click(spark());
+  assert.ok(view.query('.hook-generator'));
+  await click(view.query('.right-panel .drawer-close'));
+  await click(spark());
+  assert.match(panel(view).className, /\bis-open\b/);
+  assert.ok(view.query('.hook-generator'), 'the generator was toggled off instead of shown');
+  await view.unmount();
+});
+
+// linkedom has no layout, so the measurements the tab indicator reads are stubbed
+function stubTabMeasure() {
+  const proto = window.HTMLElement.prototype;
+  const saved = ['offsetLeft', 'offsetWidth'].map((name) => [name, Object.getOwnPropertyDescriptor(proto, name)]);
+  const state = { left: 10, width: 100 };
+  Object.defineProperty(proto, 'offsetLeft', { configurable: true, get: () => state.left });
+  Object.defineProperty(proto, 'offsetWidth', { configurable: true, get: () => state.width });
+  return {
+    state,
+    restore() {
+      for (const [name, desc] of saved) {
+        if (desc) Object.defineProperty(proto, name, desc);
+        else delete proto[name];
+      }
+    },
+  };
+}
+
+test('the tab indicator is measured again when the layout mode changes and when a small window resizes', async () => {
+  const stub = stubTabMeasure();
+  try {
+    const view = await open(1280);
+    const indicator = () => view.query('.panel-tab-indicator').style.left;
+    assert.equal(indicator(), '10px');
+    stub.state.left = 50;
+    await act(async () => setViewport(390));
+    await flush();
+    assert.equal(indicator(), '50px', 'not re-measured on a mode change');
+    stub.state.left = 70;
+    await act(async () => window.dispatchEvent(new window.Event('resize')));
+    await flush();
+    assert.equal(indicator(), '70px', 'not re-measured on a resize');
+    await view.unmount();
+  } finally {
+    stub.restore();
+  }
 });

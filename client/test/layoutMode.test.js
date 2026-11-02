@@ -60,3 +60,17 @@ test('useLayoutMode is desktop when matchMedia is missing', async () => {
   const { text } = await mode();
   assert.equal(text(), 'desktop');
 });
+
+test('useLayoutMode does not ask matchMedia again on every render', async () => {
+  setViewport(390);
+  const make = window.matchMedia;
+  let calls = 0;
+  window.matchMedia = (query) => {
+    calls += 1;
+    return make(query);
+  };
+  const view = await render(h(Probe));
+  for (let i = 0; i < 5; i++) await view.rerender(h(Probe));
+  assert.ok(calls <= 4, `matchMedia was called ${calls} times`);
+  await view.unmount();
+});

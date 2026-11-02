@@ -1,9 +1,18 @@
 import { useSyncExternalStore } from 'react';
 import { LAYOUT_QUERIES } from '../utils/layoutMode.js';
 
+// The lists are made once per matchMedia, not once per render
+let cache = { matchMedia: null, lists: null };
+
 function lists() {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return null;
-  return [window.matchMedia(LAYOUT_QUERIES.phone), window.matchMedia(LAYOUT_QUERIES.tablet)];
+  if (cache.matchMedia !== window.matchMedia) {
+    cache = {
+      matchMedia: window.matchMedia,
+      lists: [window.matchMedia(LAYOUT_QUERIES.phone), window.matchMedia(LAYOUT_QUERIES.tablet)],
+    };
+  }
+  return cache.lists;
 }
 
 function subscribe(onChange) {

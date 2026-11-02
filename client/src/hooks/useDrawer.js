@@ -31,6 +31,9 @@ export function useDrawer(name, placement, label) {
   }, [isOpen]);
 
   function onKeyDown(e) {
+    // React bubbles events out of a portal to its React parent, so a modal opened from inside
+    // the drawer would reach here; its keys are the modal's, not the drawer's
+    if (!ref.current?.contains(e.target)) return;
     if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();

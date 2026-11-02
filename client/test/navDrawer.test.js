@@ -114,3 +114,26 @@ test('the menu button is on the top bar of pages without a work too', async () =
   assert.ok(view.query('.topbar-menu'));
   await view.unmount();
 });
+
+test('the nav indicator is measured again when the layout mode changes', async () => {
+  // linkedom has no layout: the active item's top is stubbed
+  const proto = window.HTMLElement.prototype;
+  const original = proto.getBoundingClientRect;
+  let top = 100;
+  proto.getBoundingClientRect = function () {
+    const active = this.classList?.contains('sidebar-nav-item') && this.classList.contains('active');
+    return { top: active ? top : 0, height: 10, left: 0, width: 0, bottom: 0, right: 0 };
+  };
+  try {
+    const view = await open(1280);
+    const indicator = () => view.query('.sidebar-nav-indicator').style.top;
+    assert.equal(indicator(), '100px');
+    top = 144; // the drawer's close button pushes the items down
+    await act(async () => setViewport(390));
+    await flush();
+    assert.equal(indicator(), '144px');
+    await view.unmount();
+  } finally {
+    proto.getBoundingClientRect = original;
+  }
+});
