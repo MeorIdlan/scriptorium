@@ -3,6 +3,7 @@ import { createContext, useContext, useReducer } from 'react';
 const initialState = {
   activeRoom: 'shelves',
   activePanelTab: 'quill',
+  drawer: null, // which small-screen drawer is open: 'nav' | 'chapters' | 'panel'
   catchOverlayOpen: false,
   selectedMapChapterId: null,
   hookGeneratorOpen: false,
@@ -11,10 +12,14 @@ const initialState = {
   pendingScene: null, // { chapterId, sceneIndex } — set by the Map's "Open in editor"
 };
 
-function uiReducer(state, action) {
+export function uiReducer(state, action) {
   switch (action.type) {
     case 'SET_ROOM':
       return { ...state, activeRoom: action.room };
+    case 'OPEN_DRAWER':
+      return { ...state, drawer: action.name };
+    case 'CLOSE_DRAWER':
+      return state.drawer === null ? state : { ...state, drawer: null };
     case 'SET_PANEL_TAB':
       return { ...state, activePanelTab: action.tab };
     case 'OPEN_CATCH':
