@@ -57,23 +57,25 @@ export default function TopBar() {
       {menuButton}
       <span className="topbar-title">{work.title}</span>
 
-      {currentChapter &&
-        (mode === 'phone' && isMainRoomPath(pathname) ? (
-          // On a phone the chapter list is a drawer, and the pill is what opens it
-          <button
-            type="button"
-            className="topbar-chapter-pill topbar-chapter-button"
-            aria-expanded={uiState.drawer === 'chapters'}
-            aria-controls={drawerId('chapters')}
-            onClick={() => dispatch({ type: 'OPEN_DRAWER', name: 'chapters' })}
-          >
-            Ch. {currentChapter.number} — {currentChapter.title}
-          </button>
-        ) : (
+      {/* On a phone the chapter list is a drawer, and this opens it. It is there even with no chapter
+          open (a new work has none), since the drawer holds the only way to add one */}
+      {mode === 'phone' && isMainRoomPath(pathname) ? (
+        <button
+          type="button"
+          className="topbar-chapter-pill topbar-chapter-button"
+          aria-expanded={uiState.drawer === 'chapters'}
+          aria-controls={drawerId('chapters')}
+          onClick={() => dispatch({ type: 'OPEN_DRAWER', name: 'chapters' })}
+        >
+          {currentChapter ? `Ch. ${currentChapter.number} — ${currentChapter.title}` : 'Chapters'}
+        </button>
+      ) : (
+        currentChapter && (
           <span className="topbar-chapter-pill">
             Ch. {currentChapter.number} — {currentChapter.title}
           </span>
-        ))}
+        )
+      )}
 
       {work.currentDraft && (
         <span className="topbar-draft-badge">Draft {work.currentDraft}</span>

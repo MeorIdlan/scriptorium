@@ -104,7 +104,7 @@ test('Tab wraps from the last control to the first, Shift+Tab from the first to 
   const last = q('#last');
   last.focus();
   await press(last, 'Tab');
-  assert.equal(document.activeElement, close);
+  assert.ok(document.activeElement === close, 'Tab did not wrap to the first control');
   await act(async () => {
     const event = new window.Event('keydown', { bubbles: true });
     Object.defineProperty(event, 'key', { value: 'Tab' });
@@ -112,7 +112,7 @@ test('Tab wraps from the last control to the first, Shift+Tab from the first to 
     close.dispatchEvent(event);
   });
   await flush();
-  assert.equal(document.activeElement, last);
+  assert.ok(document.activeElement === last, 'Shift+Tab did not wrap to the last control');
 });
 
 test('the backdrop and the close button both close it', async () => {

@@ -4315,11 +4315,9 @@ button.rule-item {
   .toolbar {
     flex-wrap: nowrap;
     overflow-x: auto;
-    scrollbar-width: none;
+    /* A slim bar stays for a mouse, which can't swipe the row; touch screens hide it (below) */
+    scrollbar-width: thin;
     -webkit-overflow-scrolling: touch;
-  }
-  .toolbar::-webkit-scrollbar {
-    display: none;
   }
   .toolbar > * {
     flex-shrink: 0;
@@ -4345,5 +4343,14 @@ button.rule-item {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+}
+
+@media (max-width: 1099px) and (pointer: coarse) {
+  .toolbar {
+    scrollbar-width: none;
+  }
+  .toolbar::-webkit-scrollbar {
+    display: none;
   }
 }

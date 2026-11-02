@@ -139,3 +139,36 @@ test('on a tablet and on desktop the chapter list stays inline and the pill is a
     await view.unmount();
   }
 });
+
+// A work made without an opening hook has no chapter yet; on a phone the list, and its "+", are in the drawer
+test('a work with no chapters still has a Chapters button on a phone, and the drawer offers Add chapter', async () => {
+  setViewport(390);
+  const view = await renderApp(h(App), {
+    routes: { ...routes, 'GET /works/w1': { id: 'w1', title: 'Book' }, 'GET /works/w1/chapters': [] },
+    path: '/work/w1',
+  });
+  await flush();
+  const button = pill(view);
+  assert.ok(button, 'no chapters button on the top bar');
+  assert.equal(button.tagName, 'BUTTON');
+  assert.equal(button.textContent.trim(), 'Chapters');
+  button.focus();
+  await click(button);
+  assert.match(aside(view).className, /\bis-open\b/);
+  assert.equal(aside(view).hasAttribute('inert'), false);
+  assert.ok(view.query('button[aria-label="Add chapter"]'), 'Add chapter is not reachable');
+  await view.unmount();
+});
+
+test('with no chapters, a tablet and desktop top bar show no chapters label (A4)', async () => {
+  for (const width of [800, 1280]) {
+    setViewport(width);
+    const view = await renderApp(h(App), {
+      routes: { ...routes, 'GET /works/w1': { id: 'w1', title: 'Book' }, 'GET /works/w1/chapters': [] },
+      path: '/work/w1',
+    });
+    await flush();
+    assert.ok(pill(view) === null, `${width}px`);
+    await view.unmount();
+  }
+});

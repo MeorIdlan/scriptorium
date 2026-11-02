@@ -93,3 +93,11 @@ test('the compact layout clips what the closed drawers leave outside it, so noth
   const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
   assert.match(ruleIn(css, '(max-width: 1099px)', '.layout') ?? '', /overflow:\s*clip/);
 });
+
+test('the toolbar hides its scrollbar only on touch screens; a mouse user keeps a slim one', () => {
+  const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+  const compact = ruleIn(css, '(max-width: 1099px)', '.toolbar') ?? '';
+  assert.doesNotMatch(compact, /scrollbar-width:\s*none/);
+  assert.match(compact, /scrollbar-width:\s*thin/);
+  assert.match(ruleIn(css, '(max-width: 1099px) and (pointer: coarse)', '.toolbar') ?? '', /scrollbar-width:\s*none/);
+});
