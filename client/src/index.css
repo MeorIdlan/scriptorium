@@ -3822,11 +3822,9 @@ button.rule-item {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* `backwards`, not `both`: a kept translateY(0) would make this the containing block of
-   fixed drawers inside the page, placing them against the page instead of the screen */
 .page-enter {
   height: 100%;
-  animation: pageEnter 0.2s ease-out backwards;
+  animation: pageEnter 0.2s ease-out both;
 }
 
 .tab-enter {
@@ -4257,6 +4255,12 @@ button.rule-item {
 
 /* Phones and tablets: the Main Room surface */
 @media (max-width: 1099px) {
+  /* `backwards`, not `both`: a kept translateY(0) would make .page-enter the containing block of the
+     drawers inside it, placing them against the page instead of the layout. Desktop keeps `both`,
+     which leaves its pixels exactly as they were. */
+  .page-enter {
+    animation-fill-mode: backwards;
+  }
   /* The layout follows the visual viewport (see useVisualViewport), so the on-screen keyboard
      doesn't cover it, and stays pinned when iOS scrolls the page to show a field */
   .layout {
@@ -4265,6 +4269,9 @@ button.rule-item {
     left: 0;
     width: 100%;
     height: var(--app-height, 100dvh);
+    /* `clip`, not `hidden` (which stays scrollable by script): the closed drawers wait outside
+       this box, and nothing should be able to scroll the layout sideways to reveal them */
+    overflow: clip;
   }
   .main-room-body,
   .editor-area {

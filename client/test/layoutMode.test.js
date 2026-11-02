@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { render, act, flush } from './support/render.js';
 import { setViewport, resetViewport } from './support/viewport.js';
+import { ruleIn } from './support/css.js';
 import { PHONE_MAX, TABLET_MAX, LAYOUT_QUERIES, modeForWidth } from '../src/utils/layoutMode.js';
 import { useLayoutMode } from '../src/hooks/useLayoutMode.js';
 
@@ -75,25 +76,6 @@ test('useLayoutMode does not ask matchMedia again on every render', async () => 
   await view.unmount();
 });
 
-// The body of the first rule for `selector` inside an @media block whose query is `query`
-function ruleIn(css, query, selector) {
-  for (const match of css.matchAll(/@media\s+([^{]+)\{/g)) {
-    if (match[1].trim() !== query) continue;
-    let depth = 1;
-    let i = match.index + match[0].length;
-    const start = i;
-    while (depth > 0 && i < css.length) {
-      if (css[i] === '{') depth += 1;
-      else if (css[i] === '}') depth -= 1;
-      i += 1;
-    }
-    const block = css.slice(start, i - 1);
-    const rule = block.match(new RegExp(`(?:^|[\\s,}])${selector.replace('.', '\\.')}\\s*(?:,[^{]*)?\\{([^}]*)\\}`));
-    if (rule) return rule[1];
-  }
-  return null;
-}
-
 test('the editor gets less side padding on tablets (28px 24px) and phones (20px 16px)', () => {
   const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
   assert.match(ruleIn(css, '(max-width: 1099px)', '.editor-wrap') ?? '', /padding:\s*28px 24px/);
@@ -105,4 +87,9 @@ test('the compact word counter keeps the desktop bar\'s centred text', () => {
   const rule = ruleIn(css, '(max-width: 1099px)', '.word-counter') ?? '';
   assert.match(rule, /display:\s*flex/);
   assert.doesNotMatch(rule, /text-align:\s*left/);
+});
+
+test('the compact layout clips what the closed drawers leave outside it, so nothing can scroll it sideways', () => {
+  const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+  assert.match(ruleIn(css, '(max-width: 1099px)', '.layout') ?? '', /overflow:\s*clip/);
 });

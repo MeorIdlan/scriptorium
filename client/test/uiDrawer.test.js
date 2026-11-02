@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { render, cleanup, click, press, act, flush } from './support/render.js';
 import { setViewport, resetViewport } from './support/viewport.js';
+import { ruleIn } from './support/css.js';
 import './support/focus.js';
 import { UIProvider, uiReducer, useUI } from '../src/context/UIContext.jsx';
 import { useDrawer, drawerId } from '../src/hooks/useDrawer.js';
@@ -126,12 +127,14 @@ test('the backdrop and the close button both close it', async () => {
   assert.equal(ui.state.drawer, null);
 });
 
-test('page-enter leaves no transform behind', () => {
-  // A kept transform would make fixed drawers inside the page position against the page, not the screen
+test('page-enter keeps its transform on desktop but not on phones and tablets', () => {
+  // A kept transform makes .page-enter the containing block of the drawers inside it, so below 1100px
+  // the fill mode must not hold the last keyframe. Desktop keeps `both` so its pixels stay as they were
+  // (a kept identity transform sets how the toolbar labels are anti-aliased).
   const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
-  const rule = css.match(/\.page-enter\s*\{([^}]*)\}/)[1];
-  const animation = rule.match(/animation:\s*([^;]+);/)[1];
-  assert.doesNotMatch(animation, /\b(both|forwards)\b/);
+  const base = css.match(/\.page-enter\s*\{([^}]*)\}/)[1];
+  assert.match(base.match(/animation:\s*([^;]+);/)[1], /\bboth\b/);
+  assert.match(ruleIn(css, '(max-width: 1099px)', '.page-enter') ?? '', /animation-fill-mode:\s*backwards/);
 });
 
 test('an open drawer clears the transform its placement sets, for every placement', () => {
