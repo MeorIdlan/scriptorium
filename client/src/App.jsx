@@ -19,12 +19,15 @@ import UserManagement from './pages/admin/UserManagement.jsx';
 import { useUI } from './context/UIContext.jsx';
 import { pageKey } from './utils/pageKey.js';
 import { useLayoutMode } from './hooks/useLayoutMode.js';
+import { useVisualViewport } from './hooks/useVisualViewport.js';
 import DrawerBackdrop from './components/layout/DrawerBackdrop.jsx';
 
 function Layout() {
   const location = useLocation();
   const { dispatch } = useUI();
   const mode = useLayoutMode();
+  // On phones and tablets the layout follows the visual viewport, so the keyboard doesn't cover it
+  useVisualViewport();
 
   // A drawer closes when the page changes or the layout mode does (a rotated
   // tablet may no longer have that drawer at all)

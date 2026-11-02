@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useReturnFocus } from '../hooks/useReturnFocus.js';
 import { useLayoutMode } from '../hooks/useLayoutMode.js';
 import { useDrawer } from '../hooks/useDrawer.js';
+import { useKeepCaretVisible } from '../hooks/useKeepCaretVisible.js';
 import DrawerClose from '../components/layout/DrawerClose.jsx';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useActiveWork } from '../context/ActiveWorkContext.jsx';
@@ -76,6 +77,7 @@ export default function MainRoom() {
   const { state: uiState, dispatch: uiDispatch } = useUI();
   // On a phone the chapter list is a left drawer; elsewhere it stays inline
   const mode = useLayoutMode();
+  useKeepCaretVisible(editorRef, mode !== 'desktop');
   const chaptersDrawer = useDrawer('chapters', mode === 'phone' ? 'left' : null, 'Chapters');
 
   useWritingSession(workId, editorState.chapterId);
