@@ -4235,6 +4235,46 @@ button.rule-item {
   }
 }
 
+/* Shelves, the auth pages and the admin users table */
+@media (max-width: 640px) {
+  .shelves-page {
+    padding: 20px 16px 40px;
+  }
+  .shelves-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  /* minmax(0, 1fr), not 1fr: a long title can't stretch the column past the screen */
+  .work-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .work-card-menu-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .auth-page {
+    padding: 16px;
+  }
+  .auth-card {
+    width: 100%;
+    max-width: none;
+    padding: 20px 16px 22px;
+  }
+  .auth-card input {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .auth-card button {
+    min-height: 44px;
+  }
+  /* The table scrolls inside itself, so the page never scrolls sideways */
+  .admin-users-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
 /* ============================================================
    Drawers
    On phones and tablets the nav, chapter list and panel become drawers: the
