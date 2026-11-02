@@ -40,7 +40,7 @@ function AddEntityModal({ type, onConfirm, onClose }) {
 
   return (
     <div className="modal-backdrop" {...backdropProps}>
-      <div className="modal" style={{ maxWidth: 380 }} aria-labelledby={titleId} {...dialogProps}>
+      <div className="modal add-entity-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <span id={titleId} className="modal-title">New {label}</span>
           <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
@@ -89,7 +89,7 @@ function AddRuleModal({ onConfirm, onClose }) {
 
   return (
     <div className="modal-backdrop" {...backdropProps}>
-      <div className="modal" style={{ maxWidth: 460 }} aria-labelledby={titleId} {...dialogProps}>
+      <div className="modal add-rule-modal" aria-labelledby={titleId} {...dialogProps}>
         <div className="modal-header">
           <span id={titleId} className="modal-title">New World Rule</span>
           <button className="modal-close" aria-label="Close" onClick={onClose}>✕</button>
@@ -168,12 +168,28 @@ export default function CodexView() {
     const indicator = indicatorRef.current;
     if (!tabs || !indicator) return;
     const active = tabs.querySelector('.codex-tab.active');
-    if (!active) return;
+    // Hidden (an entry is open on a phone): nothing to measure, and the list measures again on return
+    if (!active || active.offsetWidth === 0) return;
     indicator.style.transition = tabMounted.current ? SLIDE : 'none';
     indicator.style.left = `${active.offsetLeft}px`;
     indicator.style.width = `${active.offsetWidth}px`;
     tabMounted.current = true;
-  }, [activeTab]);
+  }, [activeTab, selectedId, compact]);
+
+  // Below 1100px the tabs fill the screen, so their position follows its width (a rotation, a
+  // resized tablet window); on a desktop the column is a fixed 230px and this never moves anything
+  useEffect(() => {
+    function remeasure() {
+      const active = tabsRef.current?.querySelector('.codex-tab.active');
+      const indicator = indicatorRef.current;
+      if (!active || !indicator || active.offsetWidth === 0) return;
+      indicator.style.transition = 'none';
+      indicator.style.left = `${active.offsetLeft}px`;
+      indicator.style.width = `${active.offsetWidth}px`;
+    }
+    window.addEventListener('resize', remeasure);
+    return () => window.removeEventListener('resize', remeasure);
+  }, []);
 
   const fetchCodex = useCallback(async () => {
     if (!workId) return;
@@ -229,6 +245,8 @@ export default function CodexView() {
     try {
       const created = await api.post(`/works/${workId}/codex/rules`, { category, rule });
       setCodex((c) => ({ ...c, worldRules: [...(c?.worldRules || []), created] }));
+      // The new rule opens on a compact screen, which hides the list the modal returned focus to
+      if (compact) focusAfter.current = 'back';
       setSelectedId(created.id);
     } catch (err) {
       console.error('Add rule failed:', err);

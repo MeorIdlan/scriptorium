@@ -37,7 +37,7 @@ test('at 390px the top bar has a Catch button that opens the Catch panel', async
   const button = view.query('.topbar-catch');
   assert.ok(button, 'no Catch button in the top bar');
   assert.equal(button.getAttribute('aria-label'), 'Catch an idea');
-  assert.equal(view.query('.catch-overlay'), null);
+  assert.ok(view.query('.catch-overlay') === null);
   await click(button);
   assert.ok(view.query('.catch-overlay'), 'the panel did not open');
   await view.unmount();
@@ -51,7 +51,7 @@ test('at 800px (a tablet) the top bar has the Catch button', async () => {
 
 test('on a desktop with a mouse there is no Catch button, so its layout is unchanged', async () => {
   const view = await open(1280);
-  assert.equal(view.query('.topbar-catch'), null);
+  assert.ok(view.query('.topbar-catch') === null);
   await view.unmount();
 });
 
@@ -61,9 +61,10 @@ test('on a wide screen with a touch pointer the Catch button shows', async () =>
   await view.unmount();
 });
 
-test('the Catch button is there on a page with no work open', async () => {
+// A catch belongs to a work: with none open the sheet could only sit there and refuse to save
+test('there is no Catch button on a page with no work open', async () => {
   const view = await open(390, { path: '/' });
-  assert.ok(view.query('.topbar-catch'));
+  assert.ok(view.query('.topbar-catch') === null);
   await view.unmount();
 });
 

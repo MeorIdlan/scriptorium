@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createElement as h } from 'react';
-import { click, flush } from './support/render.js';
+import { click, flush, type } from './support/render.js';
 import { renderApp } from './support/app.js';
 import { setViewport, resetViewport } from './support/viewport.js';
 import { ruleIn } from './support/css.js';
@@ -41,7 +41,7 @@ const inDetail = (view) => root(view).classList.contains('codex-view--detail');
 test('at 390px picking an entry shows its detail with a Back button that has focus', async () => {
   const view = await open(390);
   assert.equal(inDetail(view), false);
-  assert.equal(view.query('.codex-back'), null);
+  assert.ok(view.query('.codex-back') === null);
   await click(view.button('Mara'));
   await flush();
   assert.equal(inDetail(view), true);
@@ -59,7 +59,7 @@ test('Back returns to the list and focus lands on the entry that was open', asyn
   await click(view.query('.codex-back'));
   await flush();
   assert.equal(inDetail(view), false);
-  assert.equal(view.query('.codex-back'), null);
+  assert.ok(view.query('.codex-back') === null);
   assert.equal(document.activeElement === view.button('Ilse'), true);
   await view.unmount();
 });
@@ -88,7 +88,7 @@ test('on a desktop the markup is unchanged: no Back button, no detail class', as
   await click(view.button('Mara'));
   await flush();
   assert.equal(root(view).className, 'codex-view');
-  assert.equal(view.query('.codex-back'), null);
+  assert.ok(view.query('.codex-back') === null);
   assert.ok(view.query('.codex-list-col') && view.query('.codex-detail-col') && view.query('.codex-flags-col'));
   await view.unmount();
 });
@@ -112,4 +112,39 @@ test('the Codex list rows, tabs and Back button are touch size below 1100px', ()
   assert.match(compact('.codex-entity-item'), /min-height:\s*44px/);
   assert.match(compact('.codex-tabs .codex-tab'), /min-height:\s*44px/);
   assert.match(compact('.codex-back'), /min-height:\s*44px/);
+});
+
+test('the tab indicator is measured again when the width changes', async () => {
+  const view = await open(390);
+  const active = view.query('.codex-tab.active');
+  Object.defineProperty(active, 'offsetLeft', { configurable: true, get: () => 100 });
+  Object.defineProperty(active, 'offsetWidth', { configurable: true, get: () => 120 });
+  window.dispatchEvent(new window.Event('resize'));
+  await flush();
+  const indicator = view.query('.codex-tab-indicator');
+  assert.equal(indicator.style.left, '100px');
+  assert.equal(indicator.style.width, '120px');
+  await view.unmount();
+});
+
+test('adding a rule on a phone opens it with focus on Back, not on a hidden button', async () => {
+  setViewport(390);
+  const view = await renderApp(h(CodexView), {
+    path: '/work/w1/codex',
+    route: '/work/:workId/codex',
+    routes: {
+      'GET /works/w1/codex': codex,
+      'POST /works/w1/codex/rules': (body) => ({ id: 'r1', flags: [], ...body }),
+    },
+  });
+  await flush();
+  await click(view.button('World Rules'));
+  await click(view.button('+ Add'));
+  await flush();
+  await type(view.query('textarea'), 'Lamps burn only for liars.');
+  await click(view.button('Add Rule'));
+  await flush();
+  assert.equal(inDetail(view), true);
+  assert.equal(document.activeElement === view.query('.codex-back'), true);
+  await view.unmount();
 });

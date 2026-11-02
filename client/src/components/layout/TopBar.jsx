@@ -16,7 +16,8 @@ export default function TopBar() {
   const { pathname } = useLocation();
 
   // Catch otherwise opens only with Ctrl/Cmd+Shift+I, so phones, tablets and touch screens get a
-  // button. A desktop with a mouse renders nothing here, so its layout is unchanged
+  // button, but only with a work open (below): a catch is saved into a work. A desktop with a mouse
+  // renders nothing here, so its layout is unchanged
   const catchButton =
     mode === 'desktop' && !coarse ? null : (
       <button
@@ -64,8 +65,6 @@ export default function TopBar() {
       <div className="topbar">
         {menuButton}
         <span className="topbar-brand">Scriptorium</span>
-        {catchButton && <div className="topbar-spacer" />}
-        {catchButton}
       </div>
     );
   }

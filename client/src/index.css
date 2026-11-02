@@ -2414,6 +2414,10 @@ input[type="range"] {
   color: var(--text-dim);
 }
 
+/* The two Add modals; their widths used to be inline, which the phone rule couldn't override */
+.add-entity-modal { max-width: 380px; }
+.add-rule-modal { max-width: 460px; }
+
 .codex-detail-col {
   flex: 1;
   overflow-y: auto;
@@ -4197,6 +4201,7 @@ button.rule-item {
   .modal-backdrop .modal {
     width: 100%;
     max-width: none;
+    height: 100vh;
     height: 100dvh;
     max-height: none;
     border-radius: 0;

@@ -8,9 +8,18 @@ export default function TensionCurve({ chapters }) {
     );
   }
 
-  const WIDTH = 900;
+  // Up to a dozen chapters the curve keeps its 900-unit drawing, stretched over the card. Beyond
+  // that the Map scrolls sideways (.map-timeline), and the drawing is made 1:1 with the chapter
+  // blocks under it: 74px a chapter, the first block's centre 42px in, so each dot sits over its
+  // block and nothing is stretched. The SVG is as wide as its box: 74n + 10 pixels.
+  const BLOCK_STEP = 74;
+  const SIDE = 42;
+  const scrolls = chapters.length * BLOCK_STEP + 10 > 900;
+  const WIDTH = scrolls ? chapters.length * BLOCK_STEP + 10 : 900;
   const HEIGHT = 120;
-  const PADDING = { top: 12, bottom: 20, left: 24, right: 24 };
+  const PADDING = scrolls
+    ? { top: 12, bottom: 20, left: SIDE, right: SIDE }
+    : { top: 12, bottom: 20, left: 24, right: 24 };
 
   const plotWidth = WIDTH - PADDING.left - PADDING.right;
   const plotHeight = HEIGHT - PADDING.top - PADDING.bottom;

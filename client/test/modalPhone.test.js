@@ -17,7 +17,8 @@ test('on a phone a modal fills the screen', () => {
   const modal = phone('.modal-backdrop .modal');
   assert.match(modal, /width:\s*100%/);
   assert.match(modal, /max-width:\s*none/);
-  assert.match(modal, /height:\s*100dvh/);
+  // 100vh first, for browsers without dvh (iOS before 15.4), which would drop the whole declaration
+  assert.match(modal, /height:\s*100vh;[^}]*height:\s*100dvh/);
   assert.match(modal, /max-height:\s*none/);
   assert.match(modal, /border-radius:\s*0\b/);
 });
@@ -62,4 +63,12 @@ test('the phone modal rules sit before the Drawers block, which stays last', () 
   const drawers = raw.indexOf('   Drawers\n');
   assert.ok(at > 0, 'phone modal rule is missing');
   assert.ok(at < drawers, 'phone modal rules must come before the Drawers block');
+});
+
+test('no modal sets its width inline, where it would beat the phone rule', () => {
+  const src = readFileSync(join(here, '..', 'src', 'pages', 'CodexView.jsx'), 'utf8');
+  assert.ok(!/className="modal"\s+style=\{\{/.test(src), 'a modal carries an inline style');
+  const base = css.replace(/@media[^{]+\{(?:[^{}]|\{[^{}]*\})*\}/g, '');
+  assert.match(base, /\.add-entity-modal \{[^}]*max-width:\s*380px/);
+  assert.match(base, /\.add-rule-modal \{[^}]*max-width:\s*460px/);
 });
